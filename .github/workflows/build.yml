@@ -1,0 +1,50 @@
+name: Build Micropython
+on: [push]
+jobs:
+  Build-Firmware:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential python3-pip libusb-1.0-0-dev cmake
+      - name: Check out driver code
+        uses: actions/checkout@v2
+      - name: Check out micropython code
+        uses: actions/checkout@v2
+        with:
+          repository: micropython/micropython
+          path: micropython
+      - name: Check out ESP IDF
+        uses: actions/checkout@v2
+        with:
+          repository: espressif/esp-idf
+          ref: v4.4
+          path: esp-idf
+          submodules: true
+      - name: Install SDK
+        run: |
+          cd esp-idf
+          ./install.sh
+          source export.sh
+      - name: Build cross compiler
+        run: |
+          source esp-idf/export.sh
+          cd micropython
+          make -C mpy-cross
+      - name: Link board definition
+        run: |
+          source esp-idf/export.sh
+          cd micropython/ports/esp32/boards
+          ln -s ../../../../YKW ./YKW
+      - name: Build firmware
+        run: |
+          source esp-idf/export.sh
+          cd micropython/ports/esp32
+          make submodules BOARD=YKW USER_C_MODULES=$GITHUB_WORKSPACE/drivers/micropython.cmake
+          make BOARD=YKW USER_C_MODULES=$GITHUB_WORKSPACE/drivers/micropython.cmake
+      - name: Archive firmware
+        uses: actions/upload-artifact@v3
+        with:
+          name: firmware
+          path: micropython/ports/esp32/build-YKW/
