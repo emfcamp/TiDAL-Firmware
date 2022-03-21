@@ -47,4 +47,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: firmware
-          path: micropython/ports/esp32/build-YKW/
+          path: |
+            micropython/ports/esp32/build-YKW/micropython.bin
+            micropython/ports/esp32/build-YKW/bootloader/bootloader.bin
+            micropython/ports/esp32/build-YKW/partition_table/partition-table.bin
