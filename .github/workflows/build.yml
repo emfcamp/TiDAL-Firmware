@@ -1,5 +1,5 @@
 name: Build Micropython
-on: [push]
+on: [pull_request]
 jobs:
   Build-Firmware:
     runs-on: ubuntu-latest
@@ -10,11 +10,8 @@ jobs:
           sudo apt-get install -y build-essential python3-pip libusb-1.0-0-dev cmake
       - name: Check out driver code
         uses: actions/checkout@v2
-      - name: Check out micropython code
-        uses: actions/checkout@v2
         with:
-          repository: micropython/micropython
-          path: micropython
+          submodules: true
       - name: Check out ESP IDF
         uses: actions/checkout@v2
         with:
@@ -36,7 +33,7 @@ jobs:
         run: |
           source esp-idf/export.sh
           cd micropython/ports/esp32/boards
-          ln -s ../../../../YKW ./YKW
+          ln -sfn ../../../../YKW ./YKW
       - name: Build firmware
         run: |
           source esp-idf/export.sh
