@@ -1,6 +1,6 @@
-# YKW
+# TiLDA mk6
 
-This is a package containing a micropython board definition and additional driver modules for _you know what_.
+This is a package containing a micropython board definition and additional driver modules for the EMF 2022 badge.
 
 ## Building using Docker
 
@@ -17,7 +17,7 @@ At this stage, you can run the image, mounting the current working directory as 
 
     docker run -it -v "$(pwd)"/:/firmware esp_idf:4.4 
 
-This will leave the firmware build context in `./micropython/ports/esp32/build-YKW` and output the flashing command. Only the three .bin files referenced are important.
+This will leave the firmware build context in `./micropython/ports/esp32/build-tildamk6` and output the flashing command. Only the three .bin files referenced are important.
 
 However, if you have the device plugged into the machine running the docker container you can skip straight to a flash, just mount the device and add the deploy argument when running:
 
@@ -31,7 +31,7 @@ The ESP32S3 devboard offers the REPL on the USB port, not the UART port. You nee
 
 ## Adding drivers and configuration
 
-The contents of the drivers directory are added as drivers into the firmware build. The board details are in YKW.
+The contents of the drivers directory are added as drivers into the firmware build. The board details are in tildamk6.
 
 ## Building on GitHub
 

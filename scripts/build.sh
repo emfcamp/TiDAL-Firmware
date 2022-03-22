@@ -8,8 +8,8 @@ cd micropython
 make -C mpy-cross
 
 cd ports/esp32/boards
-ln -sfn /firmware/YKW ./YKW
+ln -sfn /firmware/tildamk6 ./tildamk6
 
 cd ..
-make submodules BOARD=YKW USER_C_MODULES=/firmware/drivers/micropython.cmake
-make BOARD=YKW USER_C_MODULES=/firmware/drivers/micropython.cmake $@
+make submodules BOARD=tildamk6 USER_C_MODULES=/firmware/drivers/micropython.cmake
+make BOARD=tildamk6 USER_C_MODULES=/firmware/drivers/micropython.cmake $@
