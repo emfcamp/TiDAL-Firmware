@@ -33,18 +33,18 @@ jobs:
         run: |
           source esp-idf/export.sh
           cd micropython/ports/esp32/boards
-          ln -sfn ../../../../YKW ./YKW
+          ln -sfn ../../../../tildamk6 ./tildamk6
       - name: Build firmware
         run: |
           source esp-idf/export.sh
           cd micropython/ports/esp32
-          make submodules BOARD=YKW USER_C_MODULES=$GITHUB_WORKSPACE/drivers/micropython.cmake
-          make BOARD=YKW USER_C_MODULES=$GITHUB_WORKSPACE/drivers/micropython.cmake
+          make submodules BOARD=tildamk6 USER_C_MODULES=$GITHUB_WORKSPACE/drivers/micropython.cmake
+          make BOARD=tildamk6 USER_C_MODULES=$GITHUB_WORKSPACE/drivers/micropython.cmake
       - name: Archive firmware
         uses: actions/upload-artifact@v3
         with:
           name: firmware
           path: |
-            micropython/ports/esp32/build-YKW/micropython.bin
-            micropython/ports/esp32/build-YKW/bootloader/bootloader.bin
-            micropython/ports/esp32/build-YKW/partition_table/partition-table.bin
+            micropython/ports/esp32/build-tildamk6/micropython.bin
+            micropython/ports/esp32/build-tildamk6/bootloader/bootloader.bin
+            micropython/ports/esp32/build-tildamk6/partition_table/partition-table.bin
