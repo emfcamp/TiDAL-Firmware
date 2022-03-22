@@ -10,7 +10,7 @@ TODO: Can we pre-build this and distribute this, given the licence?
 
 Then, you'll need to check out this repo and its submodules.
 
-    git clone --recurse-submodules git@github.com:wherever/this_is
+    git clone --recurse-submodules git@github.com:emfcamp/Mk6-micropython-board
     docker build . -t esp_idf:4.4
 
 At this stage, you can run the image, mounting the current working directory as the firmware targer
