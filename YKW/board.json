@@ -11,7 +11,7 @@
         "generic_s3.jpg"
     ],
     "mcu": "esp32s3",
-    "product": "You know what",
+    "product": "Generic ESP32-S3 (SPIRAM)",
     "thumbnail": "",
     "url": "https://www.espressif.com/en/products/modules",
     "vendor": "Espressif"
