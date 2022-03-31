@@ -14,6 +14,11 @@ Then, you'll need to check out this repo and its submodules.
     cd Mk6-micropython-board
     docker build . -t esp_idf:4.4
 
+If you forget the --recurse-submodules during the clone, then init post clone with:
+
+    git submodule init
+    git submodule update --recursive
+
 *Note:* There are currently some patcdirhes required to fix USB:
 
     cd micropython
