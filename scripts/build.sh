@@ -2,6 +2,7 @@
 set -e -o pipefail
 
 source /esp-idf/export.sh
+export IOT_SOLUTION_PATH=/firmware/esp-iot-solution
 
 cd /firmware
 cd micropython

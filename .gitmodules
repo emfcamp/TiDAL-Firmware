@@ -1,3 +1,6 @@
 [submodule "micropython"]
 	path = micropython
 	url = https://github.com/micropython/micropython.git
+[submodule "esp-iot-solution"]
+	path = esp-iot-solution
+	url = https://github.com/espressif/esp-iot-solution

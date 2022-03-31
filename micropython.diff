@@ -1,0 +1,15 @@
+diff --git a/ports/esp32/CMakeLists.txt b/ports/esp32/CMakeLists.txt
+index 8b2f09a72..09fe0188b 100644
+--- a/ports/esp32/CMakeLists.txt
++++ b/ports/esp32/CMakeLists.txt
+@@ -18,6 +18,10 @@ if(NOT EXISTS ${MICROPY_BOARD_DIR}/mpconfigboard.cmake)
+     message(FATAL_ERROR "Invalid MICROPY_BOARD specified: ${MICROPY_BOARD}")
+ endif()
+ 
++
++set(IDF_TARGET esp32s3)
++include(/firmware/esp-iot-solution/component.cmake)
++
+ # Include main IDF cmake file.
+ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+ 

@@ -11,17 +11,33 @@ TODO: Can we pre-build this and distribute this, given the licence?
 Then, you'll need to check out this repo and its submodules.
 
     git clone --recurse-submodules git@github.com:emfcamp/Mk6-micropython-board
+    cd Mk6-micropython-board
     docker build . -t esp_idf:4.4
+
+*Note:* There are currently some patches required to fix USB:
+
+    cd micropython
+    git apply ../micropython.diff
+    cd ../esp-iot-solution
+    git apply ../esp-iot-solution.diff
+    cd ..
 
 At this stage, you can run the image, mounting the current working directory as the firmware targer
 
-    docker run -it -v "$(pwd)"/:/firmware esp_idf:4.4 
+    docker run -it -v "$(pwd)"/:/firmware esp_idf:4.4 IOT_SOLUTION_PATH=/firmware/esp-iot-solution TARGET=esp32s3
 
 This will leave the firmware build context in `./micropython/ports/esp32/build-tildamk6` and output the flashing command. Only the three .bin files referenced are important.
 
 However, if you have the device plugged into the machine running the docker container you can skip straight to a flash, just mount the device and add the deploy argument when running:
 
-    docker run -it --device /dev/ttyUSB0 -v "$(pwd)"/:/firmware esp_idf:4.4 deploy
+    docker run -it --device /dev/ttyUSB0 -v "$(pwd)"/:/firmware esp_idf:4.4 IOT_SOLUTION_PATH=/firmware/esp-iot-solution TARGET=esp32s3 deploy
+
+
+### Problems
+
+You might need to force download mode on the board. If your serial port is on a different name then map that with docker:
+
+    docker run -it --device /dev/ttyACM0:/dev/ttyUSB0 -v "$(pwd)"/:/firmware upydrivers IOT_SOLUTION_PATH=/firmware/esp-iot-solution TARGET=esp32s3 deploy
 
 ## Accessing the REPL
 
