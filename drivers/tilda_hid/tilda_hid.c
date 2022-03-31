@@ -11,6 +11,13 @@
 #include "sdkconfig.h"
 
 
+// Prevent the HID driver automatically reporting no buttons pressed after each
+// report, so buttons are considered held until they're explicitly released
+void tud_hid_report_complete_cb(uint8_t itf, uint8_t const *report, uint8_t len)
+{
+    // no-op
+}
+
 
 void tinyusb_hid_gamepad_report(int8_t x, int8_t y, int8_t z, int8_t rz, int8_t rx, int8_t ry, uint8_t hat, uint32_t buttons)
 {
@@ -34,18 +41,21 @@ void tinyusb_hid_gamepad_report(int8_t x, int8_t y, int8_t z, int8_t rz, int8_t 
 
 
 // This is the function which will be called from Python as tilda_hid.send_key(key).
-STATIC mp_obj_t example_send_key(mp_obj_t key_obj) {
+STATIC mp_obj_t example_send_key(size_t n_args, const mp_obj_t *args) {
     // Extract the ints from the micropython input objects.
     uint8_t key[6] = { 0 };
+    
+    for (uint8_t i=0; i<n_args; i++) {
+        key[i] = mp_obj_get_int_truncated(args[i]);
+    }
 
-    key[0] = mp_obj_get_int(key_obj);
     tinyusb_hid_keyboard_report(key);
 
     // Calculate the addition and convert to MicroPython object.
     return mp_const_none;
 }
 // Define a Python reference to the function above.
-STATIC MP_DEFINE_CONST_FUN_OBJ_1(example_send_key_obj, example_send_key);
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(example_send_key_obj, 0, 6, example_send_key);
 
 
 // This is the function which will be called from Python as tilda_hid.move_mouse(x, y).

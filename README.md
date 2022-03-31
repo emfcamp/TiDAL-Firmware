@@ -79,19 +79,9 @@ Sending a keyboard key:
     Type "help()" for more information.
     >>> import tilda_hid
     >>> tilda_hid.set_usb_mode()
-    >>> tilda_hid.send_key(2)
-    Guru Meditation Error: Core  1 panic'ed (LoadProhibited). Exception was unhandled.
-
-    Core  1 register dump:
-    PC      : 0x4200809d  PS      : 0x00060d30  A0      : 0x82002068  A1      : 0x3fce4980  
-    A2      : 0x00000002  A3      : 0x00000000  A4      : 0x00000001  A5      : 0x3d82f510  
-    A6      : 0x3d82f460  A7      : 0x000000fa  A8      : 0x8200809b  A9      : 0x3fce4960  
-    A10     : 0x00000001  A11     : 0x00000000  A12     : 0x00000000  A13     : 0x00000000  
-    A14     : 0x0000003f  A15     : 0x00000005  SAR     : 0x0000001a  EXCCAUSE: 0x0000001c  
-    EXCVADDR: 0x00000002  LBEG    : 0x400570e8  LEND    : 0x400570f3  LCOUNT  : 0x00000000  
-
-
-    Backtrace:0x4200809a:0x3fce49800x42002065:0x3fce49b0 0x4200b79d:0x3fce49f0 0x42011d19:0x3fce4a10 0x42011e2d:0x3fce4a30 0x403783b5:0x3fce4a50 0x4200b8b0:0x3fce4af0 0x42011d19:0x3fce4b50 0x42011d42:0x3fce4b70 0x4203da16:0x3fce4b90 0x4203dd48:0x3fce4c20 0x420210cc:0x3fce4c60 
+    >>> tilda_hid.send_key(0x58)
+    >>> 
+    >>> 
 
 
 Moving the mouse:
@@ -102,4 +92,16 @@ Moving the mouse:
     >>> import tilda_hid
     >>> tilda_hid.set_usb_mode()
     >>> tilda_hid.move_mouse(100,100)
+
+
+### Keyboard busy-loop
+
+This function will run a busy-loop that sends keyboard reports as quickly as possible, representing the state of the buttons on the picolcd 1.14, using the pin definitions from the tilda board.
+
+This can be used as a simple controller for installations. At a later point we'll switch this to an interrupt-based approach, most likely.
+
+    >>> import tilda_hid
+    >>> tilda_hid.joystick_active()
+
+To cancel this use ctrl+c or reset the board.
 
