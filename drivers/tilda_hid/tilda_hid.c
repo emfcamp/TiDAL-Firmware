@@ -30,8 +30,26 @@ void tinyusb_hid_gamepad_report(int8_t x, int8_t y, int8_t z, int8_t rz, int8_t 
     }
 }
 
-// This is the function which will be called from Python as cexample.add_ints(a, b).
-STATIC mp_obj_t example_add_ints(mp_obj_t a_obj, mp_obj_t b_obj) {
+
+
+
+// This is the function which will be called from Python as tilda_hid.send_key(key).
+STATIC mp_obj_t example_send_key(mp_obj_t key_obj) {
+    // Extract the ints from the micropython input objects.
+    int key = mp_obj_get_int(key_obj);
+    
+    
+    tinyusb_hid_keyboard_report(key);
+
+    // Calculate the addition and convert to MicroPython object.
+    return mp_const_none;
+}
+// Define a Python reference to the function above.
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(example_send_key_obj, example_send_key);
+
+
+// This is the function which will be called from Python as tilda_hid.move_mouse(x, y).
+STATIC mp_obj_t example_move_mouse(mp_obj_t a_obj, mp_obj_t b_obj) {
     // Extract the ints from the micropython input objects.
     int a = mp_obj_get_int(a_obj);
     int b = mp_obj_get_int(b_obj);
@@ -40,10 +58,10 @@ STATIC mp_obj_t example_add_ints(mp_obj_t a_obj, mp_obj_t b_obj) {
     tinyusb_hid_mouse_move_report(a, b, 0, 0);
 
     // Calculate the addition and convert to MicroPython object.
-    return mp_obj_new_int(a + b);
+    return mp_const_none;
 }
 // Define a Python reference to the function above.
-STATIC MP_DEFINE_CONST_FUN_OBJ_2(example_add_ints_obj, example_add_ints);
+STATIC MP_DEFINE_CONST_FUN_OBJ_2(example_move_mouse_obj, example_move_mouse);
 
 STATIC mp_obj_t example_set_usb_mode() {
     
@@ -80,7 +98,8 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_0(example_set_usb_mode_obj, example_set_usb_mode)
 // optimized to word-sized integers by the build system (interned strings).
 STATIC const mp_rom_map_elem_t example_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_tilda_hid) },
-    { MP_ROM_QSTR(MP_QSTR_add_ints), MP_ROM_PTR(&example_add_ints_obj) },
+    { MP_ROM_QSTR(MP_QSTR_send_key), MP_ROM_PTR(&example_send_key_obj) },
+    { MP_ROM_QSTR(MP_QSTR_move_mouse), MP_ROM_PTR(&example_move_mouse_obj) },
     { MP_ROM_QSTR(MP_QSTR_set_usb_mode), MP_ROM_PTR(&example_set_usb_mode_obj) },
 };
 STATIC MP_DEFINE_CONST_DICT(example_module_globals, example_module_globals_table);
