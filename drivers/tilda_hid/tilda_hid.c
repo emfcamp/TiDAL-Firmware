@@ -36,9 +36,9 @@ void tinyusb_hid_gamepad_report(int8_t x, int8_t y, int8_t z, int8_t rz, int8_t 
 // This is the function which will be called from Python as tilda_hid.send_key(key).
 STATIC mp_obj_t example_send_key(mp_obj_t key_obj) {
     // Extract the ints from the micropython input objects.
-    int key = mp_obj_get_int(key_obj);
-    
-    
+    uint8_t key[6] = { 0 };
+
+    key[0] = mp_obj_get_int(key_obj);
     tinyusb_hid_keyboard_report(key);
 
     // Calculate the addition and convert to MicroPython object.
