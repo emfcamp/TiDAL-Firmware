@@ -30,6 +30,9 @@ print just the buttons
 >>>    tiime.sleep_ms(250)
 ```
 
+The buttons are all active low, so will read '0' when they are pressed.
+BTN2 does not need a pull up set as this is already on the board and any pull up may interfere with the power supply circuit.
+
 # References
 
 - https://docs.micropython.org/en/latest/esp32/quickref.html
