@@ -1,5 +1,10 @@
 # General GPIO testing
 
+Note, all these assume the Pin module has already been imported with
+```
+>>> from machine import Pin
+```
+
 ## General GPIO
 
 These lines go to the top board and to the edge conenctor on the bottom:
@@ -49,6 +54,23 @@ to power on the backlight:
 to power off the backlight:
 ```
 >>> lcd_blen.on();
+```
+
+## Charge detect
+
+the charge detect line comes from the battery charger and is 0 for charging and 1 for not.
+
+```
+>>> charge_det = Pin(26, Pin.IN, Pin.PULL_UP)
+>>> charge_det.value()
+```
+
+## Auth wakeup
+
+```
+>>> auth_wake = Pin(21, Pin.OUT)
+>>> auth_wake.on()
+>>> auth_wake.off))
 ```
 
 
