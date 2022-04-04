@@ -19,7 +19,7 @@ simple print the button status in a loop:
 >>> import time
 >>> while True:
 >>>    print("U", up.value(), "D", down.value(), "L", left.value(), "R", right.value(), "C", centre.value(), "B3", btn3.value());
-time.sleep_ms(250)
+>>>    time.sleep_ms(250)
 '''
 
 print just the buttons
@@ -27,7 +27,7 @@ print just the buttons
 >>> import time
 >>> while True:
 >>>    print("BTNS {} {} {}".format(btn1.value(), btn2.value(), btn3.value()));
->>>    tiime.sleep_ms(250)
+>>>    time.sleep_ms(250)
 ```
 
 The buttons are all active low, so will read '0' when they are pressed.
