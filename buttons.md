@@ -10,6 +10,8 @@ Initialise some pin objects to use:
 >>> right = Pin(7, Pin.IN, Pin.PULL_UP)
 >>> centre = Pin(9, Pin.IN, Pin.PULL_UP)
 >>> btn3 = Pin(6, Pin.IN, Pin.PULL_UP)
+>>> btn2 = Pin(2, Pin.IN)
+>>> btn1 = Pin(1, Pin.IN, Pin.PULL_UP)
 ```
 
 simple print the button status in a loop:
@@ -20,6 +22,15 @@ simple print the button status in a loop:
 time.sleep_ms(250)
 '''
 
+print just the buttons
+```
+>>> import time
+>>> while True:
+>>>    print("BTNS {} {} {}".format(btn1.value(), btn2.value(), btn3.value()));
+>>>    tiime.sleep_ms(250)
+```
+
 # References
 
 - https://docs.micropython.org/en/latest/esp32/quickref.html
+
