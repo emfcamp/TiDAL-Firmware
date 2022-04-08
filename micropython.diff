@@ -8,7 +8,7 @@ index 8b2f09a72..09fe0188b 100644
  
 +
 +set(IDF_TARGET esp32s3)
-+include(/firmware/esp-iot-solution/component.cmake)
++include($ENV{IOT_SOLUTION_PATH}/component.cmake)
 +
  # Include main IDF cmake file.
  include($ENV{IDF_PATH}/tools/cmake/project.cmake)
