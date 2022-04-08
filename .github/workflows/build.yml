@@ -44,9 +44,10 @@ jobs:
       - name: Build firmware
         run: |
           source esp-idf/export.sh
+          ln -sfn $GITHUB_WORKSPACE/tildamk6 ports/esp32/boards/tildamk6
           cd micropython/ports/esp32
-          make submodules BOARD=tildamk6 USER_C_MODULES=$GITHUB_WORKSPACE/drivers/micropython.cmake
-          make BOARD=tildamk6 USER_C_MODULES=$GITHUB_WORKSPACE/drivers/micropython.cmake
+          make submodules BOARD=tildamk6 USER_C_MODULES=$GITHUB_WORKSPACE/drivers/micropython.cmake IOT_SOLUTION_PATH=$GITHUB_WORKSPACE/esp-iot-solution TARGET=esp32s3
+          make BOARD=tildamk6 USER_C_MODULES=$GITHUB_WORKSPACE/drivers/micropython.cmake $@ IOT_SOLUTION_PATH=$GITHUB_WORKSPACE/esp-iot-solution TARGET=esp32s3
       - name: Archive firmware
         uses: actions/upload-artifact@v3
         with:
