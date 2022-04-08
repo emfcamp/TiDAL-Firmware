@@ -93,15 +93,18 @@ STATIC mp_obj_t example_set_usb_mode() {
     tinyusb_driver_install(&tusb_cfg);
     
     
-    tinyusb_config_cdcacm_t amc_cfg = { 0 }; // the configuration uses default values
-    ESP_ERROR_CHECK(tusb_cdc_acm_init(&amc_cfg));
-    
+    tinyusb_config_cdcacm_t amc_cfg = {
+        .usb_dev = TINYUSB_USBDEV_0,
+        .cdc_port = TINYUSB_CDC_ACM_0,
+        .rx_unread_buf_sz = 64,
+        .callback_rx = NULL,
+        .callback_rx_wanted_char = NULL,
+        .callback_line_state_changed = NULL,
+        .callback_line_coding_changed = NULL
+    };
+    tusb_cdc_acm_init(&amc_cfg);    
     esp_tusb_init_console(TINYUSB_CDC_ACM_0);
-    //ESP_LOGI(TAG, "USB initialization DONE");
-    
-    //RTC_CNTL_SW_HW_USB_PHY_SEL_CFG = 1
-    //RTC_CNTL_SW_USB_PHY_SEL_CFG
-    
+
     return mp_const_none; 
 }
 
