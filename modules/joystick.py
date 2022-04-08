@@ -1,5 +1,6 @@
 from tilda_hid import set_usb_mode, send_key
 from machine import Pin
+import time
 
 
 HID_KEY_A                         = 0x04
@@ -43,3 +44,7 @@ def joystick_active():
         # Allow a maximum of 6 scancodes
         pressed = pressed[:6]
         send_key(*pressed)
+        
+        # Don't peg the CPU with this silly demo
+        time.sleep(0.1)
+        
