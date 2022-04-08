@@ -1,3 +1,4 @@
+import _thread
 import joystick
 
-joystick.joystick_active()
+_thread.start_new_thread(joystick.joystick_active, ())
