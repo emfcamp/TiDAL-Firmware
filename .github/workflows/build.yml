@@ -24,6 +24,9 @@ jobs:
           cd esp-idf
           ./install.sh
           source export.sh
+      - name: Patch submodule dependencies
+        run: |
+          ./scripts/firstTime.sh
       - name: Build cross compiler
         run: |
           source esp-idf/export.sh
