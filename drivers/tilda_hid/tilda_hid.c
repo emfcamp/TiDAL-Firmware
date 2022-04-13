@@ -1,16 +1,64 @@
 // Include MicroPython API.
 #include "py/runtime.h"
 #include "soc/rtc.h"
+#include <unistd.h>
 #include "soc/rtc_cntl_reg.h"
 #include "tinyusb.h"
 #include "tusb_hid.h"
 #include "esp_log.h"
 #include "descriptors_control.h"
+#include "py/runtime.h"
+#include "py/mphal.h"
 #include "tusb_console.h"
 #include "tusb_cdc_acm.h"
 #include "tinyusb.h"
+#include "usb.h"
 #include "sdkconfig.h"
 
+
+
+// USB serial read callbacks from mp
+static uint8_t usb_rx_buf[CONFIG_TINYUSB_CDC_RX_BUFSIZE];
+static uint8_t usb_cdc_connected;
+
+static void usb_callback_rx(int itf, cdcacm_event_t *event) {
+    // TODO: what happens if more chars come in during this function, are they lost?
+    for (;;) {
+        size_t len = 0;
+        esp_err_t ret = tinyusb_cdcacm_read(itf, usb_rx_buf, sizeof(usb_rx_buf), &len);
+        if (ret != ESP_OK) {
+            break;
+        }
+        if (len == 0) {
+            break;
+        }
+        for (size_t i = 0; i < len; ++i) {
+            if (usb_rx_buf[i] == mp_interrupt_char) {
+                mp_sched_keyboard_interrupt();
+            } else {
+                ringbuf_put(&stdin_ringbuf, usb_rx_buf[i]);
+            }
+        }
+    }
+}
+
+void usb_callback_line_state_changed(int itf, cdcacm_event_t *event) {
+    int dtr = event->line_state_changed_data.dtr;
+    int rts = event->line_state_changed_data.rts;
+    // If dtr && rts are both true, the CDC is connected to a HOST.
+    usb_cdc_connected = dtr && rts;
+}
+
+
+void usb_tx_strn(const char *str, size_t len) {
+    // Write out the data to the CDC interface, but only while the USB host is connected.
+    while (usb_cdc_connected && len) {
+        size_t l = tinyusb_cdcacm_write_queue(TINYUSB_CDC_ACM_0, (uint8_t *)str, len);
+        str += l;
+        len -= l;
+        tud_cdc_n_write_flush(TINYUSB_CDC_ACM_0);
+    }
+}
 
 // Prevent the HID driver automatically reporting no buttons pressed after each
 // report, so buttons are considered held until they're explicitly released
@@ -37,8 +85,6 @@ void tinyusb_hid_gamepad_report(int8_t x, int8_t y, int8_t z, int8_t rz, int8_t 
         tud_hid_n_gamepad_report(0, 4, x, y, z, rz, rx, ry, hat, buttons);
     }
 }
-
-
 
 
 // This is the function which will be called from Python as tilda_hid.send_key(key).
@@ -96,14 +142,14 @@ STATIC mp_obj_t example_set_usb_mode() {
     tinyusb_config_cdcacm_t amc_cfg = {
         .usb_dev = TINYUSB_USBDEV_0,
         .cdc_port = TINYUSB_CDC_ACM_0,
-        .rx_unread_buf_sz = 64,
-        .callback_rx = NULL,
+        .rx_unread_buf_sz = 256,
+        .callback_rx = &usb_callback_rx,
         .callback_rx_wanted_char = NULL,
-        .callback_line_state_changed = NULL,
+        .callback_line_state_changed = &usb_callback_line_state_changed,
         .callback_line_coding_changed = NULL
     };
     tusb_cdc_acm_init(&amc_cfg);    
-    esp_tusb_init_console(TINYUSB_CDC_ACM_0);
+    //esp_tusb_init_console(TINYUSB_CDC_ACM_0);
 
     return mp_const_none; 
 }
