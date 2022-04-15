@@ -1,5 +1,5 @@
 from tilda_hid import set_usb_mode, send_key
-from machine import Pin
+from tidal import BUTTON_A, BUTTON_B, JOY_UP, JOY_DOWN, JOY_LEFT, JOY_RIGHT, JOY_CENTRE
 import time
 
 
@@ -10,15 +10,6 @@ HID_KEY_ARROW_LEFT                = 0x50
 HID_KEY_ARROW_DOWN                = 0x51
 HID_KEY_ARROW_UP                  = 0x52
 HID_KEY_ENTER                     = 0x28
-
-
-BUTTON_A = Pin(2, Pin.IN, Pin.PULL_UP)
-BUTTON_B = Pin(1, Pin.IN, Pin.PULL_UP)
-JOY_UP = Pin(15, Pin.IN, Pin.PULL_UP)
-JOY_DOWN = Pin(16, Pin.IN, Pin.PULL_UP)
-JOY_LEFT = Pin(8, Pin.IN, Pin.PULL_UP)
-JOY_RIGHT = Pin(7, Pin.IN, Pin.PULL_UP)
-JOY_CENTRE = Pin(9, Pin.IN, Pin.PULL_UP)
 
 
 def joystick_active():
