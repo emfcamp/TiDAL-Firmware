@@ -98,8 +98,8 @@ b'2'
 do a basic initialisation, as per the datasheet
 
 ```
->>> i2c.writeto_mem(44, 0xb, '\x0f`)
->>> i2c.writeto_mem(44, 0x9, '\x3d')
+>>> i2c.writeto_mem(44, 0xb, b'\x0f')
+>>> i2c.writeto_mem(44, 0x9, b'\x3d')
 ```
 
 read all the data registers
