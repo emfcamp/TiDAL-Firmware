@@ -11,18 +11,21 @@ void tud_hid_report_complete_cb(uint8_t itf, uint8_t const *report, uint8_t len)
     // no-op
 }
 
-// Send up to 6 keyboard scancodes.
+// Send up to 6 keyboard scancodes
 STATIC mp_obj_t tidal_hid_send_key(size_t n_args, const mp_obj_t *args) {
-    // Extract the ints from the micropython input objects.
+    // The default report if no keys are provided is all NULL (no key pressed)
     uint8_t key[6] = { 0 };
-    
+
+    // Extract the ints from the micropython input objects.
+    // The number of args is limited by the function definition
     for (uint8_t i=0; i<n_args; i++) {
         key[i] = mp_obj_get_int_truncated(args[i]);
     }
 
+    // Send the USB report
     tinyusb_hid_keyboard_report(key);
 
-    // Calculate the addition and convert to MicroPython object.
+    // Return None
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(tidal_hid_send_key_obj, 0, 6, tidal_hid_send_key);
@@ -33,11 +36,11 @@ STATIC mp_obj_t tidal_hid_move_mouse(mp_obj_t a_obj, mp_obj_t b_obj) {
     // Extract the ints from the micropython input objects.
     int a = mp_obj_get_int(a_obj);
     int b = mp_obj_get_int(b_obj);
-    
-    
+
+    // Send the USB report
     tinyusb_hid_mouse_move_report(a, b, 0, 0);
 
-    // Calculate the addition and convert to MicroPython object.
+    // Return None
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(tidal_hid_move_mouse_obj, tidal_hid_move_mouse);
