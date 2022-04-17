@@ -32,6 +32,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_0(tidal_usb_initialize_obj, tidal_usb_initialize)
 STATIC const mp_rom_map_elem_t tidal_usb_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR__tidal_usb) },
     { MP_ROM_QSTR(MP_QSTR_hid), MP_ROM_PTR(&tidal_hid_module) },
+    { MP_ROM_QSTR(MP_QSTR_console), MP_ROM_PTR(&tidal_console_module) },
     { MP_ROM_QSTR(MP_QSTR_initialize), MP_ROM_PTR(&tidal_usb_initialize_obj) },
 };
 STATIC MP_DEFINE_CONST_DICT(tidal_usb_module_globals, tidal_usb_module_globals_table);

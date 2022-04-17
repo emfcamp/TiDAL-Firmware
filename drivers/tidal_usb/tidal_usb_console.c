@@ -63,3 +63,28 @@ void tidal_configure_usb_console() {
     };
     tusb_cdc_acm_init(&amc_cfg);    
 }
+
+
+// Expose connected state in Python
+STATIC mp_obj_t tidal_cdc_connected() {
+    if (usb_cdc_connected)
+        return mp_const_true;
+    else
+        return mp_const_false;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(tidal_cdc_connected_obj, tidal_cdc_connected);
+
+// --------------------------------------------------------------------------- //
+
+// Define the module globals table
+STATIC const mp_rom_map_elem_t tidal_console_module_globals_table[] = {
+    { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_tilda_usb_console) },
+    { MP_ROM_QSTR(MP_QSTR_cdc_connected), MP_ROM_PTR(&tidal_cdc_connected_obj) },
+};
+STATIC MP_DEFINE_CONST_DICT(tidal_console_module_globals, tidal_console_module_globals_table);
+
+// Define module object but don't register it at the top level
+const mp_obj_module_t tidal_console_module = {
+    .base = { &mp_type_module },
+    .globals = (mp_obj_dict_t *)&tidal_console_module_globals,
+};
