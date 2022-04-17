@@ -1,4 +1,4 @@
-from tidal_usb import initialize, hid
+from tidal import usb
 from tidal import BUTTON_A, BUTTON_B, JOY_UP, JOY_DOWN, JOY_LEFT, JOY_RIGHT, JOY_CENTRE
 import time
 
@@ -14,7 +14,6 @@ HID_KEY_ENTER                     = 0x28
 
 def joystick_active():
     """Enable USB stack and map buttons A and B to their keyboard counterparts in a busy loop"""
-    initialize()
     while True:
         pressed = []
         if BUTTON_A.value() == 0:
@@ -34,7 +33,7 @@ def joystick_active():
         
         # Allow a maximum of 6 scancodes
         pressed = pressed[:6]
-        hid.send_key(*pressed)
+        usb.hid.send_key(*pressed)
         
         # Don't peg the CPU with this silly demo
         time.sleep(0.1)
