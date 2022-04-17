@@ -3,6 +3,9 @@ from machine import Pin
 from machine import SPI
 import st7789
 
+import _tidal_usb as usb
+
+
 G0 = Pin(18, Pin.IN)
 G1 = Pin(17, Pin.IN)
 G2 = Pin(4, Pin.IN)
