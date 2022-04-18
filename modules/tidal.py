@@ -47,7 +47,7 @@ LCD_SPI = SPI(2, baudrate=120000000, polarity=1, sck=LCD_CLK, mosi=LCD_DIN)
 LCD_RESET = Pin(14, Pin.OUT)
 LCD_DC = Pin(13, Pin.OUT)
 
-display = st7789.ST7789(LCD_SPI, 135, 240, reset=LCD_RESET, dc=LCD_DC)
+display = st7789.ST7789(LCD_SPI, 135, 240, reset=LCD_RESET, dc=LCD_DC, rotation=2)
 
 def init_lcd():
     LCD_CS.off()
