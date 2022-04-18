@@ -2,6 +2,7 @@ from machine import I2C
 from machine import Pin
 from machine import SPI
 import st7789
+from st7789 import BLACK, BLUE, RED, GREEN, CYAN, MAGENTA, YELLOW, WHITE
 
 import _tidal_usb as usb
 
@@ -30,6 +31,7 @@ all_buttons = [
 ]
 
 LED_PWREN = Pin(3, Pin.OUT)
+LED_DATA = Pin(46, Pin.OUT)
 LCD_PWR =  Pin(39, Pin.OUT)
 LCD_BLEN = Pin(0, Pin.OUT)
 

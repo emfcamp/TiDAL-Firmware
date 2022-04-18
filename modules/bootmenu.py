@@ -1,36 +1,18 @@
 from tidal import *
-import st7789
-import vga1_8x8 as font
+from textwindow import TextWindow
 import esp32
 import time
 
-BG = st7789.BLUE
-FG = st7789.WHITE
-FOCUS_FG = st7789.BLACK
-FOCUS_BG = st7789.CYAN
+BG = BLUE
+FG = WHITE
+FOCUS_FG = BLACK
+FOCUS_BG = CYAN
 
-_current_line = 0
-
-def cls():
-    global _current_line
-    display.fill(BG)
-    _current_line = 0
-
-
-def print_line(txt, y=None, fg=FG, bg=BG):
-    global _current_line
-    if y is None:
-        y = _current_line
-        _current_line = _current_line + 1
-
-    dw = display.width()
-    num_spaces = (dw // font.WIDTH) - len(txt)
-    display.text(font, txt + (" " * num_spaces), 0, y * (font.HEIGHT + 1), fg, bg)
-
+window = None
 
 def web_repl():
-    cls()
-    print_line("--- Web REPL ---")
+    window.cls()
+    window.println("--- Web REPL ---")
 
     try:
         with open("webrepl_cfg.py") as f:
@@ -59,11 +41,11 @@ ap.config(essid=ssid, password=password)
 
     import wifi_cfg
 
-    print_line("SSID:")
-    print_line(wifi_cfg.ssid)
-    print_line("")
-    print_line("Password: ")
-    print_line(wifi_cfg.password)
+    window.println("SSID:")
+    window.println(wifi_cfg.ssid)
+    window.println("")
+    window.println("Password: ")
+    window.println(wifi_cfg.password)
 
     import esp
     esp.osdebug(None)
@@ -72,13 +54,13 @@ ap.config(essid=ssid, password=password)
 
 
 def usb_keyboard():
-    cls()
-    print_line("USB Keyboard")
-    print_line("------------")
-    print_line("Joystick maps to")
-    print_line("cursor keys, A")
-    print_line("and B are")
-    print_line("themselves.")
+    window.cls()
+    window.println("USB Keyboard")
+    window.println("------------")
+    window.println("Joystick maps to")
+    window.println("cursor keys, A")
+    window.println("and B are")
+    window.println("themselves.")
     import _thread
     import joystick
     _thread.start_new_thread(joystick.joystick_active, ())
@@ -96,23 +78,24 @@ _focussed = 0
 
 def focus_item(i):
     global _focussed
-    print_line(choices[_focussed][0], choices_y + _focussed, FG, BG)
+    window.println(choices[_focussed][0], choices_y + _focussed, FG, BG)
     _focussed = i % len(choices)
-    print_line(choices[_focussed][0], choices_y + _focussed, FOCUS_FG, FOCUS_BG)
+    window.println(choices[_focussed][0], choices_y + _focussed, FOCUS_FG, FOCUS_BG)
 
 
 def show_boot_menu():
+    global window
     print("Showing boot menu on LCD...")
     init_lcd()
+    window = TextWindow(BG, FG)
 
-    cls()
-    print_line("   EMF 2022")
-    print_line("TiDAL Boot Menu")
-    print_line("-" * (display.width() // font.WIDTH))
+    window.println("EMF 2022", centre=True)
+    window.println("TiDAL Boot Menu")
+    window.println("-" * (window.width() // window.font.WIDTH))
 
     y = choices_y
     for (text, fn) in choices:
-        print_line(text, y)
+        window.println(text, y)
         y = y + 1
     focus_item(0)
 
