@@ -97,7 +97,16 @@ def show_boot_menu():
     for (text, fn) in choices:
         window.println(text, y)
         y = y + 1
-    focus_item(0)
+
+    initial_item = 0
+    try:
+        with open("lastbootitem.txt") as f:
+            initial_item = int(f.read())
+    except:
+        pass
+    if initial_item < 0 or initial_item >= len(choices):
+        initial_item = 0
+    focus_item(initial_item)
 
     while True:
         if JOY_DOWN.value() == 0:
@@ -105,6 +114,8 @@ def show_boot_menu():
         elif JOY_UP.value() == 0:
             focus_item(_focussed - 1)
         elif BUTTON_A.value() == 0 or BUTTON_B.value() == 0 or JOY_CENTRE.value() == 0:
+            with open("lastbootitem.txt", "w") as f:
+                f.write(str(_focussed))
             choices[_focussed][1]()
             return
 
