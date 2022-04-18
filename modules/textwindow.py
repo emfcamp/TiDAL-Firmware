@@ -25,10 +25,10 @@ class TextWindow:
     def height(self):
         return self.display.height()
 
-    def char_width(self):
+    def width_chars(self):
         return self.display.width() // self.font.WIDTH
 
-    def char_height(self):
+    def height_chars(self):
         return self.display.height() // self.font.HEIGHT
 
     def cls(self, colour=None):
@@ -52,5 +52,5 @@ class TextWindow:
             xpos = (self.width() - text_width) // 2
             self.display.fill_rect(0, ypos, xpos, self.font.HEIGHT, bg)
         # num_spaces is more than needed if centred, doesn't matter
-        num_spaces = self.char_width() - len(text)
-        self.display.text(self.font, text + (" " * num_spaces), 0, ypos, fg, bg)
+        num_spaces = self.width_chars() - len(text)
+        self.display.text(self.font, text + (" " * num_spaces), xpos, ypos, fg, bg)
