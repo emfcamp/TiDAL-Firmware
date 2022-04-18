@@ -73,4 +73,9 @@ the charge detect line comes from the battery charger and is 0 for charging and 
 >>> auth_wake.off))
 ```
 
+## power off
+
+```
+>>> ulvo_trig = Pin(45, Pin.OUT, 0)
+>>> ulvo_trig.on()
 
