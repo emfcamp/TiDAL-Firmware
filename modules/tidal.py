@@ -32,6 +32,8 @@ all_buttons = [
 
 LED_PWREN = Pin(3, Pin.OUT)
 LED_DATA = Pin(46, Pin.OUT)
+# LED_DATA = Pin(48, Pin.OUT) # esp32s3 devkit
+
 LCD_PWR =  Pin(39, Pin.OUT)
 LCD_BLEN = Pin(0, Pin.OUT)
 
