@@ -7,3 +7,6 @@
 [submodule "st7789"]
 	path = st7789
 	url = git@github.com:russhughes/st7789_mpy.git
+[submodule "drivers/lv_binding_micropython"]
+	path = drivers/lv_binding_micropython
+	url = git@github.com:lvgl/lv_binding_micropython.git
