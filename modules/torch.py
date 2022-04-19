@@ -76,7 +76,7 @@ def update_led():
         # White
         hue = 0
         saturation = 0
-    print("LED h={} s={} v={}".format(hue, saturation, led_v))
+    # print("LED h={} s={} v={}".format(hue, saturation, led_v))
     LED_PWREN.value(state and 0 or 1)
     if state:
         led[0] = hsvToRgb(hue, saturation, led_v)
@@ -116,7 +116,7 @@ def hue_step(delta):
 
 def main():
     global window
-    window = TextWindow(WHITE, BLACK)
+    window = TextWindow(BLACK, WHITE)
     update_led()
 
     window.cls()
