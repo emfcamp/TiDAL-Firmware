@@ -1,5 +1,8 @@
 from tidal import *
-from textwindow import TextWindow
+import tidal
+from textwindow import TextWindow, Menu
+from app import App, main_task
+import torch
 import esp32
 import time
 
@@ -53,74 +56,79 @@ ap.config(essid=ssid, password=password)
     webrepl.start()
 
 
-def usb_keyboard():
-    window.cls()
-    window.println("USB Keyboard")
-    window.println("------------")
-    window.println("Joystick maps to")
-    window.println("cursor keys, A")
-    window.println("and B are")
-    window.println("themselves.")
-    import _thread
-    import joystick
-    _thread.start_new_thread(joystick.joystick_active, ())
+class USBKeyboard(TextWindow, App):
+    app_id = "keyboard"
+    
+    thread_running = False
 
-def run_torch():
-    import torch
-    torch.main()
+    def on_wake(self):
+        self.cls()
+        self.println("USB Keyboard")
+        self.println("------------")
+        self.println("Joystick maps to")
+        self.println("cursor keys, A")
+        self.println("and B are")
+        self.println("themselves.")
 
-# Note, the text for each choice needs to be <= 16 characters in order to fit on screen
-choices = [
-    ("USB Keyboard", usb_keyboard),
-    ("Web REPL", web_repl),
-    ("Torch", run_torch),
-]
-
-choices_y = 4 # Which line the choices start on
-
-_focussed = 0
-
-def focus_item(i):
-    global _focussed
-    window.println(choices[_focussed][0], choices_y + _focussed, FG, BG)
-    _focussed = i % len(choices)
-    window.println(choices[_focussed][0], choices_y + _focussed, FOCUS_FG, FOCUS_BG)
-
-
-def show_boot_menu():
-    global window
-    print("Showing boot menu on LCD...")
-    init_lcd()
-    window = TextWindow(BG, FG)
-
-    window.println("EMF 2022", centre=True)
-    window.println("TiDAL Boot Menu")
-    window.println("-" * (window.width() // window.font.WIDTH))
-
-    y = choices_y
-    for (text, fn) in choices:
-        window.println(text, y)
-        y = y + 1
-
-    initial_item = 0
-    try:
-        with open("lastbootitem.txt") as f:
-            initial_item = int(f.read())
-    except:
-        pass
-    if initial_item < 0 or initial_item >= len(choices):
-        initial_item = 0
-    focus_item(initial_item)
-
-    while True:
+        if not self.thread_running:
+            #import _thread
+            #
+            #_thread.start_new_thread(joystick.joystick_active, ())
+            self.thread_running = True
+    
+    
+    def update(self):
+        pressed = []
+        import joystick
+        if BUTTON_A.value() == 0:
+            pressed.append(joystick.HID_KEY_A)
+        if BUTTON_B.value() == 0:
+            pressed.append(joystick.HID_KEY_B)
         if JOY_DOWN.value() == 0:
-            focus_item(_focussed + 1)
-        elif JOY_UP.value() == 0:
-            focus_item(_focussed - 1)
-        elif BUTTON_A.value() == 0 or BUTTON_B.value() == 0 or JOY_CENTRE.value() == 0:
-            with open("lastbootitem.txt", "w") as f:
-                f.write(str(_focussed))
-            choices[_focussed][1]()
-            return
+            pressed.append(joystick.HID_KEY_ARROW_DOWN)
+        if JOY_UP.value() == 0:
+            pressed.append(joystick.HID_KEY_ARROW_UP)
+        if JOY_LEFT.value() == 0:
+            pressed.append(joystick.HID_KEY_ARROW_LEFT)
+        if JOY_RIGHT.value() == 0:
+            pressed.append(joystick.HID_KEY_ARROW_RIGHT)
+        if JOY_CENTRE.value() == 0:
+            pressed.append(joystick.HID_KEY_ENTER)
+        
+        # Allow a maximum of 6 scancodes
+        pressed = pressed[:6]
+        usb.hid.send_key(*pressed)
+        
+        if pressed == [joystick.HID_KEY_A, joystick.HID_KEY_B]:
+            main_task.contextChanged("menu")
+            usb.hid.send_key()
 
-        time.sleep(0.2)
+
+
+class BootMenu(Menu, App):
+
+    app_id = "menu"
+
+    # Note, the text for each choice needs to be <= 16 characters in order to fit on screen
+    choices = (
+        ({"text": "USB Keyboard"}, lambda: main_task.contextChanged("keyboard")),
+        ({"text": "Web REPL"}, web_repl),
+        ({"text": "Torch"}, lambda: main_task.contextChanged("torch")),
+    )
+
+    def on_wake(self):
+        self.cls()
+
+    def update(self):
+        if tidal.JOY_DOWN.value() == 0:
+            self.focus_idx += 1
+        elif tidal.JOY_UP.value() == 0:
+            self.focus_idx -= 1
+        elif any((
+                tidal.BUTTON_A.value() == 0,
+                tidal.BUTTON_B.value() == 0,
+                tidal.JOY_CENTRE.value() == 0,
+            )):
+            with open("lastbootitem.txt", "wt", encoding="ascii") as f:
+                f.write(str(self.focus_idx))
+            self.choices[self.focus_idx][1]()
