@@ -6,6 +6,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 # Update apt and install build dependencies
 RUN apt-get update && apt-get install -y build-essential python3-pip libusb-1.0-0-dev cmake wget zip git
+RUN python3 -m pip install pillow
 
 # Download the ESP-IDF v4.4 release
 RUN mkdir /esp-idf

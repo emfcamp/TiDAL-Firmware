@@ -12,6 +12,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential python3-pip libusb-1.0-0-dev cmake
+          sudo python3 -m pip install pillow
       - name: Check out driver code
         uses: actions/checkout@v2
         with:
