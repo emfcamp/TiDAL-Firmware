@@ -18,7 +18,7 @@ menu = BootMenu()
 async def main():
     menu_task = uasyncio.create_task(menu.run())
     keyboard_task = uasyncio.create_task(USBKeyboard().run())
-    app.m.contextChanged("menu")
+    app.task_coordinator.context_changed("menu")
     await uasyncio.gather(
         menu_task,
         keyboard_task

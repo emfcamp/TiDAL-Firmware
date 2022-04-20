@@ -1,7 +1,7 @@
 from tidal import *
 import tidal
 from textwindow import TextWindow, Menu
-from app import App, main_task
+from app import App, task_coordinator
 import torch
 import esp32
 import time
@@ -100,7 +100,7 @@ class USBKeyboard(TextWindow, App):
         usb.hid.send_key(*pressed)
         
         if pressed == [joystick.HID_KEY_A, joystick.HID_KEY_B]:
-            main_task.contextChanged("menu")
+            task_coordinator.context_changed("menu")
             usb.hid.send_key()
 
 
@@ -111,9 +111,9 @@ class BootMenu(Menu, App):
 
     # Note, the text for each choice needs to be <= 16 characters in order to fit on screen
     choices = (
-        ({"text": "USB Keyboard"}, lambda: main_task.contextChanged("keyboard")),
+        ({"text": "USB Keyboard"}, lambda: task_coordinator.context_changed("keyboard")),
         ({"text": "Web REPL"}, web_repl),
-        ({"text": "Torch"}, lambda: main_task.contextChanged("torch")),
+        ({"text": "Torch"}, lambda: task_coordinator.context_changed("torch")),
     )
 
     def on_wake(self):
