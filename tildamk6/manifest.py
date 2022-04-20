@@ -18,7 +18,7 @@ def freeze_images(path, generated_dir):
                         convert_script,
                         filepath,
                         "8" # bpp
-                    ], stderr=subprocess.DEVNULL)
+                    ])
                     with open(genpath, "wb") as f:
                         f.write(output)
                 generated_modules.append(os.path.relpath(genpath, generated_dir))
