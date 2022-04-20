@@ -56,6 +56,9 @@ display = st7789.ST7789(LCD_SPI, 135, 240, reset=LCD_RESET, dc=LCD_DC, rotation=
 def init_lcd():
     LCD_CS.off()
     display.init()
+    # Set up scrolling parameters, if anyone wants to use them
+    display.vscrdef(40, 240, 40)
+    display.vscsad(40)
 
 
 def lcd_fps() -> int:
