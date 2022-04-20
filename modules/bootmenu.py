@@ -95,7 +95,6 @@ def focus_item(i):
 def show_boot_menu():
     global window
     print("Showing boot menu on LCD...")
-    init_lcd()
     window = TextWindow(BG, FG)
 
     window.println("EMF 2022", centre=True)
