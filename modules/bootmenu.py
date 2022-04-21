@@ -69,11 +69,16 @@ def run_torch():
     import torch
     torch.main()
 
+def run_emflogo():
+    import emflogo
+    emflogo.main()
+
 # Note, the text for each choice needs to be <= 16 characters in order to fit on screen
 choices = [
     ("USB Keyboard", usb_keyboard),
     ("Web REPL", web_repl),
     ("Torch", run_torch),
+    ("EMF Logo", run_emflogo),
 ]
 
 choices_y = 4 # Which line the choices start on
@@ -90,7 +95,6 @@ def focus_item(i):
 def show_boot_menu():
     global window
     print("Showing boot menu on LCD...")
-    init_lcd()
     window = TextWindow(BG, FG)
 
     window.println("EMF 2022", centre=True)
