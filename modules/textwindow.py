@@ -4,12 +4,14 @@ import tidal
 import vga1_8x8 as default_font
 
 class TextWindow:
+    BG = tidal.BLUE
+    FG = tidal.WHITE
 
     def __init__(self, bg=None, fg=None, font=None):
         if bg is None:
-            bg = tidal.BLUE
+            bg = self.BG
         if fg is None:
-            fg = tidal.WHITE
+            fg = self.FG
         if font is None:
             font = default_font
         self.bg = bg
@@ -55,15 +57,18 @@ class TextWindow:
         num_spaces = self.width_chars() - len(text)
         self.display.text(self.font, text + (" " * num_spaces), xpos, ypos, fg, bg)
 
-    def run_sync(self):
-        self.cls()
-
 class Menu(TextWindow):
 
-    title = "TiDAL Boot Menu"
+    title = "TiDAL Menu"
     _focus_idx = 0
-    focus_fg = tidal.BLACK
-    focus_bg = tidal.CYAN
+
+    FOCUS_FG = tidal.BLACK
+    FOCUS_BG = tidal.CYAN
+
+    def __init__(self, *args, **kwargs):
+        self.focus_fg = kwargs.pop("focus_fg", self.FOCUS_FG)
+        self.focus_bg = kwargs.pop("focus_bg", self.FOCUS_BG)
+        super().__init__(*args, **kwargs)
 
     choices = (
         ({"text": "hello"}, lambda: print("hello")),
@@ -109,32 +114,3 @@ class Menu(TextWindow):
             self.println(**choice)
         if self.choices:
             self.focus_idx = self.focus_idx
-
-    def run_sync(self):
-        self.cls()
-        initial_item = 0
-        try:
-            with open("lastbootitem.txt", "rt", encoding="ascii") as f:
-                initial_item = int(f.read())
-        except:
-            pass
-
-        if initial_item < 0 or initial_item >= len(self.choices):
-            initial_item = 0
-        self.focus_idx = initial_item
-
-        while True:
-            if tidal.JOY_DOWN.value() == 0:
-                self.focus_idx += 1
-            elif tidal.JOY_UP.value() == 0:
-                self.focus_idx -= 1
-            elif any((
-                    tidal.BUTTON_A.value() == 0,
-                    tidal.BUTTON_B.value() == 0,
-                    tidal.JOY_CENTRE.value() == 0,
-                )):
-                with open("lastbootitem.txt", "wt", encoding="ascii") as f:
-                    f.write(str(self.focus_idx))
-                self.choices[self.focus_idx][1]()
-
-            time.sleep(0.2)

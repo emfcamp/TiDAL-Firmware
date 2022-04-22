@@ -47,7 +47,7 @@ i2c = I2C(scl=Pin(41), sda=Pin(42))
 LCD_CS = Pin(10, Pin.OUT)
 LCD_CLK = Pin(12)
 LCD_DIN = Pin(11)
-LCD_SPI = SPI(2, baudrate=120000000, polarity=1, sck=LCD_CLK, mosi=LCD_DIN)
+LCD_SPI = SPI(2, baudrate=40000000, polarity=1, sck=LCD_CLK, mosi=LCD_DIN)
 LCD_RESET = Pin(14, Pin.OUT)
 LCD_DC = Pin(13, Pin.OUT)
 
@@ -56,6 +56,9 @@ display = st7789.ST7789(LCD_SPI, 135, 240, reset=LCD_RESET, dc=LCD_DC, rotation=
 def init_lcd():
     LCD_CS.off()
     display.init()
+    # Set up scrolling parameters, if anyone wants to use them
+    display.vscrdef(40, 240, 40)
+    display.vscsad(40)
 
 
 def lcd_fps() -> int:

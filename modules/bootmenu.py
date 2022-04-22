@@ -1,119 +1,40 @@
-from tidal import *
+import st7789
 import tidal
-from textwindow import TextWindow, Menu
-from app import App, task_coordinator
-import torch
-import esp32
-import time
+from textwindow import Menu
+from app import App
 
-BG = BLUE
-FG = WHITE
-FOCUS_FG = BLACK
-FOCUS_BG = CYAN
-
-window = None
 
 def web_repl():
-    window.cls()
-    window.println("--- Web REPL ---")
+    import web_repl
+    app = web_repl.WebRepl()
+    app.run_sync()
 
-    try:
-        with open("webrepl_cfg.py") as f:
-            pass
-    except OSError:
-        # No webrepl password is set, use tilda
-        with open("webrepl_cfg.py", "wt", encoding="utf-8") as cfg:
-            cfg.write("PASS = 'tilda'\n")
+def hid():
+    import hid
+    app = hid.USBKeyboard()
+    app.run_sync()
 
-    try:
-        with open("wifi_cfg.py") as f:
-            pass
-    except OSError:
-        # No wifi config, use tilda/tilda
-        with open("wifi_cfg.py", "wt", encoding="utf-8") as cfg:
-            cfg.write("""
-import network
-
-ssid = "tilda"
-password = "tilda"
-
-ap = network.WLAN(network.AP_IF)
-ap.active(True)
-ap.config(essid=ssid, password=password)
-""")
-
-    import wifi_cfg
-
-    window.println("SSID:")
-    window.println(wifi_cfg.ssid)
-    window.println("")
-    window.println("Password: ")
-    window.println(wifi_cfg.password)
-
-    import esp
-    esp.osdebug(None)
-    import webrepl
-    webrepl.start()
-
-
-class USBKeyboard(TextWindow, App):
-    app_id = "keyboard"
-    
-    thread_running = False
-
-    def on_wake(self):
-        self.cls()
-        self.println("USB Keyboard")
-        self.println("------------")
-        self.println("Joystick maps to")
-        self.println("cursor keys, A")
-        self.println("and B are")
-        self.println("themselves.")
-
-        if not self.thread_running:
-            #import _thread
-            #
-            #_thread.start_new_thread(joystick.joystick_active, ())
-            self.thread_running = True
-    
-    
-    def update(self):
-        pressed = []
-        import joystick
-        if BUTTON_A.value() == 0:
-            pressed.append(joystick.HID_KEY_A)
-        if BUTTON_B.value() == 0:
-            pressed.append(joystick.HID_KEY_B)
-        if JOY_DOWN.value() == 0:
-            pressed.append(joystick.HID_KEY_ARROW_DOWN)
-        if JOY_UP.value() == 0:
-            pressed.append(joystick.HID_KEY_ARROW_UP)
-        if JOY_LEFT.value() == 0:
-            pressed.append(joystick.HID_KEY_ARROW_LEFT)
-        if JOY_RIGHT.value() == 0:
-            pressed.append(joystick.HID_KEY_ARROW_RIGHT)
-        if JOY_CENTRE.value() == 0:
-            pressed.append(joystick.HID_KEY_ENTER)
-        
-        # Allow a maximum of 6 scancodes
-        pressed = pressed[:6]
-        usb.hid.send_key(*pressed)
-        
-        if pressed == [joystick.HID_KEY_A, joystick.HID_KEY_B]:
-            task_coordinator.context_changed("menu")
-            usb.hid.send_key()
-
+def torch():
+    import torch
+    app = torch.Torch()
+    app.run_sync()
 
 
 class BootMenu(Menu, App):
 
     app_id = "menu"
+    title = "Emergency Menu"
+
+    BG = st7789.RED
+    FG = st7789.WHITE
+    FOCUS_FG = st7789.RED
+    FOCUS_BG = st7789.WHITE
 
     # Note, the text for each choice needs to be <= 16 characters in order to fit on screen
     choices = (
-        ({"text": "USB Keyboard"}, lambda: task_coordinator.context_changed("keyboard")),
+        ({"text": "USB Keyboard"}, hid),
         ({"text": "Web REPL"}, web_repl),
-        ({"text": "Torch"}, lambda: task_coordinator.context_changed("torch")),
+        ({"text": "Torch"}, torch),
     )
 
     def on_wake(self):

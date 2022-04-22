@@ -1,5 +1,6 @@
 #!/bin/bash
 
+set -e
 pushd esp-iot-solution
 git reset --hard
 git apply ../esp-iot-solution.diff

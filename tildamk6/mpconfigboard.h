@@ -1,4 +1,4 @@
-#define MICROPY_HW_BOARD_NAME               "TiLDA mk6"
+#define MICROPY_HW_BOARD_NAME               "TiDAL"
 #define MICROPY_HW_MCU_NAME                 "ESP32S3"
 
 #define MICROPY_PY_BLUETOOTH                (0)

@@ -1,3 +1,4 @@
+import time
 import uasyncio
 
 class MainTask:
@@ -33,7 +34,7 @@ class MainTask:
             del self._awaitables[app]
         return was_already_active
     
-    def context_changed(self, app: app):
+    def context_changed(self, app: str) -> None:
         # Cancel the corresponding sleep for this app, to wake it
         self._current_app = app
         print(f"Changing context to {app}")
@@ -50,7 +51,16 @@ class App:
     interval = 0.1
     post_wake_interval = 0.5
     running = True
-    
+
+    def run_sync(self):
+        self.on_start()
+        self.on_wake()
+        time.sleep(self.post_wake_interval)
+        while self.running:
+            self.update()
+            time.sleep(self.interval)
+        self.on_stop()
+
     async def run(self):
         self.on_start()
         first_run = True
