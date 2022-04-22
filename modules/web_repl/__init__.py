@@ -1,6 +1,6 @@
 from app import App, task_coordinator
 from textwindow import TextWindow
-from tidal import BUTTON_A, BUTTON_B
+from tidal import BUTTON_FRONT
 
 class WebRepl(App, TextWindow):
 
@@ -48,7 +48,7 @@ ap.config(essid=ssid, password=password)
         webrepl.start()
 
     def update(self):
-        if BUTTON_A.value() == 0 and BUTTON_B.value() == 0:
+        if BUTTON_FRONT.value() == 0:
             import webrepl
             webrepl.stop()
             task_coordinator.context_changed("menu")

@@ -149,6 +149,6 @@ class Torch(TextWindow, App):
     def update(self):
         self.buttons.poll()
         self.update_screen(full=False)
-        if BUTTON_A.value() == 0 and BUTTON_B.value() == 0:
+        if BUTTON_FRONT.value() == 0:
             task_coordinator.context_changed("menu")
 

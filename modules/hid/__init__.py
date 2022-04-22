@@ -45,7 +45,7 @@ class USBKeyboard(TextWindow, App):
         pressed = pressed[:6]
         usb.hid.send_key(*pressed)
         
-        if pressed == [joystick.HID_KEY_A, joystick.HID_KEY_B]:
+        if BUTTON_FRONT.value() == 0:
             usb.hid.send_key()
             task_coordinator.context_changed("menu")
 

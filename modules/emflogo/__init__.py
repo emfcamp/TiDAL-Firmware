@@ -1,4 +1,4 @@
-from tidal import display, BUTTON_A, BUTTON_B
+from tidal import display, BUTTON_FRONT
 from app import App, task_coordinator
 import emf_png
 
@@ -19,6 +19,6 @@ class EMFLogo(App):
             self.i = 0
         display.vscsad(40 + self.i)
 
-        if BUTTON_A.value() == 0 and BUTTON_B.value() == 0:
+        if BUTTON_FRONT.value() == 0:
             display.vscsad(40)
             task_coordinator.context_changed("menu")
