@@ -91,20 +91,21 @@ def update():
 
 def progress(version, val):
     global _confirmed
-    if not _confirmed and len(version) > 0:
-        window.println("New version:")
-        window.println(version)
-        window.println()
-        line = window.get_next_line()
-        window.println("Press [A] to")
-        window.println("confirm update.")
-        while BUTTON_A.value() == 1:
-            time.sleep(0.2)
+    if not _confirmed:
+        if len(version) > 0:
+            window.println("New version:")
+            window.println(version)
+            window.println()
+            line = window.get_next_line()
+            window.println("Press [A] to")
+            window.println("confirm update.")
+            while BUTTON_A.value() == 1:
+                time.sleep(0.2)
+            # Clear confirmation text
+            window.set_next_line(line)
         _confirmed = True
-        # Clear confirmation text
-        window.set_next_line(line)
-        for i in range(0, 2):
-            window.println("", line + i)
+        window.println("Updating...")
+        window.println()
 
     y = window.get_next_line() * (window.font.HEIGHT + 1)
     display.fill_rect((window.width() - 100) // 2, y, val, window.font.HEIGHT, WHITE)
