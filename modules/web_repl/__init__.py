@@ -4,6 +4,8 @@ from tidal import BUTTON_FRONT
 
 class WebRepl(App, TextWindow):
 
+    title = "Web REPL"
+
     def on_start(self):
         try:
             with open("webrepl_cfg.py") as f:
@@ -33,7 +35,6 @@ ap.config(essid=ssid, password=password)
 
     def on_wake(self):
         self.cls()
-        self.println("--- Web REPL ---")
         import wifi_cfg
 
         self.println("SSID:")
