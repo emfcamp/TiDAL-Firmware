@@ -14,6 +14,7 @@ G3 = Pin(5, Pin.IN)
 
 BUTTON_A = Pin(2, Pin.IN, Pin.PULL_UP)
 BUTTON_B = Pin(1, Pin.IN, Pin.PULL_UP)
+BUTTON_FRONT = Pin(6, Pin.IN, Pin.PULL_UP)
 JOY_UP = Pin(15, Pin.IN, Pin.PULL_UP)
 JOY_DOWN = Pin(16, Pin.IN, Pin.PULL_UP)
 JOY_LEFT = Pin(8, Pin.IN, Pin.PULL_UP)
@@ -23,6 +24,7 @@ JOY_CENTRE = Pin(9, Pin.IN, Pin.PULL_UP)
 all_buttons = [
     BUTTON_A,
     BUTTON_B,
+    BUTTON_FRONT,
     JOY_UP,
     JOY_DOWN,
     JOY_LEFT,
