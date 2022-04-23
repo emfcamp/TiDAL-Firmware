@@ -54,3 +54,9 @@ class TextWindow:
         # num_spaces is more than needed if centred, doesn't matter
         num_spaces = self.width_chars() - len(text)
         self.display.text(self.font, text + (" " * num_spaces), xpos, ypos, fg, bg)
+
+    def set_next_line(self, next_line):
+        self.current_line = next_line
+
+    def get_next_line(self):
+        return self.current_line

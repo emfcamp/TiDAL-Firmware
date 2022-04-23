@@ -73,12 +73,17 @@ def run_emflogo():
     import emflogo
     emflogo.main()
 
+def run_otaupdate():
+    import otaupdate
+    otaupdate.main()
+
 # Note, the text for each choice needs to be <= 16 characters in order to fit on screen
 choices = [
     ("USB Keyboard", usb_keyboard),
     ("Web REPL", web_repl),
     ("Torch", run_torch),
     ("EMF Logo", run_emflogo),
+    ("Firmware Update", run_otaupdate),
 ]
 
 choices_y = 4 # Which line the choices start on
