@@ -21,7 +21,8 @@ def torch():
 
 def run_otaupdate():
     import otaupdate
-    otaupdate.main()
+    app = otaupdate.OtaUpdate()
+    app.run_sync()
 
 
 class BootMenu(Menu, App):
