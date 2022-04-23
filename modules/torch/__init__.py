@@ -58,6 +58,7 @@ def rgbToHsv(r, g, b):
 class Torch(TextWindow, App):
     
     app_id = "torch"
+    title = "Torch"
     interval = 0.2
     
     BG = st7789.BLACK
@@ -66,7 +67,6 @@ class Torch(TextWindow, App):
     def update_screen(self, full=True):
         if full:
             self.cls()
-            self.println("-----Torch------")
             self.println("Press Joystick")
             self.println("or A for on/off")
             self.println()
