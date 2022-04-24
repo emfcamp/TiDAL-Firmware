@@ -1,25 +1,73 @@
 from machine import I2C
 from machine import Pin
 from machine import SPI
+from neopixel import NeoPixel
 import st7789
 from st7789 import BLACK, BLUE, RED, GREEN, CYAN, MAGENTA, YELLOW, WHITE
 
 import _tidal_usb as usb
 
+_devkitpins={}
 
-G0 = Pin(18, Pin.IN)
-G1 = Pin(17, Pin.IN)
-G2 = Pin(4, Pin.IN)
-G3 = Pin(5, Pin.IN)
+_devkitpins["BTN_A"]=2
+_devkitpins["BTN_B"]=1
+_devkitpins["BTN_FRONT"]=6
+_devkitpins["JUP"]=15
+_devkitpins["JDOWN"]=16
+_devkitpins["JLEFT"]=8
+_devkitpins["JRIGHT"]=7
+_devkitpins["JCENT"]=9
+_devkitpins["G0"]=18
+_devkitpins["G1"]=17
+_devkitpins["G2"]=4
+_devkitpins["G3"]=5
+_devkitpins["LED_DATA"] = 48
+_devkitpins["LED_PWREN"] = 3
+_devkitpins["LCD_PWR"] = 48
+_devkitpins["LCD_BLEN"] = 0
+_devkitpins["SCL_S"] = 41
+_devkitpins["SDA_S"] = 42
+_devkitpins["SCL_P"] = 43
+_devkitpins["SDA_P"] = 44
+_devkitpins["LCD_CS"] = 10
+_devkitpins["LCD_CLK"] = 12
+_devkitpins["LCD_DIN"] = 11
+_devkitpins["LCD_RESET"] = 14
+_devkitpins["LCD_DC"] = 13
+_devkitpins["UVLO_TRIG"] = 45
+_devkitpins["ACCEL_INT"] = 40
 
-BUTTON_A = Pin(2, Pin.IN, Pin.PULL_UP)
-BUTTON_B = Pin(1, Pin.IN, Pin.PULL_UP)
-BUTTON_FRONT = Pin(6, Pin.IN, Pin.PULL_UP)
-JOY_UP = Pin(15, Pin.IN, Pin.PULL_UP)
-JOY_DOWN = Pin(16, Pin.IN, Pin.PULL_UP)
-JOY_LEFT = Pin(8, Pin.IN, Pin.PULL_UP)
-JOY_RIGHT = Pin(7, Pin.IN, Pin.PULL_UP)
-JOY_CENTRE = Pin(9, Pin.IN, Pin.PULL_UP)
+
+_proto1pins={}
+_productionpins={}
+
+for i in _devkitpins:
+    _proto1pins[i]=_devkitpins[i]
+    _productionpins[i]=_devkitpins[i]
+
+_proto1pins["LED_DATA"] = 46
+_productionpins["LED_DATA"] = 46
+_proto1pins["CHARGE_DET"] = 26
+_productionpins["CHARGE_DET"] = 21
+
+
+#_hw=_devkitpins
+_hw=_proto1pins
+#_hw=_productionpins
+
+G0 = Pin(_hw["G0"], Pin.IN)
+G1 = Pin(_hw["G1"], Pin.IN)
+G2 = Pin(_hw["G2"], Pin.IN)
+G3 = Pin(_hw["G3"], Pin.IN)
+
+BUTTON_A = Pin(_hw["BTN_A"], Pin.IN, Pin.PULL_UP)
+BUTTON_B = Pin(_hw["BTN_B"], Pin.IN, Pin.PULL_UP)
+BUTTON_FRONT = Pin(_hw["BTN_FRONT"], Pin.IN, Pin.PULL_UP)
+JOY_UP = Pin(_hw["JUP"], Pin.IN, Pin.PULL_UP)
+JOY_DOWN = Pin(_hw["JDOWN"], Pin.IN, Pin.PULL_UP)
+JOY_LEFT = Pin(_hw["JLEFT"], Pin.IN, Pin.PULL_UP)
+JOY_RIGHT = Pin(_hw["JRIGHT"], Pin.IN, Pin.PULL_UP)
+JOY_CENTRE = Pin(_hw["JCEN"], Pin.IN, Pin.PULL_UP)
 
 all_buttons = [
     BUTTON_A,
@@ -32,26 +80,61 @@ all_buttons = [
     JOY_CENTRE,
 ]
 
-LED_PWREN = Pin(3, Pin.OUT)
-LED_DATA = Pin(46, Pin.OUT)
-# LED_DATA = Pin(48, Pin.OUT) # esp32s3 devkit
+_LED_PWREN = Pin(_hw["LED_PWREN"], Pin.OUT, value=1)
+LED_DATA = Pin(_hw["LED_DATA"], Pin.OUT)
 
-LCD_PWR =  Pin(39, Pin.OUT)
-LCD_BLEN = Pin(0, Pin.OUT)
+_LCD_PWR =  Pin(_hw["LCD_PWR"], Pin.OUT)
+_LCD_BLEN = Pin(_hw["LCD_BLEN"], Pin.OUT)
 
-CHARGE_DET = Pin(26, Pin.IN, Pin.PULL_UP)
+led=NeoPixel(_hw["LED_DATA"], 1)
 
-AUTH_WAKE = Pin(21, Pin.OUT)
+Pin(_hw["UVLO_TRIG"], Pin.OUT)
 
-i2c = I2C(scl=Pin(41), sda=Pin(42))
+def system_power_off():
+    uvlotrig=Pin(_hw["UVLO_TRIG"], Pin.OUT)
+    uvlotrig.on()
+
+def led_power_on(on=True):
+    if(on):
+        _LED_PWREN.off()
+    else:
+        _LED_PWREN.on()
+
+def led_power_off():
+    led_power_on(False)
 
 
-LCD_CS = Pin(10, Pin.OUT)
-LCD_CLK = Pin(12)
-LCD_DIN = Pin(11)
+def lcd_power_on(on=True):
+    if(on):
+        _LCD_PWR.off()
+    else:
+        _LCD_PWR.on()
+
+def lcd_power_off():
+    lcd_power_on(False)
+
+def lcd_backlight_on(on=True):
+    if(on):
+        _LED_PWREN.init(mode=Pin.OUT,value=1)
+    else:
+        _LED_PWREN.init(mode=Pin.IN,pull=None)
+        
+def lcd_backlight_off():
+    lcd_backlight_on(False)
+
+CHARGE_DET = Pin(_hw["CHARGE_DET"], Pin.IN, Pin.PULL_UP)
+
+i2cs = I2C(scl=Pin(_hw["SCL_S"]), sda=Pin(_hw["SDA_S"]))
+i2cp = I2C(scl=Pin(_hw["SCL_P"]), sda=Pin(_hw["SDA_P"]))
+
+i2c = i2cs
+
+LCD_CS = Pin(_hw["LCD_CS"], Pin.OUT)
+LCD_CLK = Pin(_hw["LCD_CLK"])
+LCD_DIN = Pin(_hw["LCD_DIN"])
 LCD_SPI = SPI(2, baudrate=40000000, polarity=1, sck=LCD_CLK, mosi=LCD_DIN)
-LCD_RESET = Pin(14, Pin.OUT)
-LCD_DC = Pin(13, Pin.OUT)
+LCD_RESET = Pin(_hw["LCD_RESET"], Pin.OUT)
+LCD_DC = Pin(_hw["LCD_DC"], Pin.OUT)
 
 display = st7789.ST7789(LCD_SPI, 135, 240, reset=LCD_RESET, dc=LCD_DC, rotation=2)
 
