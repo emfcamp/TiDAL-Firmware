@@ -1,19 +1,12 @@
-import time
-
 import tidal
 import vga1_8x8 as default_font
 
 class TextWindow:
-    BG = tidal.BLUE
-    FG = tidal.WHITE
-
-    title = None
-
-    def __init__(self, bg=None, fg=None, font=None):
+    def __init__(self, bg=None, fg=None, title=None, font=None):
         if bg is None:
-            bg = self.BG
+            bg = tidal.BLUE
         if fg is None:
-            fg = self.FG
+            fg = tidal.WHITE
         if font is None:
             font = default_font
         self.bg = bg
@@ -22,6 +15,8 @@ class TextWindow:
         self.current_line = 0
         self.offset = 0
         self.display = tidal.display
+        if title:
+            self.title = title
 
     def width(self):
         return self.display.width()
@@ -35,10 +30,8 @@ class TextWindow:
     def height_chars(self):
         return self.display.height() // self.font.HEIGHT
 
-    def cls(self, colour=None):
-        if colour is None:
-            colour = self.bg
-        self.display.fill(colour)
+    def cls(self):
+        self.display.fill(self.bg)
         self.current_line = 0
         self.draw_title()
 
@@ -76,31 +69,24 @@ class TextWindow:
         self.title = title
         self.draw_title()
 
-
     def set_next_line(self, next_line):
         self.current_line = next_line
 
     def get_next_line(self):
         return self.current_line
 
+    def get_line_pos(self, line):
+        return self.offset + line * (self.font.HEIGHT + 1)
 
 class Menu(TextWindow):
 
-    title = "TiDAL Menu"
     _focus_idx = 0
 
-    FOCUS_FG = tidal.BLACK
-    FOCUS_BG = tidal.CYAN
-
-    def __init__(self, *args, **kwargs):
-        self.focus_fg = kwargs.pop("focus_fg", self.FOCUS_FG)
-        self.focus_bg = kwargs.pop("focus_bg", self.FOCUS_BG)
-        super().__init__(*args, **kwargs)
-
-    choices = (
-        ({"text": "hello"}, lambda: print("hello")),
-        ({"text": "Goodbye"}, lambda: print("bye")),
-    )
+    def __init__(self, bg, fg, focus_bg, focus_fg, title, choices, font=None):
+        super().__init__(bg, fg, title, font)
+        self.focus_fg = focus_fg
+        self.focus_bg = focus_bg
+        self.choices = choices
 
     def choice_line_args(self, idx, focus=False):
         line_info = {
@@ -112,16 +98,12 @@ class Menu(TextWindow):
         line_info.update(self.choices[idx][0])
         return line_info
 
-    @property
     def focus_idx(self):
         return self._focus_idx
 
-    @focus_idx.setter
-    def focus_idx(self, i):
-        if i < 0 or i >= len(self.choices):
-            i = 0
+    def set_focus_idx(self, i):
         self.println(**self.choice_line_args(self._focus_idx, focus=False))
-        self._focus_idx = i
+        self._focus_idx = i % len(self.choices)
         self.println(**self.choice_line_args(self._focus_idx, focus=True))
 
     def cls(self):
@@ -129,4 +111,5 @@ class Menu(TextWindow):
         for choice, callback in self.choices:
             self.println(**choice)
         if self.choices:
-            self.focus_idx = self.focus_idx
+            # Force redraw of highlight
+            self.set_focus_idx(self._focus_idx)

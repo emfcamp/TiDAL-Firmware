@@ -1,51 +1,38 @@
-from textwindow import TextWindow
-from app import App, task_coordinator
+from app import TextApp
 from tidal import *
+import joystick
 
-class USBKeyboard(TextWindow, App):
+class USBKeyboard(TextApp):
     app_id = "keyboard"
     title = "USB Keyboard"
-    
-    thread_running = False
+
+    def __init__(self):
+        super().__init__()
+        self.pressed = set()
+
+    def on_start(self):
+        super().on_start()
+        self.buttons.on_up_down(BUTTON_A, lambda pin, down: self.send_key(joystick.HID_KEY_A, down))
+        self.buttons.on_up_down(BUTTON_B, lambda pin, down: self.send_key(joystick.HID_KEY_B, down))
+        self.buttons.on_up_down(JOY_DOWN, lambda pin, down: self.send_key(joystick.HID_KEY_ARROW_DOWN, down))
+        self.buttons.on_up_down(JOY_UP, lambda pin, down: self.send_key(joystick.HID_KEY_ARROW_UP, down))
+        self.buttons.on_up_down(JOY_LEFT, lambda pin, down: self.send_key(joystick.HID_KEY_ARROW_LEFT, down))
+        self.buttons.on_up_down(JOY_RIGHT, lambda pin, down: self.send_key(joystick.HID_KEY_ARROW_RIGHT, down))
+        self.buttons.on_up_down(JOY_CENTRE, lambda pin, down: self.send_key(joystick.HID_KEY_ENTER, down))
 
     def on_wake(self):
-        self.cls()
-        self.println("Joystick maps to")
-        self.println("cursor keys, A")
-        self.println("and B are")
-        self.println("themselves.")
+        super().on_wake()
+        window = self.window
+        window.cls()
+        window.println("Joystick maps to")
+        window.println("cursor keys, A")
+        window.println("and B are")
+        window.println("themselves.")
 
-        if not self.thread_running:
-            #import _thread
-            #
-            #_thread.start_new_thread(joystick.joystick_active, ())
-            self.thread_running = True
-    
-    
-    def update(self):
-        pressed = []
-        import joystick
-        if BUTTON_A.value() == 0:
-            pressed.append(joystick.HID_KEY_A)
-        if BUTTON_B.value() == 0:
-            pressed.append(joystick.HID_KEY_B)
-        if JOY_DOWN.value() == 0:
-            pressed.append(joystick.HID_KEY_ARROW_DOWN)
-        if JOY_UP.value() == 0:
-            pressed.append(joystick.HID_KEY_ARROW_UP)
-        if JOY_LEFT.value() == 0:
-            pressed.append(joystick.HID_KEY_ARROW_LEFT)
-        if JOY_RIGHT.value() == 0:
-            pressed.append(joystick.HID_KEY_ARROW_RIGHT)
-        if JOY_CENTRE.value() == 0:
-            pressed.append(joystick.HID_KEY_ENTER)
-        
-        # Allow a maximum of 6 scancodes
-        pressed = pressed[:6]
-        usb.hid.send_key(*pressed)
-        
-        if BUTTON_FRONT.value() == 0:
-            usb.hid.send_key()
-            task_coordinator.context_changed("menu")
+    def send_key(self, k, down):
+        if down:
+            self.pressed.add(k)
+        else:
+            self.pressed.discard(k)
 
-
+        usb.hid.send_key(*self.pressed)

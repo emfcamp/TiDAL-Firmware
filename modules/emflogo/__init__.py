@@ -8,6 +8,7 @@ class EMFLogo(App):
     post_wake_interval = interval = 0.01
 
     def on_wake(self):
+        super().on_wake()
         display.vscrdef(40, 240, 40)
         display.vscsad(40)
         display.bitmap(emf_png, 0, 0)

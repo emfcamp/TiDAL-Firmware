@@ -1,12 +1,11 @@
-from app import App, task_coordinator
-from textwindow import TextWindow
-from tidal import BUTTON_FRONT
+from app import TextApp
 
-class WebRepl(App, TextWindow):
+class WebRepl(TextApp):
 
     title = "Web REPL"
 
     def on_start(self):
+        super().on_start()
         try:
             with open("webrepl_cfg.py") as f:
                 pass
@@ -32,24 +31,19 @@ ap.active(True)
 ap.config(essid=ssid, password=password)
 """)
 
-
     def on_wake(self):
-        self.cls()
+        super().on_wake()
+        window = self.window
+        window.cls()
         import wifi_cfg
 
-        self.println("SSID:")
-        self.println(getattr(wifi_cfg, "ssid", "?"))
-        self.println("")
-        self.println("Password: ")
-        self.println(getattr(wifi_cfg, "password", "?"))
+        window.println("SSID:")
+        window.println(getattr(wifi_cfg, "ssid", "?"))
+        window.println("")
+        window.println("Password: ")
+        window.println(getattr(wifi_cfg, "password", "?"))
 
         import esp
         esp.osdebug(None)
         import webrepl
         webrepl.start()
-
-    def update(self):
-        if BUTTON_FRONT.value() == 0:
-            import webrepl
-            webrepl.stop()
-            task_coordinator.context_changed("menu")

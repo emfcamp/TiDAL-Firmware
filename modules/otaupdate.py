@@ -1,16 +1,15 @@
 from tidal import *
 from buttons import Buttons
-from textwindow import TextWindow
-from app import App
+from app import TextApp
 from esp32 import Partition
 import network
 import ota
 import time
 
-class OtaUpdate(TextWindow, App):
+class OtaUpdate(TextApp):
     
     app_id = "otaupdate"
-    interval = 0.2
+    title = "Firmware Update"
     
     BG = MAGENTA
     FG = WHITE
@@ -18,10 +17,10 @@ class OtaUpdate(TextWindow, App):
     confirmed = False
 
     def on_start(self):
-        self.cls()
-        self.println("OTA Update")
-        self.println("----------")
-        self.println()
+        super().on_start()
+        self.buttons.clear_callbacks() # Don't support BUTTON_FRONT for now
+        window = self.window
+        window.cls()
 
         try:
             current = Partition(Partition.RUNNING)
@@ -29,39 +28,36 @@ class OtaUpdate(TextWindow, App):
         except:
             # Hitting this likely means your partition table is out of date or
             # you're missing ota_data_initial.bin
-            self.println("No OTA info!")
-            self.println("USB flash needed")
+            window.println("No OTA info!")
+            window.println("USB flash needed")
             return
 
-        self.println("Boot: " + current.info()[4])
-        self.println("Next: " + nxt.info()[4])
-        self.println("Version:")
-        self.println(ota.get_version())
-        self.println()
-        line = self.get_next_line()
-        self.println("Press [A] to")
-        self.println("check updates.")
-        self.set_next_line(line)
+        window.println("Boot: " + current.info()[4])
+        window.println("Next: " + nxt.info()[4])
+        window.println("Version:")
+        window.println(ota.get_version())
+        window.println()
+        line = window.get_next_line()
+        window.println("Press [A] to")
+        window.println("check updates.")
+        window.set_next_line(line)
 
-        self.buttons = Buttons()
         self.buttons.on_press(BUTTON_A, lambda p: self.connect())
-
-    def update(self):
-        self.buttons.poll()
 
     def connect(self):
         self.buttons.clear_callbacks()
 
         # Clear prompt
-        line = self.get_next_line()
-        self.println("", line)
-        self.println("", line + 1)
+        window = self.window
+        line = window.get_next_line()
+        window.println("", line)
+        window.println("", line + 1)
 
         try:
             import wifi_cfg
-            self.println("Connecting...", line)
+            window.println("Connecting...", line)
             # Give WIFI chance to get IP address
-            for retry in range(0, 10):
+            for retry in range(0, 15):
                 stat = wifi_cfg.sta.status()
                 if stat == network.STAT_CONNECTING:
                     time.sleep(1.0)
@@ -69,52 +65,55 @@ class OtaUpdate(TextWindow, App):
                     break
 
             if wifi_cfg.sta.status() != network.STAT_GOT_IP:
-                self.println("Not connected!")
+                window.println("WiFi timed out")
                 return
-            self.println("IP: {}".format(wifi_cfg.sta.ifconfig()[0]))
+            window.println("IP:")
+            window.println(wifi_cfg.sta.ifconfig()[0])
         except Exception as e:
             print(e)
-            self.println("No WIFI config!")
+            window.println("No WIFI config!")
             return
 
         self.otaupdate()
 
     def otaupdate(self):
-        self.println()
-        self.println("Checking...", self.get_next_line())
+        window = self.window
+        window.println()
+        window.println("Checking...", window.get_next_line())
 
         try:
             result = ota.update(lambda version, val: self.progress(version, val))
         except OSError as e:
             print("Error:" + str(e))
-            self.println("Update failed!")
-            self.println("Error {}".format(e.errno))
+            window.println("Update failed!")
+            window.println("Error {}".format(e.errno))
             return
 
         if result:
-            self.println("Updated OK.")
-            self.println("Power cycle to")
-            self.println("finish update.")
+            window.println("Updated OK.")
+            window.println("Power cycle to")
+            window.println("finish update.")
         else:
-            self.println("Update cancelled")
+            window.println("Update cancelled")
 
     def progress(self, version, val):
+        window = self.window
         if not self.confirmed:
             if len(version) > 0:
-                self.println("New version:")
-                self.println(version)
-                self.println()
-                line = self.get_next_line()
-                self.println("Press [A] to")
-                self.println("confirm update.")
+                window.println("New version:")
+                window.println(version)
+                window.println()
+                line = window.get_next_line()
+                window.println("Press [A] to")
+                window.println("confirm update.")
                 while BUTTON_A.value() == 1:
                     time.sleep(0.2)
                 # Clear confirmation text
-                self.set_next_line(line)
+                window.set_next_line(line)
             self.confirmed = True
-            self.println("Updating...")
-            self.println()
+            window.println("Updating...")
+            window.println()
 
-        y = self.get_next_line() * (self.font.HEIGHT + 1)
-        display.fill_rect((self.width() - 100) // 2, y, val, self.font.HEIGHT, WHITE)
+        y = window.get_line_pos(window.get_next_line())
+        window.display.fill_rect((window.width() - 100) // 2, y, val, window.font.HEIGHT, WHITE)
         return True

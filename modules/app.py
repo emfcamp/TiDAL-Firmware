@@ -1,5 +1,8 @@
+import tidal
 import time
 import uasyncio
+from buttons import Buttons
+import textwindow
 
 class MainTask:
     
@@ -48,45 +51,76 @@ task_coordinator = MainTask()
 
 class App:
     app_id = __name__
-    interval = 0.1
-    post_wake_interval = 0.5
     running = True
+
+    # Defaults for TextApp and MenuApp
+    BG = tidal.BLUE
+    FG = tidal.WHITE
+
+    def __init__(self):
+        self.buttons = Buttons()
 
     def run_sync(self):
         self.on_start()
         self.on_wake()
-        time.sleep(self.post_wake_interval)
-        while self.running:
-            self.update()
-            time.sleep(self.interval)
-        self.on_stop()
+        # TODO sort this
+        # time.sleep(self.post_wake_interval)
+        # while self.running:
+        #     self.update()
+        #     time.sleep(self.interval)
+        # self.on_stop()
 
     async def run(self):
         self.on_start()
-        first_run = True
-        while self.running:
-            was_active = await task_coordinator.app_active(self.app_id)
-            if first_run or not was_active:
-                self.on_wake()
-                first_run = False
-                await uasyncio.sleep(self.post_wake_interval)
-            self.update()
-            await uasyncio.sleep(self.interval)
-        self.on_stop()
+        # TODO sort this
+        self.on_wake()
+        # first_run = True
+        # while self.running:
+        #     was_active = await task_coordinator.app_active(self.app_id)
+        #     if first_run or not was_active:
+        #         self.on_wake()
+        #         first_run = False
+        #         await uasyncio.sleep(self.post_wake_interval)
+        #     self.update()
+        #     await uasyncio.sleep(self.interval)
+        # self.on_stop()
     
     async def isActive(self):
         while True:
             yield
 
     def on_start(self):
-        return NotImplemented
+        self.buttons.on_press(tidal.BUTTON_FRONT, lambda _: self.navigate_back())
 
     def on_stop(self):
         return NotImplemented
 
     def on_wake(self):
-        return NotImplemented
-    
-    def update(self):
-        return NotImplemented
+        self.buttons.activate()
 
+    def navigate_back(self):
+        print("TODO go back to app launcher")
+
+class TextApp(App):
+    def __init__(self):
+        super().__init__()
+        self.window = textwindow.TextWindow(self.BG, self.FG, self.title)
+
+
+class MenuApp(App):
+    def __init__(self):
+        super().__init__()
+        self.window = textwindow.Menu(self.BG, self.FG, self.FOCUS_BG, self.FOCUS_FG, self.title, self.choices)
+
+    def on_start(self):
+        super().on_start()
+        win = self.window
+        self.buttons.on_press(tidal.JOY_DOWN, lambda _: win.set_focus_idx(win.focus_idx() + 1))
+        self.buttons.on_press(tidal.JOY_UP, lambda _: win.set_focus_idx(win.focus_idx() - 1))
+        self.buttons.on_press(tidal.JOY_CENTRE, lambda _: self.choices[win.focus_idx()][1]())
+        self.buttons.on_press(tidal.BUTTON_A, lambda _: self.choices[win.focus_idx()][1]())
+        self.buttons.on_press(tidal.BUTTON_B, lambda _: self.choices[win.focus_idx()][1]())
+
+    def on_wake(self):
+        self.window.cls()
+        super().on_wake()

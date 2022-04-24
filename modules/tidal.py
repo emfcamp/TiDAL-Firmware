@@ -45,6 +45,7 @@ AUTH_WAKE = Pin(21, Pin.OUT)
 
 i2c = I2C(scl=Pin(41), sda=Pin(42))
 
+TIMER_ID_BUTTONS = 3
 
 LCD_CS = Pin(10, Pin.OUT)
 LCD_CLK = Pin(12)

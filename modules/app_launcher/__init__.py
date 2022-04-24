@@ -1,11 +1,10 @@
 import st7789
 import tidal
-from textwindow import Menu
-from app import App, task_coordinator
+from app import MenuApp, task_coordinator
 import uasyncio
 
 
-class Launcher(Menu, App):
+class Launcher(MenuApp):
 
     app_id = "menu"
     title = "EMF 2022 - TiDAL\nBoot Menu"
@@ -29,41 +28,32 @@ class Launcher(Menu, App):
     
     async def run(self):
         self.on_start()
-        first_run = True
-        while self.running:
-            was_active = await task_coordinator.app_active(self.app_id)
-            if first_run or not was_active:
-                self.on_wake()
-                first_run = False
-                await uasyncio.sleep(self.post_wake_interval)
-            self.update()
-            if self.to_launch:
-                to_launch = self.to_launch
-                self.to_launch = None
-                app = self.apps.get(to_launch)
-                if app is None or not app.running:
-                    module = __import__(to_launch[0])
-                    app = getattr(module, to_launch[1])()
-                    self.apps[to_launch] = app
-                    uasyncio.create_task(app.run())
-                    task_coordinator.context_changed(app.app_id)
-            await uasyncio.sleep(self.interval)
-        self.on_stop()
+        self.on_wake() #TODO sort this out
+        # first_run = True
+        # while self.running:
+        #     was_active = await task_coordinator.app_active(self.app_id)
+        #     if first_run or not was_active:
+        #         self.on_wake()
+        #         first_run = False
+        #         await uasyncio.sleep(self.post_wake_interval)
+        #     self.update()
+        #     if self.to_launch:
+        #         to_launch = self.to_launch
+        #         self.to_launch = None
+        #         app = self.apps.get(to_launch)
+        #         if app is None or not app.running:
+        #             module = __import__(to_launch[0])
+        #             app = getattr(module, to_launch[1])()
+        #             self.apps[to_launch] = app
+        #             uasyncio.create_task(app.run())
+        #             task_coordinator.context_changed(app.app_id)
+        #     await uasyncio.sleep(self.interval)
+        # self.on_stop()
     
-    def launch(self, module, app):
-        self.to_launch = module, app
-
-    def on_wake(self):
-        self.cls()
-
-    def update(self):
-        if tidal.JOY_DOWN.value() == 0:
-            self.focus_idx += 1
-        elif tidal.JOY_UP.value() == 0:
-            self.focus_idx -= 1
-        elif any((
-                tidal.BUTTON_A.value() == 0,
-                tidal.BUTTON_B.value() == 0,
-                tidal.JOY_CENTRE.value() == 0,
-            )):
-            self.choices[self.focus_idx][1]()
+    def launch(self, module_name, app_name):
+        # self.to_launch = module, app
+        # TODO fix this
+        module = __import__(module_name)
+        app = getattr(module, app_name)()
+        app.on_start()
+        app.on_wake()
