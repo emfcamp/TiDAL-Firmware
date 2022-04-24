@@ -30,10 +30,10 @@ index 14ee198..7fc09b5 100644
                                  )
  
 diff --git a/components/usb/tinyusb/additions/include_private/descriptors_control.h b/components/usb/tinyusb/additions/include_private/descriptors_control.h
-index 743653c..6884a25 100644
+index 743653c..c58a129 100644
 --- a/components/usb/tinyusb/additions/include_private/descriptors_control.h
 +++ b/components/usb/tinyusb/additions/include_private/descriptors_control.h
-@@ -64,7 +64,10 @@ enum {
+@@ -64,7 +64,11 @@ enum {
  #if CFG_TUD_HID
  enum {
      REPORT_ID_KEYBOARD = 1,
@@ -41,21 +41,71 @@ index 743653c..6884a25 100644
 +    REPORT_ID_MOUSE,
 +    REPORT_ID_CONSUMER_CONTROL,
 +    REPORT_ID_GAMEPAD,
-+    REPORT_ID_COUNT
++    REPORT_ID_COUNT,
++    REPORT_ID_U2F
  };
  #endif
  
 diff --git a/components/usb/tinyusb/additions/src/descriptors_control.c b/components/usb/tinyusb/additions/src/descriptors_control.c
-index c868fd4..34789de 100644
+index c868fd4..beeadf9 100644
 --- a/components/usb/tinyusb/additions/src/descriptors_control.c
 +++ b/components/usb/tinyusb/additions/src/descriptors_control.c
-@@ -25,7 +25,8 @@ static uint8_t *s_config_descriptor = NULL;
+@@ -15,6 +15,30 @@
+ #include "esp_log.h"
+ #include "descriptors_control.h"
+ #include "dfu_device.h"
++#include "/firmware/drivers/tidal_usb/u2f_hid.h"
++
++
++#define TILDA_REPORT_DESC_U2F(...) \
++  HID_USAGE_PAGE_N ( FIDO_USAGE_PAGE, 2            )                    ,\
++  HID_USAGE      ( FIDO_USAGE_U2FHID          )                    ,\
++  HID_COLLECTION ( HID_COLLECTION_APPLICATION )                    ,\
++      /* Report ID if any */\
++    __VA_ARGS__ \
++    /* 8 bits Modifier Keys (Shfit, Control, Alt) */ \
++    HID_USAGE ( FIDO_USAGE_DATA_IN                            )  ,\
++      HID_LOGICAL_MIN  ( 0                                      )  ,\
++      HID_LOGICAL_MAX_N  ( 0xff, 2                                   )  ,\
++      HID_REPORT_COUNT ( 64                 )  ,\
++      HID_REPORT_SIZE  ( 8                                      )  ,\
++      HID_INPUT        ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE )  ,\
++    HID_USAGE ( FIDO_USAGE_DATA_OUT                         )  ,\
++      HID_LOGICAL_MIN  ( 0                                   )     ,\
++      HID_LOGICAL_MAX_N  ( 0xff, 2                                )     ,\
++      HID_REPORT_COUNT ( 64             )     ,\
++      HID_REPORT_SIZE  ( 8                                   )     ,\
++      HID_OUTPUT       ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE )     ,\
++  HID_COLLECTION_END \
++
+ 
+ static const char *TAG = "tusb_desc";
+ static tusb_desc_device_t s_descriptor;
+@@ -24,8 +48,8 @@ static uint8_t *s_config_descriptor = NULL;
+ 
  #if CFG_TUD_HID //HID Report Descriptor
  uint8_t const desc_hid_report[] = {
++    TILDA_REPORT_DESC_U2F(HID_REPORT_ID(REPORT_ID_U2F)),
      TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(REPORT_ID_KEYBOARD)),
 -    TUD_HID_REPORT_DESC_MOUSE(HID_REPORT_ID(REPORT_ID_MOUSE))
-+    TUD_HID_REPORT_DESC_MOUSE(HID_REPORT_ID(REPORT_ID_MOUSE)),
-+    TUD_HID_REPORT_DESC_GAMEPAD(HID_REPORT_ID(REPORT_ID_GAMEPAD))
  };
  #endif
  
+diff --git a/components/usb/tinyusb/additions/src/tusb_hid.c b/components/usb/tinyusb/additions/src/tusb_hid.c
+index a274622..368c8a4 100644
+--- a/components/usb/tinyusb/additions/src/tusb_hid.c
++++ b/components/usb/tinyusb/additions/src/tusb_hid.c
+@@ -130,6 +130,7 @@ uint16_t tud_hid_get_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t
+ 
+ // Invoked when received SET_REPORT control request or
+ // received data on OUT endpoint ( Report ID = 0, Type = 0 )
++/*
+ void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t report_type, uint8_t const *buffer, uint16_t bufsize)
+ {
+     // TODO set LED based on CAPLOCK, NUMLOCK etc...
+@@ -139,3 +140,4 @@ void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t rep
+     (void) buffer;
+     (void) bufsize;
+ }
++*/
+\ No newline at end of file

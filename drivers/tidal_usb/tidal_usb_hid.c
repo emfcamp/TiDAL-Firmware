@@ -3,6 +3,17 @@
 #include "tusb_hid.h"
 #include "usb.h"
 #include "tidal_usb_hid.h"
+#include "descriptors_control.h"
+#include "tidal_usb_u2f.h"
+
+
+void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t report_type, uint8_t const* buffer, uint16_t bufsize) { 
+    printf("REPORT: %d %d %d\n", itf, report_id, report_type);
+    if (itf == 0) {
+        // This is the U2F device
+        handle_report_u2f(itf, report_id, report_type, buffer, bufsize);
+    }
+}
 
 // Prevent the HID driver automatically reporting no buttons pressed after each
 // report, so buttons are considered held until they're explicitly released
