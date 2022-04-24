@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y software-properties-common && apt-get u
 
 # Download the ESP-IDF v4.4 release and install it
 # Do this all in one step to avoid creating extraneous layers
-RUN mkdir /esp-idf && git clone -b v4.4 --recurse-submodules https://github.com/espressif/esp-idf /esp-idf && /esp-idf/install.sh
+RUN mkdir /esp-idf && git clone -b release/v4.4 --recurse-submodules https://github.com/espressif/esp-idf /esp-idf && /esp-idf/install.sh
 WORKDIR /esp-idf
 
 # Mark the firmware as a safe include directory for git
