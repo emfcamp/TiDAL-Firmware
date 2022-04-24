@@ -25,6 +25,7 @@ class Launcher(Menu, App):
             ({"text": "Torch"}, lambda: self.launch("torch", "Torch")),
             ({"text": "Logo"}, lambda: self.launch("emflogo", "EMFLogo")),
             ({"text": "Update Firmware"}, lambda: self.launch("otaupdate", "OtaUpdate")),
+            ({"text": "WiFi config"}, lambda: self.launch("wifi_client", "WifiClient")),
         )
     
     async def run(self):
