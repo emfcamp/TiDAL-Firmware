@@ -8,6 +8,7 @@ import uasyncio
 class Launcher(Menu, App):
 
     app_id = "menu"
+    title = "EMF 2022 - TiDAL\nBoot Menu"
     BG = st7789.BLUE
     FG = st7789.WHITE
     FOCUS_FG = st7789.BLACK

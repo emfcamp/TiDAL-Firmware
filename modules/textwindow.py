@@ -7,6 +7,8 @@ class TextWindow:
     BG = tidal.BLUE
     FG = tidal.WHITE
 
+    title = None
+
     def __init__(self, bg=None, fg=None, font=None):
         if bg is None:
             bg = self.BG
@@ -38,6 +40,7 @@ class TextWindow:
             colour = self.bg
         self.display.fill(colour)
         self.current_line = 0
+        self.draw_title()
 
     def println(self, text="", y=None, fg=None, bg=None, centre=False):
         if y is None:
@@ -48,14 +51,31 @@ class TextWindow:
         if fg is None:
             fg = self.fg
         ypos = self.offset + y * (self.font.HEIGHT + 1)
-        xpos = 0
+        self.draw_line(text, ypos, fg, bg, centre)
+
+    def draw_line(self, text, ypos, fg, bg, centre):
         text_width = len(text) * self.font.WIDTH
+        w = self.width()
         if centre:
-            xpos = (self.width() - text_width) // 2
-            self.display.fill_rect(0, ypos, xpos, self.font.HEIGHT, bg)
-        # num_spaces is more than needed if centred, doesn't matter
-        num_spaces = self.width_chars() - len(text)
-        self.display.text(self.font, text + (" " * num_spaces), xpos, ypos, fg, bg)
+            xpos = (w - text_width) // 2
+        else:
+            xpos = (w - self.width_chars() * self.font.WIDTH) // 2
+        self.display.fill_rect(0, ypos, w, self.font.HEIGHT, bg)
+        self.display.text(self.font, text, xpos, ypos, fg, bg)
+
+    def draw_title(self):
+        if self.title:
+            title_lines = self.title.split("\n")
+            for i, line in enumerate(title_lines):
+                self.draw_line(line, i * (self.font.HEIGHT + 1), self.fg, self.bg, True)
+            liney = len(title_lines) * (self.font.HEIGHT + 1) + 1
+            self.display.hline(0, liney, self.width(), self.fg)
+            self.offset = liney + 4
+
+    def set_title(self, title):
+        self.title = title
+        self.draw_title()
+
 
     def set_next_line(self, next_line):
         self.current_line = next_line
@@ -83,9 +103,8 @@ class Menu(TextWindow):
     )
 
     def choice_line_args(self, idx, focus=False):
-        y_offset = len(self.header_rows)
         line_info = {
-            "y": y_offset + idx,
+            "y": idx,
             "fg": self.focus_fg if focus else self.fg,
             "bg": self.focus_bg if focus else self.bg,
             "centre": False
@@ -105,18 +124,8 @@ class Menu(TextWindow):
         self._focus_idx = i
         self.println(**self.choice_line_args(self._focus_idx, focus=True))
 
-    @property
-    def header_rows(self):
-        return (
-            {"text": "EMF 2022", "centre": True},
-            {"text": self.title},
-            {"text": "-" * self.width_chars()}
-        )
-
     def cls(self):
         super().cls()
-        for header in self.header_rows:
-            self.println(**header)
         for choice, callback in self.choices:
             self.println(**choice)
         if self.choices:

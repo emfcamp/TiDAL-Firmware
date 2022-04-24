@@ -4,13 +4,12 @@ from tidal import *
 
 class USBKeyboard(TextWindow, App):
     app_id = "keyboard"
+    title = "USB Keyboard"
     
     thread_running = False
 
     def on_wake(self):
         self.cls()
-        self.println("USB Keyboard")
-        self.println("------------")
         self.println("Joystick maps to")
         self.println("cursor keys, A")
         self.println("and B are")
