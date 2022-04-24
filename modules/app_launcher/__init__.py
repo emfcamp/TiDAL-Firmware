@@ -1,20 +1,18 @@
-import st7789
 import tidal
-from textwindow import Menu
-from app import App, task_coordinator
-import uasyncio
+from app import MenuApp
+from scheduler import get_scheduler
+import emf_png
 
+SPLASHSCREEN_TIME = 300 # ms
 
-class Launcher(Menu, App):
+class Launcher(MenuApp):
 
     app_id = "menu"
     title = "EMF 2022 - TiDAL\nBoot Menu"
-    BG = st7789.BLUE
-    FG = st7789.WHITE
-    FOCUS_FG = st7789.BLACK
-    FOCUS_BG = st7789.CYAN
-    to_launch = None
-    apps = {}
+    BG = tidal.BLUE
+    FG = tidal.WHITE
+    FOCUS_FG = tidal.BLACK
+    FOCUS_BG = tidal.CYAN
 
     @property
     def choices(self):
@@ -27,43 +25,34 @@ class Launcher(Menu, App):
             ({"text": "Update Firmware"}, lambda: self.launch("otaupdate", "OtaUpdate")),
         )
     
-    async def run(self):
-        self.on_start()
-        first_run = True
-        while self.running:
-            was_active = await task_coordinator.app_active(self.app_id)
-            if first_run or not was_active:
-                self.on_wake()
-                first_run = False
-                await uasyncio.sleep(self.post_wake_interval)
-            self.update()
-            if self.to_launch:
-                to_launch = self.to_launch
-                self.to_launch = None
-                app = self.apps.get(to_launch)
-                if app is None or not app.running:
-                    module = __import__(to_launch[0])
-                    app = getattr(module, to_launch[1])()
-                    self.apps[to_launch] = app
-                    uasyncio.create_task(app.run())
-                    task_coordinator.context_changed(app.app_id)
-            await uasyncio.sleep(self.interval)
-        self.on_stop()
-    
-    def launch(self, module, app):
-        self.to_launch = module, app
+    # Boot entry point
+    def main(self):
+        get_scheduler().main(self)
 
-    def on_wake(self):
-        self.cls()
+    def __init__(self):
+        super().__init__()
+        self._apps = {}
+        self.show_splash = True
 
-    def update(self):
-        if tidal.JOY_DOWN.value() == 0:
-            self.focus_idx += 1
-        elif tidal.JOY_UP.value() == 0:
-            self.focus_idx -= 1
-        elif any((
-                tidal.BUTTON_A.value() == 0,
-                tidal.BUTTON_B.value() == 0,
-                tidal.JOY_CENTRE.value() == 0,
-            )):
-            self.choices[self.focus_idx][1]()
+    def on_activate(self):
+        if self.show_splash and SPLASHSCREEN_TIME:
+            # Don't call super, we don't want MenuApp to call cls yet
+            self.buttons.deactivate() # Don't respond to buttons until after splashscreen dismissed
+            tidal.display.bitmap(emf_png, 0, 0)
+            self.after(SPLASHSCREEN_TIME, lambda: self.dismiss_splash())
+        else:
+            super().on_activate()
+
+    def dismiss_splash(self):
+        self.show_splash = False
+        self.buttons.activate()
+        self.window.cls()
+
+    def launch(self, module_name, app_name):
+        app = self._apps.get(app_name)
+        if app is None:
+            print(f"Creating app {app_name}...")
+            module = __import__(module_name)
+            app = getattr(module, app_name)()
+            self._apps[app_name] = app
+        get_scheduler().switch_app(app)

@@ -201,3 +201,4 @@ def power_test_sequence(): #value without/with DFS
     time.sleep(0.1)
     machine.deepsleep(5000)#0.1
     
+TIMER_ID_BUTTONS = 3

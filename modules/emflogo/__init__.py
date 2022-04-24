@@ -1,24 +1,25 @@
-from tidal import display, BUTTON_FRONT
-from app import App, task_coordinator
+from tidal import display
+from app import App
 import emf_png
-
 
 class EMFLogo(App):
     app_id = "emflogo"
-    post_wake_interval = interval = 0.01
 
-    def on_wake(self):
+    def on_start(self):
+        super().on_start()
+
+    def on_activate(self):
+        super().on_activate()
         display.vscrdef(40, 240, 40)
         display.vscsad(40)
         display.bitmap(emf_png, 0, 0)
         self.i = 0
+        self.timer_task = self.periodic(10, lambda: self.update())
 
     def update(self):
-        self.i += 1
-        if self.i >= 240:
-            self.i = 0
+        self.i = (self.i + 1) % 240
         display.vscsad(40 + self.i)
 
-        if BUTTON_FRONT.value() == 0:
-            display.vscsad(40)
-            task_coordinator.context_changed("menu")
+    def on_deactivate(self):
+        display.vscsad(40) # Scroll screen back up to top
+        self.timer_task.cancel()
