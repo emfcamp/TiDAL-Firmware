@@ -77,6 +77,13 @@ class TextWindow:
         self.draw_title()
 
 
+    def set_next_line(self, next_line):
+        self.current_line = next_line
+
+    def get_next_line(self):
+        return self.current_line
+
+
 class Menu(TextWindow):
 
     title = "TiDAL Menu"

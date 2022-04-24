@@ -19,6 +19,11 @@ def torch():
     app = torch.Torch()
     app.run_sync()
 
+def run_otaupdate():
+    import otaupdate
+    app = otaupdate.OtaUpdate()
+    app.run_sync()
+
 
 class BootMenu(Menu, App):
 
@@ -35,6 +40,7 @@ class BootMenu(Menu, App):
         ({"text": "USB Keyboard"}, hid),
         ({"text": "Web REPL"}, web_repl),
         ({"text": "Torch"}, torch),
+        ({"text": "Firmware Update"}, run_otaupdate),
     )
 
     def on_wake(self):

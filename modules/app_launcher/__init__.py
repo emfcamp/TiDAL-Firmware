@@ -24,6 +24,7 @@ class Launcher(Menu, App):
             ({"text": "Web REPL"}, lambda: self.launch("web_repl", "WebRepl")),
             ({"text": "Torch"}, lambda: self.launch("torch", "Torch")),
             ({"text": "Logo"}, lambda: self.launch("emflogo", "EMFLogo")),
+            ({"text": "Update Firmware"}, lambda: self.launch("otaupdate", "OtaUpdate")),
         )
     
     async def run(self):

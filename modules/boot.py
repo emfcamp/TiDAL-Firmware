@@ -2,6 +2,7 @@ import emf_png
 import tidal
 import app
 import time
+from esp32 import Partition
 
 # Initialize USB early on
 tidal.usb.initialize()
@@ -15,6 +16,7 @@ if tidal.JOY_DOWN.value() == 0:
     from bootmenu import BootMenu
 
     menu = BootMenu()
+    Partition.mark_app_valid_cancel_rollback()
     menu.run_sync()
 else:
     from app_launcher import Launcher
@@ -22,6 +24,9 @@ else:
 
     menu = Launcher()
     
+    # If we've made it to here, any OTA update has _probably_ gone ok...
+    Partition.mark_app_valid_cancel_rollback()
+
     async def main():
         menu_task = uasyncio.create_task(menu.run())
         app.task_coordinator.context_changed("menu")
