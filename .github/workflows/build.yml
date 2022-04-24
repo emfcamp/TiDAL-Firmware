@@ -57,3 +57,4 @@ jobs:
             micropython/ports/esp32/build-tildamk6/micropython.bin
             micropython/ports/esp32/build-tildamk6/bootloader/bootloader.bin
             micropython/ports/esp32/build-tildamk6/partition_table/partition-table.bin
+            micropython/ports/esp32/build-tildamk6/ota_data_initial.bin
