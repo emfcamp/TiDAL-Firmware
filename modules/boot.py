@@ -5,7 +5,7 @@ from esp32 import Partition
 tidal.usb.initialize()
 tidal.init_lcd()
 
-if tidal.JOY_DOWN.value() == 0:
+if tidal.BUTTON_FRONT.value() == 0:
     # Boot to the recovery menu
     from bootmenu import BootMenu
 
