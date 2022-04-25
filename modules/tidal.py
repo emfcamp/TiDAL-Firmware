@@ -1,3 +1,4 @@
+
 from machine import I2C
 from machine import Pin
 from machine import SPI
@@ -94,8 +95,8 @@ all_buttons = [
 _LED_PWREN = Pin(_hw["LED_PWREN"], Pin.OUT, value=1)
 LED_DATA = Pin(_hw["LED_DATA"], Pin.OUT)
 
-_LCD_PWR =  Pin(_hw["LCD_PWR"], Pin.OUT)
-_LCD_BLEN = Pin(_hw["LCD_BLEN"], Pin.OUT)
+_LCD_PWR =  Pin(_hw["LCD_PWR"], Pin.OUT, value=1)
+_LCD_BLEN = Pin(_hw["LCD_BLEN"], Pin.OUT, value=1)
 
 led=NeoPixel(LED_DATA, 1)
 
@@ -125,7 +126,7 @@ def lcd_power_off():
 
 def lcd_backlight_on(on=True):
     if(on):
-        _LCD_BLEN.init(mode=Pin.OUT,value=1)
+        _LCD_BLEN.init(mode=Pin.OUT,value=0)
     else:
         _LCD_BLEN.init(mode=Pin.IN,pull=None)
         
@@ -149,6 +150,7 @@ LCD_DC = Pin(_hw["LCD_DC"], Pin.OUT)
 display = st7789.ST7789(LCD_SPI, 135, 240, reset=LCD_RESET, dc=LCD_DC, rotation=2)
 
 def init_lcd():
+    lcd_backlight_on()
     lcd_power_on()
     LCD_CS.off()
     display.init()
@@ -168,3 +170,4 @@ def lcd_fps() -> int:
         display.fill(c)
         frames += 1
     return frames
+
