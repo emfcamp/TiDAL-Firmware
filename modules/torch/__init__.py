@@ -94,7 +94,7 @@ class Torch(TextWindow, App):
             hue = 0
             saturation = 0
         # print("LED h={} s={} v={}".format(hue, saturation, led_v))
-        LED_PWREN.value(self.state and 0 or 1)
+        led_power_on(self.state)
         if self.state:
             self.led[0] = hsvToRgb(hue, saturation, self.led_v)
         else:

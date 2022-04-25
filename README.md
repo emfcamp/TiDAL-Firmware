@@ -38,6 +38,21 @@ However, if you have the device plugged into the machine running the docker cont
 
     docker run -it --device /dev/ttyUSB0 -v "$(pwd)"/:/firmware matthewwilkes/esp_idf:4.4 IOT_SOLUTION_PATH=/firmware/esp-iot-solution TARGET=esp32s3 deploy
 
+### Prototypes
+
+If you have one of the prototypes, you need to add an additional variable to the build command to ensure the right pin assignments are used. For the DEVKIT and PicoLCD breadboard prototype, wire up the Pico using the same pin assignments were possible and set:
+
+    CONFIG_TIDAL_VARIANT_DEVBOARD=y
+
+if you're using the electo magentic yield prototype, use:
+
+    CONFIG_TIDAL_VARIANT_PROTOTYPE=y
+
+If you need to switch which version you're building, run
+
+    docker run -it "$(pwd)"/:/firmware matthewwilkes/esp_idf:4.4 IOT_SOLUTION_PATH=/firmware/esp-iot-solution TARGET=esp32s3 clean
+
+to remove the cached definitions.
 
 ### Problems
 

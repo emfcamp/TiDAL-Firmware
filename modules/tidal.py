@@ -6,6 +6,8 @@ import st7789
 from st7789 import BLACK, BLUE, RED, GREEN, CYAN, MAGENTA, YELLOW, WHITE
 
 import _tidal_usb as usb
+import tidal_helpers
+
 
 _devkitpins={}
 
@@ -16,7 +18,7 @@ _devkitpins["JUP"]=15
 _devkitpins["JDOWN"]=16
 _devkitpins["JLEFT"]=8
 _devkitpins["JRIGHT"]=7
-_devkitpins["JCENT"]=9
+_devkitpins["JCEN"]=9
 _devkitpins["G0"]=18
 _devkitpins["G1"]=17
 _devkitpins["G2"]=4
@@ -37,6 +39,11 @@ _devkitpins["LCD_DC"] = 13
 _devkitpins["UVLO_TRIG"] = 45
 _devkitpins["ACCEL_INT"] = 40
 
+# This isn't real pin definition, it's just so there's a pin-like
+# object for charge det
+_devkitpins["CHARGE_DET"] = 39
+
+
 
 _proto1pins={}
 _productionpins={}
@@ -51,9 +58,13 @@ _proto1pins["CHARGE_DET"] = 26
 _productionpins["CHARGE_DET"] = 21
 
 
-#_hw=_devkitpins
-_hw=_proto1pins
-#_hw=_productionpins
+variant = tidal_helpers.get_variant()
+if variant == "devboard":
+    _hw = _devkitpins
+elif variant == "prototype":
+    _hw = _proto1pins
+else:
+    _hw = _productionpins
 
 G0 = Pin(_hw["G0"], Pin.IN)
 G1 = Pin(_hw["G1"], Pin.IN)
@@ -86,13 +97,12 @@ LED_DATA = Pin(_hw["LED_DATA"], Pin.OUT)
 _LCD_PWR =  Pin(_hw["LCD_PWR"], Pin.OUT)
 _LCD_BLEN = Pin(_hw["LCD_BLEN"], Pin.OUT)
 
-led=NeoPixel(_hw["LED_DATA"], 1)
+led=NeoPixel(LED_DATA, 1)
 
-Pin(_hw["UVLO_TRIG"], Pin.OUT)
+_UVLO_TRIG = Pin(_hw["UVLO_TRIG"], Pin.OUT)
 
 def system_power_off():
-    uvlotrig=Pin(_hw["UVLO_TRIG"], Pin.OUT)
-    uvlotrig.on()
+    _UVLO_TRIG.uvlotrig.on()
 
 def led_power_on(on=True):
     if(on):
@@ -115,9 +125,9 @@ def lcd_power_off():
 
 def lcd_backlight_on(on=True):
     if(on):
-        _LED_PWREN.init(mode=Pin.OUT,value=1)
+        _LCD_BLEN.init(mode=Pin.OUT,value=1)
     else:
-        _LED_PWREN.init(mode=Pin.IN,pull=None)
+        _LCD_BLEN.init(mode=Pin.IN,pull=None)
         
 def lcd_backlight_off():
     lcd_backlight_on(False)

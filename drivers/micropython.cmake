@@ -17,3 +17,6 @@ list(APPEND EXTRA_COMPONENT_DIRS
 
 # Add the OTA driver
 include(${CMAKE_CURRENT_LIST_DIR}/ota/micropython.cmake)
+
+# Add general purpose helpers
+include(${CMAKE_CURRENT_LIST_DIR}/tidal_helpers/micropython.cmake)
