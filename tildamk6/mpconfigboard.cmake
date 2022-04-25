@@ -16,7 +16,7 @@ if(DEFINED ENV{CONFIG_TIDAL_VARIANT_DEVBOARD})
         boards/sdkconfig.usb
         boards/sdkconfig.240mhz
         #boards/sdkconfig.spiram_sx
-        #boards/tildamk6/sdkconfig.spiram.board
+        boards/tildamk6/sdkconfig.spiram.devboard
         boards/tildamk6/sdkconfig.board
         build-tildamk6/sdkconfig.project_ver
     )
