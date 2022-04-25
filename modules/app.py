@@ -117,9 +117,11 @@ class MenuApp(App):
         win = self.window
         self.buttons.on_press(tidal.JOY_DOWN, lambda _: win.set_focus_idx(win.focus_idx() + 1))
         self.buttons.on_press(tidal.JOY_UP, lambda _: win.set_focus_idx(win.focus_idx() - 1))
-        self.buttons.on_press(tidal.JOY_CENTRE, lambda _: self.choices[win.focus_idx()][1]())
-        self.buttons.on_press(tidal.BUTTON_A, lambda _: self.choices[win.focus_idx()][1]())
-        self.buttons.on_press(tidal.BUTTON_B, lambda _: self.choices[win.focus_idx()][1]())
+        def select(_):
+            self.choices[win.focus_idx()][1]()
+        self.buttons.on_press(tidal.JOY_CENTRE, select, autorepeat=False)
+        self.buttons.on_press(tidal.BUTTON_A, select, autorepeat=False)
+        self.buttons.on_press(tidal.BUTTON_B, select, autorepeat=False)
 
     def on_wake(self):
         self.window.cls()

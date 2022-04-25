@@ -1,5 +1,5 @@
 import tidal
-import machine
+from machine import Timer
 
 # Only one Buttons object can be active at a time - whichever most recently
 # called activate() gets the interrupts.
@@ -21,36 +21,46 @@ class Button:
                 self.callback(self.pin, self.state == 0)
             elif self.state == 0:
                 # Button pressed down
-                # TODO support autorepeat=true using the timer
                 self.callback(self.pin)
+
+    def should_autorepeat(self):
+        return (not self.updown) and self.autorepeat and (self.state == 0)
+
 
 class Buttons:
 
-    # autorepeat_time = 200 # ms
+    autorepeat_delay_time = 200 # ms
+    autorepeat_time = 200 # ms
 
     def __init__(self):
         self._callbacks = {} # str(pin) -> Button
-        self._timer = machine.Timer(tidal.TIMER_ID_BUTTONS)
+        self._timer = Timer(tidal.TIMER_ID_BUTTONS)
+        self._autorepeating_button = None
 
     def is_active(self):
         return _current == self
 
     def on_press(self, pin, callback, autorepeat=True):
+        if autorepeat is True:
+            autorepeat = self.autorepeat_time
         self._register_button(Button(pin, callback, False, autorepeat))
 
     def on_up_down(self, pin, callback):
         self._register_button(Button(pin, callback, True, False))
 
     def _register_button(self, button):
-        k = str(button.pin)
+        k = str(button.pin) # Pin really needs to be hashable...
         if button.callback:
             self._callbacks[k] = button
             if self.is_active():
                 self._register_irq(button)
-        elif k in self._callbacks:
+        elif self._is_registered(button):
             del self._callbacks[k]
             if self.is_active():
                 button.pin.irq(None)
+
+    def _is_registered(self, button):
+        return str(button.pin) in self._callbacks
 
     def _register_irq(self, button):
         button.state = button.pin.value()
@@ -62,11 +72,33 @@ class Buttons:
         # 0-1 threshold, plus it depends how quickly this code gets to run
         # versus how quickly the voltage changes. Use a short timer to handle
         # this and provide a bit of debouncing as well
-        self._timer.init(mode=machine.Timer.ONE_SHOT, period=10, callback=lambda t: self._timer_fired())
+
+        # Any further button event cancels any autorepeat
+        self._autorepeating_button = None
+
+        self._timer.init(mode=Timer.ONE_SHOT, period=10, callback=lambda t: self._timer_fired())
 
     def _timer_fired(self):
-        for button in self._callbacks.values():
-            button.check_state()
+        ab = self._autorepeating_button
+        if ab:
+            ab.check_state()
+            if ab.state == 0:
+                # Still down
+                ab.callback(ab.pin)
+            if not self._is_registered(ab) or ab.state == 1:
+                # Stop repeating
+                self._timer.deinit()
+                self._autorepeating_button = None
+        else:
+            for button in self._callbacks.values():
+                button.check_state()
+                if self._is_registered(button) and button.should_autorepeat() and self._autorepeating_button == None:
+                    self._autorepeating_button = button
+                    self._timer.init(mode=Timer.ONE_SHOT, period=self.autorepeat_delay_time, callback=lambda t: self._autorepeat_delay_expired())
+
+    def _autorepeat_delay_expired(self):
+        if self._autorepeating_button:
+            self._timer.init(mode=Timer.PERIODIC, period=self._autorepeating_button.autorepeat, callback=lambda t: self._timer_fired())
 
     def deactivate(self):
         global _current
