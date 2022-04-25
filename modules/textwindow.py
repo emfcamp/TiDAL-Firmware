@@ -35,6 +35,16 @@ class TextWindow:
         self.current_line = 0
         self.draw_title()
 
+    def clear_from_line(self, line=None):
+        if line is None:
+            line = self.get_next_line()
+        else:
+            # Passing in a line also updates next_line
+            self.set_next_line(line)
+        y = self.get_line_pos(line)
+        h = self.height() - y
+        self.display.fill_rect(0, y, self.width(), h, self.bg)
+
     def println(self, text="", y=None, fg=None, bg=None, centre=False):
         if y is None:
             y = self.current_line

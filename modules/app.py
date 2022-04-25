@@ -90,16 +90,19 @@ class App:
             yield
 
     def on_start(self):
-        self.buttons.on_press(tidal.BUTTON_FRONT, lambda _: self.navigate_back())
+        if self.buttons:
+            self.buttons.on_press(tidal.BUTTON_FRONT, lambda _: self.navigate_back())
 
     def on_stop(self):
         return NotImplemented
 
     def on_wake(self):
-        self.buttons.activate()
+        if self.buttons:
+            self.buttons.activate()
 
     def navigate_back(self):
         print("TODO go back to app launcher")
+
 
 class TextApp(App):
     def __init__(self):

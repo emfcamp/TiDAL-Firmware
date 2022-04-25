@@ -53,6 +53,7 @@ class Launcher(MenuApp):
     def launch(self, module_name, app_name):
         # self.to_launch = module, app
         # TODO fix this
+        self.buttons.deactivate()
         module = __import__(module_name)
         app = getattr(module, app_name)()
         app.on_start()

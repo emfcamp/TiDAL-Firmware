@@ -1,12 +1,14 @@
 from tidal import *
-from buttons import Buttons
-from app import TextApp
+import textwindow
 from esp32 import Partition
 import network
 import ota
 import time
 
-class OtaUpdate(TextApp):
+# Note, this intentionally doesn't inherit App or TextApp to limit dependencies
+# as this is on the critical path from the Recovery Menu.
+# But it acts sufficiently like it does, to satisfy the app launcher
+class OtaUpdate:
     
     app_id = "otaupdate"
     title = "Firmware Update"
@@ -16,9 +18,14 @@ class OtaUpdate(TextApp):
 
     confirmed = False
 
+    def run_sync(self):
+        self.on_start()
+        self.on_wake()
+
     def on_start(self):
-        super().on_start()
-        self.buttons.clear_callbacks() # Don't support BUTTON_FRONT for now
+        self.window = textwindow.TextWindow(self.BG, self.FG, self.title)
+
+    def on_wake(self):
         window = self.window
         window.cls()
 
@@ -40,21 +47,27 @@ class OtaUpdate(TextApp):
         line = window.get_next_line()
         window.println("Press [A] to")
         window.println("check updates.")
-        window.set_next_line(line)
 
-        self.buttons.on_press(BUTTON_A, lambda p: self.connect())
+        while BUTTON_A.value() == 1:
+            time.sleep(0.2)
+
+        window.clear_from_line(line)
+        self.connect()
 
     def connect(self):
-        self.buttons.clear_callbacks()
-
-        # Clear prompt
         window = self.window
         line = window.get_next_line()
-        window.println("", line)
-        window.println("", line + 1)
 
         try:
             import wifi_cfg
+            wifi_cfg.sta.status()
+        except Exception as e:
+            print(e)
+            window.println("No WIFI config!")
+            return
+
+        while True:
+            window.clear_from_line(line)
             window.println("Connecting...", line)
             # Give WIFI chance to get IP address
             for retry in range(0, 15):
@@ -64,30 +77,39 @@ class OtaUpdate(TextApp):
                 else:
                     break
 
-            if wifi_cfg.sta.status() != network.STAT_GOT_IP:
-                window.println("WiFi timed out")
-                return
-            window.println("IP:")
-            window.println(wifi_cfg.sta.ifconfig()[0])
-        except Exception as e:
-            print(e)
-            window.println("No WIFI config!")
-            return
+            if wifi_cfg.sta.status() == network.STAT_GOT_IP:
+                break
+            else:
+                window.println("WiFi timed out", line)
+                window.println("[A] to retry", line + 1)
+                while BUTTON_A.value() == 1:
+                    time.sleep(0.2)
+                
+        window.println("IP:")
+        window.println(wifi_cfg.sta.ifconfig()[0])
 
         self.otaupdate()
 
     def otaupdate(self):
         window = self.window
         window.println()
-        window.println("Checking...", window.get_next_line())
+        line = window.get_next_line()
 
-        try:
-            result = ota.update(lambda version, val: self.progress(version, val))
-        except OSError as e:
-            print("Error:" + str(e))
-            window.println("Update failed!")
-            window.println("Error {}".format(e.errno))
-            return
+        retry = True
+        while retry:
+            window.clear_from_line(line)
+            window.println("Checking...", line)
+
+            try:
+                result = ota.update(lambda version, val: self.progress(version, val))
+                retry = False
+            except OSError as e:
+                print("Error:" + str(e))
+                window.println("Update failed!")
+                window.println("Error {}".format(e.errno))
+                window.println("[A] to retry")
+                while BUTTON_A.value() == 1:
+                    time.sleep(0.2)
 
         if result:
             window.println("Updated OK.")

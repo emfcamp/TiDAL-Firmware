@@ -106,10 +106,15 @@ class Buttons:
             return
 
         self._timer.deinit()
+        self._autorepeating_button = None
 
         for button in self._callbacks.values():
             # This doesn't actually completely disable the IRQ, but close enough from Python's pov
             button.pin.irq(None)
+            if button.updown and button.state == 0:
+                # Simulate a button up
+                button.state = 1
+                button.callback(button.pin, False)
 
         _current = None
 
