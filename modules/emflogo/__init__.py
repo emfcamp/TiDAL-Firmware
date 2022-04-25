@@ -1,11 +1,15 @@
-from tidal import display, BUTTON_FRONT
-from app import App, task_coordinator
+from tidal import display
+from app import App
+from machine import Timer
 import emf_png
 
 
 class EMFLogo(App):
     app_id = "emflogo"
-    post_wake_interval = interval = 0.01
+
+    def on_start(self):
+        super().on_start()
+        self.timer = Timer(0)
 
     def on_wake(self):
         super().on_wake()
@@ -13,13 +17,8 @@ class EMFLogo(App):
         display.vscsad(40)
         display.bitmap(emf_png, 0, 0)
         self.i = 0
+        self.timer.init(mode=Timer.PERIODIC, period=10, callback=lambda _: self.update())
 
     def update(self):
-        self.i += 1
-        if self.i >= 240:
-            self.i = 0
+        self.i = (self.i + 1) % 240
         display.vscsad(40 + self.i)
-
-        if BUTTON_FRONT.value() == 0:
-            display.vscsad(40)
-            task_coordinator.context_changed("menu")
