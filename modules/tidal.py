@@ -42,7 +42,7 @@ _devkitpins["ACCEL_INT"] = 40
 
 # This isn't real pin definition, it's just so there's a pin-like
 # object for charge det
-_devkitpins["CHARGE_DET"] = 26
+_devkitpins["CHARGE_DET"] = 21
 
 
 
