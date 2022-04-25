@@ -102,7 +102,7 @@ led=NeoPixel(LED_DATA, 1)
 _UVLO_TRIG = Pin(_hw["UVLO_TRIG"], Pin.OUT)
 
 def system_power_off():
-    _UVLO_TRIG.uvlotrig.on()
+    _UVLO_TRIG.on()
 
 def led_power_on(on=True):
     if(on):
@@ -149,6 +149,7 @@ LCD_DC = Pin(_hw["LCD_DC"], Pin.OUT)
 display = st7789.ST7789(LCD_SPI, 135, 240, reset=LCD_RESET, dc=LCD_DC, rotation=2)
 
 def init_lcd():
+    lcd_power_on()
     LCD_CS.off()
     display.init()
     # Set up scrolling parameters, if anyone wants to use them
