@@ -25,7 +25,7 @@ _devkitpins["G2"]=4
 _devkitpins["G3"]=5
 _devkitpins["LED_DATA"] = 48
 _devkitpins["LED_PWREN"] = 3
-_devkitpins["LCD_PWR"] = 48
+_devkitpins["LCD_PWR"] = 39
 _devkitpins["LCD_BLEN"] = 0
 _devkitpins["SCL_S"] = 41
 _devkitpins["SDA_S"] = 42
@@ -41,7 +41,7 @@ _devkitpins["ACCEL_INT"] = 40
 
 # This isn't real pin definition, it's just so there's a pin-like
 # object for charge det
-_devkitpins["CHARGE_DET"] = 39
+_devkitpins["CHARGE_DET"] = 26
 
 
 
