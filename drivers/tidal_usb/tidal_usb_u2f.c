@@ -25,29 +25,27 @@ void handle_u2f_init(u2fhid_init_request const* init_request) {
 
     printf("Responding...\n");
     // Allocate a response object for the init request's response
-    u2fhid_init_response response_data;
-    response_data.NONCE = init_request->NONCE;
-    response_data.CID = CID_BROADCAST;
-    response_data.PROTOCOL_VER = 0x01;
-    response_data.DEVICE_VER_MAJOR = 0x01;
-    response_data.DEVICE_VER_MINOR = 0x01;
-    response_data.DEVICE_VER_BUILD = 0x01;
-    response_data.CAPABILITIES = CAPFLAG_WINK;
-    
-    printf("U2FHID_INIT: response nonce = %llx\n", response_data.NONCE);
-
+    u2fhid_init_response response_data = {
+        .NONCE = init_request->NONCE,
+        .CID = 0x0123ffad,
+        .PROTOCOL_VER = 0x01,
+        .DEVICE_VER_MAJOR = 0x01,
+        .DEVICE_VER_MINOR = 0x00,
+        .DEVICE_VER_BUILD = 0x00,
+        .CAPABILITIES = CAPFLAG_WINK
+    };
     
     // Allocate a response report
-    u2f_hid_msg response;
-    // Set the same CMD and CID as the input
-    response.CID = CID_BROADCAST;
-    response.init.CMD = U2FHID_INIT;
+    u2f_hid_msg response = {
+        .CID = CID_BROADCAST,
+        .init.CMD = U2FHID_INIT,
+        .init.BCNTH = 0,
+        .init.BCNTL = 17,
+    };
     // Zero out the data packet and then copy in the (17 byte)
     // response and set the length flags.
     memset(response.init.data, 0, sizeof response.init.data);
     memcpy(response.init.data, &response_data, 17);
-    response.init.BCNTH = 0;
-    response.init.BCNTL = 17;
     
     // Cast this to a char array so we can debug print it
     uint8_t *as_buf = (uint8_t *) &response;
@@ -64,5 +62,5 @@ void u2f_report(u2f_hid_msg *cmd) {
     // This is wrong, but I'm just trying to make it match
     // what a real one is doing for now, to help debug.
     uint8_t *as_buf = (uint8_t *) cmd;
-    tud_hid_n_report(0, as_buf[0], as_buf + 1, HID_RPT_SIZE-1);
+    tud_hid_report(0, as_buf, HID_RPT_SIZE);
 }

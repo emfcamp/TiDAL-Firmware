@@ -20,7 +20,7 @@ extern "C" {
 
 // Size of HID reports 
 
-#define HID_RPT_SIZE            64      // Default size of raw HID report
+#define HID_RPT_SIZE            63      // 64 is the default but that causes -EOVERFLOW
     
 // Frame layout - command- and continuation frames
 
