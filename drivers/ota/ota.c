@@ -5,7 +5,7 @@
 #include "esp_ota_ops.h"
 #include "esp_https_ota.h"
 
-static const char *TAG = "ota";
+// static const char *TAG = "ota";
 
 #define IMAGE_URL "https://raw.githubusercontent.com/tomsci/tidal-ota/main/micropython.bin"
 
@@ -94,7 +94,6 @@ STATIC mp_obj_t ota_get_version() {
     return mp_obj_new_str(info.version, strlen(info.version));
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(ota_get_version_obj, ota_get_version);
-
 
 STATIC const mp_rom_map_elem_t ota_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_ota) },
