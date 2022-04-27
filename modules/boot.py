@@ -2,7 +2,11 @@ import emf_png
 import tidal
 import app
 import time
+import tidal_helpers
 from esp32 import Partition
+
+# sleep_sel just gets in the way of using lightsleep
+tidal_helpers.esp_sleep_enable_gpio_switch(False)
 
 # Initialize USB early on
 tidal.usb.initialize()
