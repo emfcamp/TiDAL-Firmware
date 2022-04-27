@@ -181,25 +181,23 @@ def lcd_fps() -> int:
     return frames
 
 def power_test_sequence(): #value without/with DFS
-    display.bitmap(emf_png, 0, 0)#39->32
+    display.bitmap(emf_png, 0, 0)#39/32mA
     time.sleep(5)
-    lcd_backlight_off()#29->22
+    lcd_backlight_off()#29/22
     time.sleep(5)
-    lcd_power_off()#23->16
+    lcd_power_off()#23/16
     time.sleep(5)
-    lcd_power_on()#29->22
-    lcd_backlight_off()
+    lcd_power_on()#39/32
     time.sleep(5)
-    machine.lightsleep(5000)#2.3->1.9
-    init_lcd()
-    display.bitmap(emf_png, 0, 0)#48
-    time.sleep(0.1)
-    lcd_fps()#?->60
+    lcd_power_off()
+    machine.lightsleep(5000)#2.3/2.2
+    lcd_power_on()
+    time.sleep(1)
+    lcd_fps()#?/60
     lcd_fps()
     lcd_fps()
     lcd_fps()
-    lcd_fps()
-    machine.lightsleep(5000)#?->1.9
+    machine.lightsleep(5000)#lightsleep with display -> ?/18mA
     time.sleep(0.1)
     machine.deepsleep(5000)#0.1
     
