@@ -167,8 +167,6 @@ def init_lcd():
     display.vscrdef(40, 240, 40)
     display.vscsad(40)
 
-init_lcd()
-lcd_power_off()
 
 def lcd_fps() -> int:
     import time
