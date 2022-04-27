@@ -40,10 +40,9 @@ _devkitpins["LCD_DC"] = 13
 _devkitpins["UVLO_TRIG"] = 45
 _devkitpins["ACCEL_INT"] = 40
 
-# This isn't real pin definition, it's just so there's a pin-like
+# This isn't a real pin definition, it's just so there's a pin-like
 # object for charge det
-_devkitpins["CHARGE_DET"] = 26
-
+_devkitpins["CHARGE_DET"] = 47
 
 
 _proto1pins={}
@@ -92,10 +91,12 @@ all_buttons = [
     JOY_CENTRE,
 ]
 
+_LCD_RESET = Pin(_hw["LCD_RESET"], Pin.OUT)
+
 _LED_PWREN = Pin(_hw["LED_PWREN"], Pin.OUT, value=1)
 LED_DATA = Pin(_hw["LED_DATA"], Pin.OUT)
 
-_LCD_PWR =  Pin(_hw["LCD_PWR"], Pin.OUT, value=1)
+_LCD_PWR_ALWAYS =  Pin(_hw["LCD_PWR"], Pin.OUT, value=0)
 _LCD_BLEN = Pin(_hw["LCD_BLEN"], Pin.OUT, value=1)
 
 led=NeoPixel(LED_DATA, 1)
@@ -117,9 +118,9 @@ def led_power_off():
 
 def lcd_power_on(on=True):
     if(on):
-        _LCD_PWR.off()
+        _LCD_RESET.off()
     else:
-        _LCD_PWR.on()
+        _LCD_RESET.on()
 
 def lcd_power_off():
     lcd_power_on(False)
@@ -136,28 +137,33 @@ def lcd_backlight_off():
 CHARGE_DET = Pin(_hw["CHARGE_DET"], Pin.IN, Pin.PULL_UP)
 
 i2cs = I2C(scl=Pin(_hw["SCL_S"]), sda=Pin(_hw["SDA_S"]))
-i2cp = I2C(scl=Pin(_hw["SCL_P"]), sda=Pin(_hw["SDA_P"]))
+
+i2cp = None
+
+def enable_peripheral_I2C():
+    global i2cp
+    i2cp=I2C(scl=Pin(_hw["SCL_P"]), sda=Pin(_hw["SDA_P"]))
 
 i2c = i2cs
 
-LCD_CS = Pin(_hw["LCD_CS"], Pin.OUT)
-LCD_CLK = Pin(_hw["LCD_CLK"])
-LCD_DIN = Pin(_hw["LCD_DIN"])
-LCD_SPI = SPI(2, baudrate=40000000, polarity=1, sck=LCD_CLK, mosi=LCD_DIN)
-LCD_RESET = Pin(_hw["LCD_RESET"], Pin.OUT)
-LCD_DC = Pin(_hw["LCD_DC"], Pin.OUT)
+_LCD_CS = Pin(_hw["LCD_CS"], Pin.OUT)
+_LCD_CLK = Pin(_hw["LCD_CLK"])
+_LCD_DIN = Pin(_hw["LCD_DIN"])
+_LCD_SPI = SPI(2, baudrate=40000000, polarity=1, sck=_LCD_CLK, mosi=_LCD_DIN)
 
-display = st7789.ST7789(LCD_SPI, 135, 240, reset=LCD_RESET, dc=LCD_DC, rotation=2)
+_LCD_DC = Pin(_hw["LCD_DC"], Pin.OUT)
+
+display = st7789.ST7789(_LCD_SPI, 135, 240, reset=_LCD_RESET, dc=_LCD_DC, rotation=2)
 
 def init_lcd():
+    _LCD_PWR_ALWAYS.off() # this is mandatory even if LCD is disabled using lcd_power_off() - having this pin high significantly increases power consumption
     lcd_backlight_on()
     lcd_power_on()
-    LCD_CS.off()
+    _LCD_CS.off()
     display.init()
     # Set up scrolling parameters, if anyone wants to use them
     display.vscrdef(40, 240, 40)
     display.vscsad(40)
-
 
 def lcd_fps() -> int:
     import time
@@ -171,3 +177,20 @@ def lcd_fps() -> int:
         frames += 1
     return frames
 
+def power_test_sequence():
+    display.bitmap(emf_png, 0, 0)#39
+    time.sleep(5)
+    lcd_backlight_off()#29
+    time.sleep(5)
+    lcd_power_off()#23
+    time.sleep(5)
+    lcd_power_on()#23
+    time.sleep(5)
+    machine.lightsleep(5000)#2.3
+    init_lcd()
+    display.bitmap(emf_png, 0, 0)#48
+    time.sleep(0.1)
+    machine.lightsleep(5000)#17
+    time.sleep(0.1)
+    machine.deepsleep(5000)#0.1
+    

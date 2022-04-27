@@ -1,5 +1,4 @@
 from tidal import *
-from neopixel import NeoPixel
 from buttons import Buttons
 from textwindow import TextWindow
 from app import App, task_coordinator
@@ -131,7 +130,7 @@ class Torch(TextWindow, App):
         self.led_h = HUE_WHITE
         self.led_v = 1.0
         self.buttons = None
-        self.led = NeoPixel(LED_DATA, 1)
+        self.led = led
 
         buttons = Buttons()
         buttons.on_press(JOY_CENTRE, self.toggle_led)
