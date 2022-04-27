@@ -119,9 +119,11 @@ def led_power_off():
 
 def lcd_power_on(on=True):
     if(on):
-        _LCD_RESET.off()
+        display.sleep_mode(0)
+        lcd_backlight_on()
     else:
-        _LCD_RESET.on()
+        lcd_backlight_off()
+        display.sleep_mode(1)
 
 def lcd_power_off():
     lcd_power_on(False)
@@ -159,12 +161,14 @@ display = st7789.ST7789(_LCD_SPI, 135, 240, reset=_LCD_RESET, dc=_LCD_DC, rotati
 def init_lcd():
     _LCD_PWR_ALWAYS.off() # this is mandatory even if LCD is disabled using lcd_power_off() - having this pin high significantly increases power consumption
     lcd_backlight_on()
-    lcd_power_on()
     _LCD_CS.off()
     display.init()
     # Set up scrolling parameters, if anyone wants to use them
     display.vscrdef(40, 240, 40)
     display.vscsad(40)
+
+init_lcd()
+lcd_power_off()
 
 def lcd_fps() -> int:
     import time
@@ -178,25 +182,26 @@ def lcd_fps() -> int:
         frames += 1
     return frames
 
-def power_test_sequence():
-    display.bitmap(emf_png, 0, 0)#39
+def power_test_sequence(): #value without/with DFS
+    display.bitmap(emf_png, 0, 0)#39->32
     time.sleep(5)
-    lcd_backlight_off()#29
+    lcd_backlight_off()#29->22
     time.sleep(5)
-    lcd_power_off()#23
+    lcd_power_off()#23->16
     time.sleep(5)
-    lcd_power_on()#23
+    lcd_power_on()#29->22
+    lcd_backlight_off()
     time.sleep(5)
-    machine.lightsleep(5000)#2.3
+    machine.lightsleep(5000)#2.3->1.9
     init_lcd()
     display.bitmap(emf_png, 0, 0)#48
     time.sleep(0.1)
+    lcd_fps()#?->60
     lcd_fps()
     lcd_fps()
     lcd_fps()
     lcd_fps()
-    lcd_fps()
-    machine.lightsleep(5000)#17
+    machine.lightsleep(5000)#?->1.9
     time.sleep(0.1)
     machine.deepsleep(5000)#0.1
     
