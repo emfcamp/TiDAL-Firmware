@@ -1,4 +1,5 @@
-
+import emf_png
+import time, machine
 from machine import I2C
 from machine import Pin
 from machine import SPI
@@ -190,6 +191,11 @@ def power_test_sequence():
     init_lcd()
     display.bitmap(emf_png, 0, 0)#48
     time.sleep(0.1)
+    lcd_fps()
+    lcd_fps()
+    lcd_fps()
+    lcd_fps()
+    lcd_fps()
     machine.lightsleep(5000)#17
     time.sleep(0.1)
     machine.deepsleep(5000)#0.1
