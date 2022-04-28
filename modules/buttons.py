@@ -1,6 +1,5 @@
-import tidal
 import tidal_helpers
-from machine import Timer
+from scheduler import get_scheduler
 import uasyncio
 
 # Only one Buttons object can be active at a time - whichever most recently
@@ -30,7 +29,7 @@ class Buttons:
 
     def __init__(self):
         self._callbacks = {} # str(pin) -> Button
-        self._timer = Timer(tidal.TIMER_ID_BUTTONS)
+        self._autorepeat_timer = None
         self._autorepeating_button = None
         self._isr_flag = False
 
@@ -91,46 +90,20 @@ class Buttons:
                     # and if it didn't, re-enable the interrupt
                     self._register_irq(button)
 
-            # if button.check_state() and self._is_registered(button):
-            # if self._is_registered(button) and button.should_autorepeat() and self._autorepeating_button == None:
-            #     self._autorepeating_button = button
-            #     self._timer.init(mode=Timer.ONE_SHOT, period=self.autorepeat_delay_time, callback=lambda t: self._autorepeat_delay_expired())
+            if self._is_registered(button) and button.should_autorepeat() and self._autorepeating_button == None:
+                self._autorepeating_button = button
+                self._autorepeat_timer = get_scheduler().after(self.autorepeat_delay_time, lambda: self._autorepeat_delay_expired())
 
-
-
-    # def _irq_triggered(self, button):
-    #     # You can't actually trust button.pin.value() in an edge-triggered IRQ.
-    #     # The voltage at which it triggers is not necessarily the same as the
-    #     # 0-1 threshold, plus it depends how quickly this code gets to run
-    #     # versus how quickly the voltage changes. Use a short timer to handle
-    #     # this and provide a bit of debouncing as well
-
-    #     # Any further button event cancels any autorepeat
-    #     self._autorepeating_button = None
-
-    #     self._timer.init(mode=Timer.ONE_SHOT, period=10, callback=lambda t: self._timer_fired())
-
-    def _timer_fired(self):
-        ab = self._autorepeating_button
-        if ab:
-            ab.check_state()
-            if ab.state == 0:
-                # Still down
-                ab.callback(ab.pin)
-            if not self._is_registered(ab) or ab.state == 1:
-                # Stop repeating
-                self._timer.deinit()
-                self._autorepeating_button = None
-        else:
-            for button in self._callbacks.values():
-                button.check_state()
-                if self._is_registered(button) and button.should_autorepeat() and self._autorepeating_button == None:
-                    self._autorepeating_button = button
-                    self._timer.init(mode=Timer.ONE_SHOT, period=self.autorepeat_delay_time, callback=lambda t: self._autorepeat_delay_expired())
+        if self._autorepeating_button and self._autorepeating_button.state == 1:
+            # Button no longer down
+            self._autorepeat_timer.cancel()
+            self._autorepeat_timer = None
+            self._autorepeating_button = None
 
     def _autorepeat_delay_expired(self):
-        if self._autorepeating_button:
-            self._timer.init(mode=Timer.PERIODIC, period=self._autorepeating_button.autorepeat, callback=lambda t: self._timer_fired())
+        ab = self._autorepeating_button
+        if ab:
+            self._autorepeat_timer = get_scheduler().periodic(ab.autorepeat, lambda: ab.callback(ab.pin))
 
     def deactivate(self):
         global _current
@@ -138,7 +111,9 @@ class Buttons:
             return
 
         print(f"Deactivating {self}")
-        self._timer.deinit()
+        if self._autorepeat_timer:
+            self._autorepeat_timer.cancel()
+            self._autorepeat_timer = None
         self._autorepeating_button = None
 
         for button in self._callbacks.values():
