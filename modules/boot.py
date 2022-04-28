@@ -1,4 +1,5 @@
 import tidal
+import tidal_helpers
 from esp32 import Partition
 
 # sleep_sel just gets in the way of using lightsleep

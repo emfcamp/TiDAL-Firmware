@@ -95,8 +95,12 @@ STATIC void tidal_lightsleep_isr(void *arg) {
     // In the interests of consistency, also stop the GPIO from triggering wakeup
     gpio_wakeup_disable(gpio);
 
-    // Following is as per machine_pin_isr_handler
+    // Following is based on machine_pin_isr_handler
     mp_obj_t handler = MP_STATE_PORT(machine_pin_irq_handler)[gpio];
+    if (handler == mp_const_none || handler == MP_OBJ_NULL) {
+        // It shouldn't be possible to get to here with handler not valid, but...
+        return;
+    }
     mp_sched_schedule(handler, MP_OBJ_NEW_SMALL_INT(gpio));
     mp_hal_wake_main_task_from_isr();
 }
