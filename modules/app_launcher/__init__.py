@@ -18,11 +18,11 @@ class Launcher(MenuApp):
     def choices(self):
         # Note, the text for each choice needs to be <= 16 characters in order to fit on screen
         return (
-            ({"text": "USB Keyboard"}, lambda: self.launch("hid", "USBKeyboard")),
-            ({"text": "Web REPL"}, lambda: self.launch("web_repl", "WebRepl")),
-            ({"text": "Torch"}, lambda: self.launch("torch", "Torch")),
-            ({"text": "Logo"}, lambda: self.launch("emflogo", "EMFLogo")),
-            ({"text": "Update Firmware"}, lambda: self.launch("otaupdate", "OtaUpdate")),
+            ("USB Keyboard", lambda: self.launch("hid", "USBKeyboard")),
+            ("Web REPL", lambda: self.launch("web_repl", "WebRepl")),
+            ("Torch", lambda: self.launch("torch", "Torch")),
+            ("Logo", lambda: self.launch("emflogo", "EMFLogo")),
+            ("Update Firmware", lambda: self.launch("otaupdate", "OtaUpdate")),
         )
     
     # Boot entry point
@@ -33,6 +33,18 @@ class Launcher(MenuApp):
         super().__init__()
         self._apps = {}
         self.show_splash = True
+        if not get_scheduler().is_sleep_enabled():
+            self.title += "\nSLEEP DISABLED"
+
+    def on_start(self):
+        super().on_start()
+        initial_item = 0
+        try:
+            with open("lastapplaunch.txt") as f:
+                initial_item = int(f.read())
+        except:
+            pass
+        self.window.set_focus_idx(initial_item, redraw=False)
 
     def on_activate(self):
         if self.show_splash and SPLASHSCREEN_TIME:
@@ -55,4 +67,6 @@ class Launcher(MenuApp):
             module = __import__(module_name)
             app = getattr(module, app_name)()
             self._apps[app_name] = app
+        with open("lastapplaunch.txt", "w") as f:
+            f.write(str(self.window.focus_idx()))
         get_scheduler().switch_app(app)

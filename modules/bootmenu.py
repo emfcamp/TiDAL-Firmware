@@ -7,10 +7,10 @@ def run_applauncher():
     app = app_launcher.Launcher()
     app.run_sync()
 
-def torch():
-    import torch
-    app = torch.Torch()
-    app.run_sync()
+def run_applauncher_nosleep():
+    from scheduler import get_scheduler
+    get_scheduler().set_sleep_enabled(False)
+    run_applauncher()
 
 def run_otaupdate():
     import otaupdate
@@ -33,6 +33,7 @@ def erase_storage():
         if BUTTON_A.value() == 0:
             break
         time.sleep(0.2)
+    window.clear_from_line(0)
     window.println()
 
     partitions = Partition.find(type=Partition.TYPE_DATA, subtype=0x81)
@@ -44,13 +45,17 @@ def erase_storage():
     vfs_partition = partitions[0]
     num_blocks = vfs_partition.info()[3] // 4096
     percent = -1
+    window.println("Erasing...")
+    line = window.get_next_line()
     for i in range(0, num_blocks):
         new_percent = (i * 100) // num_blocks
         if new_percent > percent:
             percent = new_percent
-            window.println("Erasing... {}%".format(percent), window.get_next_line())
+            window.progress_bar(line, percent)
         vfs_partition.ioctl(MP_BLOCKDEV_IOCTL_BLOCK_ERASE, i)
+    window.clear_from_line(line - 1)
     window.println("Erase complete")
+
 
 # Note, this is a minimal app definition that does not rely on IRQs, timers or uasyncio working
 class BootMenu:
@@ -63,10 +68,11 @@ class BootMenu:
 
     # Note, the text for each choice needs to be <= 16 characters in order to fit on screen
     choices = (
-        ({"text": "App Launcher"}, run_applauncher),
-        ({"text": "Firmware Update"}, run_otaupdate),
-        ({"text": "Erase storage"},  erase_storage),
-        ({"text": "Torch"}, torch),
+        ("App Launcher", run_applauncher),
+        ("Nosleep Launcher", run_applauncher_nosleep),
+        ("Firmware Update", run_otaupdate),
+        ("Erase storage",  erase_storage),
+        ("Power off (UVLO)", system_power_off),
     )
 
     def main(self):

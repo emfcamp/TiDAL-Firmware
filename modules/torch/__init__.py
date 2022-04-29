@@ -54,7 +54,6 @@ def rgbToHsv(r, g, b):
 
 class Torch(TextApp):
     
-    app_id = "torch"
     title = "Torch"
     interval = 0.2
     

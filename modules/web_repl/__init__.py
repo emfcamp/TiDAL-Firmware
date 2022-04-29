@@ -43,7 +43,7 @@ ap.config(essid=ssid, password=password)
         window.println("")
         window.println("Password: ")
         window.println(getattr(wifi_cfg, "password", "?"))
-        get_scheduler().sleep_enabled = False
+        get_scheduler().set_sleep_enabled(False)
 
         import esp
         esp.osdebug(None)

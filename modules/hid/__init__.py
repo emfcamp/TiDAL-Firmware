@@ -4,7 +4,7 @@ import joystick
 from scheduler import get_scheduler
 
 class USBKeyboard(TextApp):
-    app_id = "keyboard"
+
     title = "USB Keyboard"
 
     def __init__(self):
@@ -29,7 +29,7 @@ class USBKeyboard(TextApp):
         window.println("cursor keys, A")
         window.println("and B are")
         window.println("themselves.")
-        get_scheduler().sleep_enabled = False
+        get_scheduler().set_sleep_enabled(False)
 
     def send_key(self, k, down):
         if down:

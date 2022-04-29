@@ -10,7 +10,6 @@ import time
 # But it acts sufficiently like it does, to satisfy the app launcher
 class OtaUpdate:
     
-    app_id = "otaupdate"
     title = "Firmware Update"
     buttons = None
     started = False
@@ -23,6 +22,9 @@ class OtaUpdate:
     def run_sync(self):
         self.on_start()
         self.on_activate()
+
+    def get_app_id(self):
+        return "otaupdate"
 
     def on_start(self):
         self.window = textwindow.TextWindow(self.BG, self.FG, self.title)
@@ -138,6 +140,5 @@ class OtaUpdate:
             window.println("Updating...")
             window.println()
 
-        y = window.get_line_pos(window.get_next_line())
-        window.display.fill_rect((window.width() - 100) // 2, y, val, window.font.HEIGHT, WHITE)
+        window.progress_bar(window.get_next_line(), val)
         return True

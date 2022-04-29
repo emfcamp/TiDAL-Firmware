@@ -4,7 +4,6 @@ from scheduler import get_scheduler
 import textwindow
 
 class App:
-    app_id = __name__
 
     # Defaults for TextApp and MenuApp
     BG = tidal.BLUE
@@ -13,6 +12,12 @@ class App:
     def __init__(self):
         self.started = False
         self.buttons = Buttons()
+
+    def get_app_id(self):
+        if name := getattr(self, "app_id", None):
+            return name
+        else:
+            return self.__class__.__name__
 
     def run_sync(self):
         get_scheduler().main(self)
@@ -44,6 +49,7 @@ class App:
     def periodic(self, ms, callback):
         return get_scheduler().periodic(ms, callback)
 
+
 class TextApp(App):
     def __init__(self):
         super().__init__()
@@ -53,15 +59,16 @@ class TextApp(App):
 class MenuApp(App):
     def __init__(self):
         super().__init__()
-        self.window = textwindow.Menu(self.BG, self.FG, self.FOCUS_BG, self.FOCUS_FG, self.title, self.choices)
 
     def on_start(self):
         super().on_start()
+        self.window = textwindow.Menu(self.BG, self.FG, self.FOCUS_BG, self.FOCUS_FG, self.title, self.choices)
         win = self.window
         self.buttons.on_press(tidal.JOY_DOWN, lambda _: win.set_focus_idx(win.focus_idx() + 1))
         self.buttons.on_press(tidal.JOY_UP, lambda _: win.set_focus_idx(win.focus_idx() - 1))
         def select(_):
-            self.choices[win.focus_idx()][1]()
+            if len(win.choices):
+                win.choices[win.focus_idx()][1]()
         self.buttons.on_press(tidal.JOY_CENTRE, select, autorepeat=False)
         self.buttons.on_press(tidal.BUTTON_A, select, autorepeat=False)
         self.buttons.on_press(tidal.BUTTON_B, select, autorepeat=False)

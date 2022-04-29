@@ -110,7 +110,7 @@ class Buttons:
         if not self.is_active():
             return
 
-        print(f"Deactivating {self}")
+        # print(f"Deactivating {self}")
         if self._autorepeat_timer:
             self._autorepeat_timer.cancel()
             self._autorepeat_timer = None
@@ -132,7 +132,7 @@ class Buttons:
             _current.deactivate()
         _current = self
 
-        print(f"Activating {self}")
+        # print(f"Activating {self}")
         for button in self._callbacks.values():
             self._register_irq(button)
 

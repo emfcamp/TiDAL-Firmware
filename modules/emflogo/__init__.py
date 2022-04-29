@@ -3,7 +3,6 @@ from app import App
 import emf_png
 
 class EMFLogo(App):
-    app_id = "emflogo"
 
     def on_start(self):
         super().on_start()
@@ -14,7 +13,7 @@ class EMFLogo(App):
         display.vscsad(40)
         display.bitmap(emf_png, 0, 0)
         self.i = 0
-        self.timer_task = self.periodic(10, lambda: self.update())
+        self.timer_task = self.periodic(10, self.update)
 
     def update(self):
         self.i = (self.i + 1) % 240
