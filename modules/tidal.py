@@ -11,6 +11,14 @@ import _tidal_usb as usb
 import tidal_helpers
 
 
+"""
+NOTE: If you are using the automatic lightsleep (on by default) you should never
+leave any pins set to input without a pullup unless they are guaranteed not to change state
+(externally held high/low).
+
+This affects pins G0, G1, G2, G3 (GPIO18,GPIO17,GPIO4,GPIO5 respectively).
+"""
+
 _devkitpins={}
 
 _devkitpins["BTN_A"]=2
@@ -67,10 +75,10 @@ elif variant == "prototype":
 else:
     _hw = _productionpins
 
-G0 = Pin(_hw["G0"], Pin.IN)
-G1 = Pin(_hw["G1"], Pin.IN)
-G2 = Pin(_hw["G2"], Pin.IN)
-G3 = Pin(_hw["G3"], Pin.IN)
+G0 = Pin(_hw["G0"], Pin.IN, Pin.PULL_UP)
+G1 = Pin(_hw["G1"], Pin.IN, Pin.PULL_UP)
+G2 = Pin(_hw["G2"], Pin.IN, Pin.PULL_UP)
+G3 = Pin(_hw["G3"], Pin.IN, Pin.PULL_UP)
 
 BUTTON_A = Pin(_hw["BTN_A"], Pin.IN, Pin.PULL_UP)
 BUTTON_B = Pin(_hw["BTN_B"], Pin.IN, Pin.PULL_UP)
@@ -132,7 +140,7 @@ def lcd_backlight_on(on=True):
     if(on):
         _LCD_BLEN.init(mode=Pin.OUT,value=0)
     else:
-        _LCD_BLEN.init(mode=Pin.IN,pull=None)
+        _LCD_BLEN.init(mode=Pin.IN,pull=Pin.PULL_UP)
         
 def lcd_backlight_off():
     lcd_backlight_on(False)
