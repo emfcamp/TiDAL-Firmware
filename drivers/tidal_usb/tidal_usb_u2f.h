@@ -1,4 +1,8 @@
-#import "u2f_hid.h"
+#include "u2f_hid.h"
+
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+
+#define TIDAL_CHANNEL 0x81811818 //1 - ask the bill payer's permission
 
 typedef struct u2f_hid_msg {
     uint32_t CID;
@@ -36,4 +40,6 @@ typedef struct u2fhid_init_response {
 void handle_report_u2f(uint8_t itf, uint8_t report_id, hid_report_type_t report_type, uint8_t const* buffer, uint16_t bufsize);
 
 void handle_u2f_init(u2fhid_init_request const* init_request);
+void handle_u2f_msg(uint8_t *buffer, uint16_t bufsize);
+void handle_u2f_wink();
 void u2f_report(u2f_hid_msg *cmd);
