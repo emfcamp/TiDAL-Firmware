@@ -1,4 +1,5 @@
 from tidal import *
+
 import textwindow
 import time
 
@@ -16,6 +17,12 @@ def run_otaupdate():
     import otaupdate
     app = otaupdate.OtaUpdate()
     app.run_sync()
+
+def run_download_mode():
+    import downloadmode
+    app = downloadmode.DownloadMode()
+    app.run_sync()
+
 
 def erase_storage():
     from esp32 import Partition
@@ -73,6 +80,7 @@ class BootMenu:
         ("Firmware Update", run_otaupdate),
         ("Erase storage",  erase_storage),
         ("Power off (UVLO)", system_power_off),
+        ("USB flashing", run_download_mode),
     )
 
     def main(self):

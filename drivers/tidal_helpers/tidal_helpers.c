@@ -5,6 +5,10 @@
 #include "modmachine.h" // for machine_pin_type
 #include "esp_sleep.h"
 #include "rom/uart.h"
+#include "soc/rtc_cntl_reg.h"
+#include "esp32s2/rom/usb/usb_dc.h"
+#include "esp32s2/rom/usb/chip_usb_dw_wrapper.h"
+#include "esp32s2/rom/usb/usb_persist.h"
 
 // Have to redefine this from machine_pin.c, unfortunately
 typedef struct _machine_pin_obj_t {
@@ -20,6 +24,12 @@ STATIC gpio_num_t get_pin(mp_obj_t pin_obj) {
     }
     machine_pin_obj_t *self = pin_obj;
     return self->id;
+}
+
+void reboot_bootloader() {
+    usb_dc_prepare_persist();
+    chip_usb_set_persist_flags(USBDC_PERSIST_ENA);
+    REG_WRITE(RTC_CNTL_OPTION1_REG, RTC_CNTL_FORCE_DOWNLOAD_BOOT);
 }
 
 STATIC mp_obj_t tidal_helper_get_variant() {
@@ -195,6 +205,13 @@ STATIC mp_obj_t tidal_lightsleep(mp_obj_t time_obj) {
     return MP_OBJ_NEW_SMALL_INT(esp_sleep_get_wakeup_cause());
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(tidal_lightsleep_obj, tidal_lightsleep);
+STATIC mp_obj_t tidal_helper_reboot_bootloader() {
+    esp_register_shutdown_handler(reboot_bootloader);
+    esp_restart();
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(tidal_helper_reboot_bootloader_obj, tidal_helper_reboot_bootloader);
+
 
 STATIC const mp_rom_map_elem_t tidal_helpers_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_ota) },
@@ -214,6 +231,7 @@ STATIC const mp_rom_map_elem_t tidal_helpers_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_ESP_PD_OPTION_OFF), MP_ROM_INT(ESP_PD_OPTION_OFF) },
     { MP_ROM_QSTR(MP_QSTR_ESP_PD_OPTION_ON), MP_ROM_INT(ESP_PD_OPTION_ON) },
     { MP_ROM_QSTR(MP_QSTR_ESP_PD_OPTION_AUTO), MP_ROM_INT(ESP_PD_OPTION_AUTO) },
+    { MP_ROM_QSTR(MP_QSTR_reboot_bootloader), MP_ROM_PTR(&tidal_helper_reboot_bootloader_obj) },
 };
 STATIC MP_DEFINE_CONST_DICT(tidal_helpers_module_globals, tidal_helpers_module_globals_table);
 
