@@ -6,7 +6,7 @@ import ota
 import time
 
 # Note, this intentionally doesn't inherit App or TextApp to limit dependencies
-# as this is on the critical path from the Recovery Menu.
+# because it is on the critical path from the Recovery Menu.
 # But it acts sufficiently like it does, to satisfy the app launcher
 class OtaUpdate:
     

@@ -208,5 +208,3 @@ def power_test_sequence(): #value without/with DFS
     machine.lightsleep(5000)#lightsleep with display -> ?/18mA
     time.sleep(0.1)
     machine.deepsleep(5000)#0.1
-    
-TIMER_ID_BUTTONS = 3

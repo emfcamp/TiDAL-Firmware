@@ -63,9 +63,8 @@ class Torch(TextApp):
     def update_screen(self, full=True):
         win = self.window
         if full:
-            win.cls()
             win.println("Press Joystick")
-            win.println("or A for on/off")
+            win.println("or A for on/off.")
             win.println()
             win.println("Joystick up/down")
             win.println("for brightness.")
@@ -73,7 +72,6 @@ class Torch(TextApp):
             win.println("Left/right for")
             win.println("colour.")
             win.println()
-            # window.println("B for pattern")
             
         win.println("LED: {}".format("ON" if self.state else "OFF"), 12)
         if self.led_h < 0:

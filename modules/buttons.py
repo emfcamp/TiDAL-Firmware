@@ -76,6 +76,7 @@ class Buttons:
         # print("Checking buttons...")
         for button in self._callbacks.values():
             new_state = button.pin.value()
+            valid = True
             if new_state != button.state:
                 # print(f"{button.pin} state changed to {new_state}")
                 button.state = new_state
@@ -86,11 +87,12 @@ class Buttons:
                     button.callback(button.pin)
 
                 # Check that, if we made a callback, that it didn't unregister the button
-                if self._is_registered(button):
+                valid = self.is_active() and self._is_registered(button)
+                if valid:
                     # and if it didn't, re-enable the interrupt
                     self._register_irq(button)
 
-            if self._is_registered(button) and button.should_autorepeat() and self._autorepeating_button == None:
+            if valid and button.should_autorepeat() and self._autorepeating_button == None:
                 self._autorepeating_button = button
                 self._autorepeat_timer = get_scheduler().after(self.autorepeat_delay_time, lambda: self._autorepeat_delay_expired())
 

@@ -78,7 +78,7 @@ class BootMenu:
     def main(self):
         print("Showing Recovery Menu")
         window = textwindow.Menu(self.BG, self.FG, self.FOCUS_BG, self.FOCUS_FG, self.title, self.choices)
-        window.cls()
+        window.redraw()
         while True:
             if JOY_DOWN.value() == 0:
                 window.set_focus_idx(window.focus_idx() + 1)

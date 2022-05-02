@@ -2,7 +2,8 @@ import tidal
 import vga1_8x8 as default_font
 
 class TextWindow:
-    def __init__(self, bg=None, fg=None, title=None, font=None):
+
+    def __init__(self, bg=None, fg=None, title=None, font=None, buttons=None):
         if bg is None:
             bg = tidal.BLUE
         if fg is None:
@@ -16,6 +17,7 @@ class TextWindow:
         self.offset = 0
         self.display = tidal.display
         self.title = title
+        self.buttons = buttons
 
     def width(self):
         return self.display.width()
@@ -30,11 +32,18 @@ class TextWindow:
         return self.display.height() // self.font.HEIGHT
 
     def cls(self):
-        self.display.fill(self.bg)
-        self.current_line = 0
+        """Clears entire screen, redraws title if there is one"""
         self.draw_title()
+        self.clear_from_line(0)
+
+    def redraw(self):
+        """Subclasses which override this need to ensure every pixel in the window is drawn to
+           (ie do not assume background is auto-cleared by anything).
+        """
+        self.cls()
 
     def clear_from_line(self, line=None):
+        """Clears screen from line down"""
         if line is None:
             line = self.get_next_line()
         else:
@@ -100,10 +109,11 @@ class TextWindow:
         # In case progress goes down, clear the right-hand side of the line
         self.display.fill_rect(x + percentage, y, self.width() - (x + percentage), self.font.HEIGHT, self.bg)
 
+
 class Menu(TextWindow):
 
-    def __init__(self, bg, fg, focus_bg, focus_fg, title, choices, font=None):
-        super().__init__(bg, fg, title, font)
+    def __init__(self, bg, fg, focus_bg, focus_fg, title, choices, font=None, buttons=None):
+        super().__init__(bg, fg, title, font, buttons)
         self.focus_fg = focus_fg
         self.focus_bg = focus_bg
         self.choices = choices
@@ -136,7 +146,7 @@ class Menu(TextWindow):
         for i in range(len(self.choices)):
             self.println(**self.choice_line_args(i, focus=(i == self._focus_idx)))
 
-    def cls(self):
+    def redraw(self):
         self.draw_title()
         self.draw_choices()
         self.clear_from_line(len(self.choices))

@@ -18,6 +18,7 @@ class Launcher(MenuApp):
     def choices(self):
         # Note, the text for each choice needs to be <= 16 characters in order to fit on screen
         return (
+            ("Sponsors", lambda: self.launch("sponsors", "Sponsors")),
             ("USB Keyboard", lambda: self.launch("hid", "USBKeyboard")),
             ("Web REPL", lambda: self.launch("web_repl", "WebRepl")),
             ("Torch", lambda: self.launch("torch", "Torch")),
@@ -40,7 +41,7 @@ class Launcher(MenuApp):
         super().on_start()
         initial_item = 0
         try:
-            with open("lastapplaunch.txt") as f:
+            with open("/lastapplaunch.txt") as f:
                 initial_item = int(f.read())
         except:
             pass
@@ -57,8 +58,7 @@ class Launcher(MenuApp):
 
     def dismiss_splash(self):
         self.show_splash = False
-        self.buttons.activate()
-        self.window.cls()
+        self.on_activate()
 
     def launch(self, module_name, app_name):
         app = self._apps.get(app_name)
@@ -67,6 +67,6 @@ class Launcher(MenuApp):
             module = __import__(module_name)
             app = getattr(module, app_name)()
             self._apps[app_name] = app
-        with open("lastapplaunch.txt", "w") as f:
+        with open("/lastapplaunch.txt", "w") as f:
             f.write(str(self.window.focus_idx()))
         get_scheduler().switch_app(app)
