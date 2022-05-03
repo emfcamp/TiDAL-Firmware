@@ -3,6 +3,7 @@
 #include "u2f_hid.h"
 #include "esp_log.h"
 
+#ifdef CFG_TUD_U2FHID
 static const char *TAG = "tidalU2F";
 
 
@@ -169,5 +170,6 @@ void u2f_report(u2f_hid_msg *cmd) {
     // This is wrong, but I'm just trying to make it match
     // what a real one is doing for now, to help debug.
     uint8_t *as_buf = (uint8_t *) cmd;
-    tud_hid_report(REPORT_ID_U2F, as_buf, HID_RPT_SIZE-1);
+    //tud_hid_n_report(ITF_NUM_HID_2, 0, as_buf, HID_RPT_SIZE-1);
 }
+#endif

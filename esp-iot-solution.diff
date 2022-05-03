@@ -29,28 +29,98 @@ index 14ee198..7fc09b5 100644
 +                                "$ENV{IOT_SOLUTION_PATH}/components/usb/tinyusb"
                                  )
  
+diff --git a/components/usb/tinyusb/additions/include/tusb_config.h b/components/usb/tinyusb/additions/include/tusb_config.h
+index 2b6e48c..c821ee6 100644
+--- a/components/usb/tinyusb/additions/include/tusb_config.h
++++ b/components/usb/tinyusb/additions/include/tusb_config.h
+@@ -109,7 +109,9 @@ extern "C" {
+ // Enabled device class driver
+ #define CFG_TUD_CDC                 CONFIG_TINYUSB_CDC_PORT_NUM
+ #define CFG_TUD_MSC                 CONFIG_TINYUSB_MSC_ENABLED
+-#define CFG_TUD_HID                 CONFIG_TINYUSB_HID_ENABLED
++#define CFG_TUD_HID_KBD             1
++#define CFG_TUD_U2FHID              1
++#define CFG_TUD_HID                 1
+ #define CFG_TUD_MIDI                CONFIG_TINYUSB_MIDI_ENABLED
+ #define CFG_TUD_CUSTOM_CLASS        CONFIG_TINYUSB_CUSTOM_CLASS_ENABLED
+ #define CFG_TUD_NET                 CONFIG_TINYUSB_NET_ENABLED
 diff --git a/components/usb/tinyusb/additions/include_private/descriptors_control.h b/components/usb/tinyusb/additions/include_private/descriptors_control.h
-index 743653c..c58a129 100644
+index 743653c..e77569a 100644
 --- a/components/usb/tinyusb/additions/include_private/descriptors_control.h
 +++ b/components/usb/tinyusb/additions/include_private/descriptors_control.h
-@@ -64,7 +64,11 @@ enum {
- #if CFG_TUD_HID
- enum {
-     REPORT_ID_KEYBOARD = 1,
--    REPORT_ID_MOUSE
-+    REPORT_ID_MOUSE,
-+    REPORT_ID_CONSUMER_CONTROL,
-+    REPORT_ID_GAMEPAD,
-+    REPORT_ID_COUNT,
-+    REPORT_ID_U2F
+@@ -51,12 +51,16 @@ enum {
+     EPNUM_MSC_DATA,
+ #   endif
+ 
+-#   if CFG_TUD_HID
++#   if CFG_TUD_HID_KBD
+     EPNUM_HID_DATA,
+ #   endif
++
++#   if CFG_TUD_U2FHID
++    EPNUM_HID_DATA_2,
++#   endif
  };
+ 
+-#if ((CFG_TUD_BTH * 2) + (CFG_TUD_NET * 2) + (CFG_TUD_CDC * 2) + CFG_TUD_MSC + CFG_TUD_HID) > 4
++#if ((CFG_TUD_BTH * 2) + (CFG_TUD_NET * 2) + (CFG_TUD_CDC * 2) + CFG_TUD_MSC + CFG_TUD_HID + CFG_TUD_U2FHID) > 4
+ #error "USB endpoint number not be more than 5"
  #endif
  
+@@ -89,10 +93,14 @@ enum {
+     ITF_NUM_MSC,
+ #   endif
+ 
+-#   if CFG_TUD_HID
++#   if CFG_TUD_HID_KBD
+     ITF_NUM_HID,
+ #   endif
+ 
++#   if CFG_TUD_U2FHID
++    ITF_NUM_HID_2,
++#   endif
++
+ #   if CFG_TUD_DFU
+     ITF_NUM_DFU,
+ #   endif
+@@ -115,9 +123,12 @@ enum {
+ #if CFG_TUD_MSC
+     STRID_MSC_INTERFACE,
+ #endif
+-#if CFG_TUD_HID
++#if CFG_TUD_HID_KBD
+     STRID_HID_INTERFACE,
+ #endif
++#if CFG_TUD_U2FHID
++    STRID_HID_INTERFACE_2,
++#endif
+ #if CFG_TUD_BTH
+     STRID_BTH_INTERFACE,
+ #endif
+@@ -134,14 +145,16 @@ enum {
+                           TUD_CDC_DESC_LEN * CFG_TUD_CDC + 
+                           TUD_RNDIS_DESC_LEN * CFG_TUD_NET + 
+                           TUD_MSC_DESC_LEN * CFG_TUD_MSC + 
+-                          TUD_HID_DESC_LEN * CFG_TUD_HID +
++                          TUD_HID_DESC_LEN * CFG_TUD_HID_KBD +
++                          TUD_HID_DESC_LEN * CFG_TUD_U2FHID +
+                           TUD_BTH_DESC_LEN * CFG_TUD_BTH,
+ 
+     ALT_CONFIG_TOTAL_LEN = TUD_CONFIG_DESC_LEN + 
+                            TUD_CDC_ECM_DESC_LEN * CFG_TUD_NET + 
+                            TUD_CDC_DESC_LEN * CFG_TUD_CDC +
+                            TUD_MSC_DESC_LEN * CFG_TUD_MSC + 
+-                           TUD_HID_DESC_LEN * CFG_TUD_HID +
++                           TUD_HID_DESC_LEN * CFG_TUD_HID_KBD +
++                           TUD_HID_DESC_LEN * CFG_TUD_U2FHID +
+                            TUD_BTH_DESC_LEN * CFG_TUD_BTH +
+                            TUD_DFU_DESC_LEN(DFU_ALT_COUNT) * CFG_TUD_DFU
+ };
 diff --git a/components/usb/tinyusb/additions/src/descriptors_control.c b/components/usb/tinyusb/additions/src/descriptors_control.c
-index c868fd4..beeadf9 100644
+index c868fd4..9866df7 100644
 --- a/components/usb/tinyusb/additions/src/descriptors_control.c
 +++ b/components/usb/tinyusb/additions/src/descriptors_control.c
-@@ -15,6 +15,30 @@
+@@ -15,6 +15,29 @@
  #include "esp_log.h"
  #include "descriptors_control.h"
  #include "dfu_device.h"
@@ -63,7 +133,6 @@ index c868fd4..beeadf9 100644
 +  HID_COLLECTION ( HID_COLLECTION_APPLICATION )                    ,\
 +      /* Report ID if any */\
 +    __VA_ARGS__ \
-+    /* 8 bits Modifier Keys (Shfit, Control, Alt) */ \
 +    HID_USAGE ( FIDO_USAGE_DATA_IN                            )  ,\
 +      HID_LOGICAL_MIN  ( 0                                      )  ,\
 +      HID_LOGICAL_MAX_N  ( 0xff, 2                                   )  ,\
@@ -81,14 +150,62 @@ index c868fd4..beeadf9 100644
  
  static const char *TAG = "tusb_desc";
  static tusb_desc_device_t s_descriptor;
-@@ -24,8 +48,8 @@ static uint8_t *s_config_descriptor = NULL;
+@@ -22,6 +45,11 @@ static char *s_str_descriptor[USB_STRING_DESCRIPTOR_ARRAY_SIZE];
+ static uint8_t *s_config_descriptor = NULL;
+ #define MAX_DESC_BUF_SIZE 32
  
++#if CFG_TUD_U2FHID //HID Report Descriptor
++uint8_t const desc_hid_report_2[] = {
++    TILDA_REPORT_DESC_U2F()
++};
++#endif
  #if CFG_TUD_HID //HID Report Descriptor
  uint8_t const desc_hid_report[] = {
-+    TILDA_REPORT_DESC_U2F(HID_REPORT_ID(REPORT_ID_U2F)),
      TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(REPORT_ID_KEYBOARD)),
--    TUD_HID_REPORT_DESC_MOUSE(HID_REPORT_ID(REPORT_ID_MOUSE))
- };
+@@ -37,7 +65,7 @@ uint8_t const desc_configuration[] = {
+     TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, ALT_CONFIG_TOTAL_LEN, 0, 100),
+ #else
+     // Config number, interface count, string index, total length, attribute, power in mA
+-    TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, TUSB_DESC_TOTAL_LEN, 0, 100),
++    TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, TUSB_DESC_TOTAL_LEN, 0, 500),
+ #endif
+ #if CFG_TUD_BTH
+     // BT Primary controller descriptor
+@@ -61,9 +89,12 @@ uint8_t const desc_configuration[] = {
+     // Interface number, string index, EP Out & EP In address, EP size
+     TUD_MSC_DESCRIPTOR(ITF_NUM_MSC, STRID_MSC_INTERFACE, EPNUM_MSC_DATA, (0x80 | EPNUM_MSC_DATA), 64), // highspeed 512
+ #endif
+-#if CFG_TUD_HID
++#if CFG_TUD_HID_KBD
+     // Interface number, string index, protocol, report descriptor len, EP In address, size & polling interval
+-    TUD_HID_DESCRIPTOR(ITF_NUM_HID, STRID_HID_INTERFACE, HID_PROTOCOL_NONE, sizeof(desc_hid_report), (0x80 | EPNUM_HID_DATA), 16, 10)
++    TUD_HID_DESCRIPTOR(ITF_NUM_HID, STRID_HID_INTERFACE, HID_PROTOCOL_KEYBOARD, sizeof(desc_hid_report), (0x80 | EPNUM_HID_DATA), 8, 10),
++#endif
++#if CFG_TUD_U2FHID
++    TUD_HID_DESCRIPTOR(ITF_NUM_HID_2, STRID_HID_INTERFACE_2, HID_PROTOCOL_NONE, sizeof(desc_hid_report_2), (0x80 | EPNUM_HID_DATA_2), 8, 10),
+ #endif
+ 
+ #if CFG_TUD_DFU
+@@ -164,8 +195,19 @@ uint16_t const *tud_descriptor_string_cb(uint8_t index, uint16_t langid)
+ #if CFG_TUD_HID
+ uint8_t const *tud_hid_descriptor_report_cb(uint8_t itf)
+ {
+-    (void)itf;
+-    return desc_hid_report;
++    ESP_LOGW(TAG, "Getting descriptor for interface %d", itf);
++    #if CFG_TUD_HID_KBD
++    if (itf == 0) {
++        return desc_hid_report;
++    }
++    #endif
++    #if CFG_TUD_U2FHID
++    if (itf == 1) {
++        return desc_hid_report_2;
++    }
++    #endif
++    ESP_LOGE(TAG, "Unknown descriptor %d", itf);
++    return NULL;
+ }
  #endif
  
 diff --git a/components/usb/tinyusb/additions/src/tusb_hid.c b/components/usb/tinyusb/additions/src/tusb_hid.c
@@ -109,3 +226,21 @@ index a274622..368c8a4 100644
  }
 +*/
 \ No newline at end of file
+diff --git a/components/usb/tinyusb/additions/src/usb_descriptors.c b/components/usb/tinyusb/additions/src/usb_descriptors.c
+index ebcd5b3..af0de20 100644
+--- a/components/usb/tinyusb/additions/src/usb_descriptors.c
++++ b/components/usb/tinyusb/additions/src/usb_descriptors.c
+@@ -133,8 +133,11 @@ tusb_desc_strarray_device_t descriptor_str_kconfig = {
+     CONFIG_TINYUSB_DESC_MSC_STRING,          // MSC Interface
+ #endif
+ 
+-#if CFG_TUD_HID
+-    CONFIG_TINYUSB_DESC_HID_STRING           // HIDs
++#if CFG_TUD_HID_KBD
++    CONFIG_TINYUSB_DESC_HID_STRING,           // HIDs
++#endif
++#if CFG_TUD_U2FHID
++    "TiDAL U2F",                              // U2FHID
+ #endif
+ 
+ #if CFG_TUD_BTH
