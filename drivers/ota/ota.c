@@ -7,7 +7,7 @@
 
 // static const char *TAG = "ota";
 
-#define IMAGE_URL "https://raw.githubusercontent.com/tomsci/tidal-ota/main/micropython.bin"
+#define IMAGE_URL "https://github.com/emfcamp/TiDAL-Firmware/releases/download/latest/micropython.bin"
 
 // openssl x509 -text -inform DER -in "DigiCert Global Root CA.cer"
 static const char kGithubCertificate[] =
@@ -38,6 +38,9 @@ STATIC mp_obj_t ota_update(mp_obj_t cb_obj) {
     esp_http_client_config_t config = {
         .url = IMAGE_URL,
         .cert_pem = kGithubCertificate,
+        // This buffer must be big enough to contain any individual request header
+        // We are redirected to an S3 signed URL that is 548 bytes long!!
+        .buffer_size_tx = 768,
     };
     esp_https_ota_config_t ota_config = {
         .http_config = &config,
