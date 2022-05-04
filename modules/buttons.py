@@ -21,6 +21,9 @@ class Button:
     def should_autorepeat(self):
         return (not self.updown) and self.autorepeat and (self.state == 0)
 
+    def send_autorepeat(self):
+        # print(f"Autorepeating {self.pin}")
+        self.callback(self.pin)
 
 class Buttons:
 
@@ -105,7 +108,7 @@ class Buttons:
     def _autorepeat_delay_expired(self):
         ab = self._autorepeating_button
         if ab:
-            self._autorepeat_timer = get_scheduler().periodic(ab.autorepeat, lambda: ab.callback(ab.pin))
+            self._autorepeat_timer = get_scheduler().periodic(ab.autorepeat, ab.send_autorepeat)
 
     def deactivate(self):
         global _current
@@ -130,6 +133,9 @@ class Buttons:
 
     def activate(self):
         global _current
+        if self.is_active():
+            return
+
         if _current:
             _current.deactivate()
         _current = self

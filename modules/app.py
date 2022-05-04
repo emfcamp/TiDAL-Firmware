@@ -34,7 +34,7 @@ class App:
     def on_activate(self):
         """This is called whenever the app is switched to the foreground"""
         if window := self.window:
-            self.activate_window(window)
+            self._activate_window(window)
         else:
             window = ButtonOnlyWindow()
             window.buttons.on_press(tidal.BUTTON_FRONT, lambda _: self.navigate_back())
@@ -76,20 +76,28 @@ class App:
     def push_window(self, window, activate=True):
         self.windows.append(window)
         if activate:
-            self.activate_window(window)
+            self._activate_window(window)
 
     def pop_window(self):
-        self.deactivate_window(self.windows[-1])
+        self._deactivate_window(self.windows[-1])
         del self.windows[-1]
         if window := self.window:
-            self.activate_window(window)
+            self._activate_window(window)
 
-    def activate_window(self, window):
+    def set_window(self, new_window, activate=True):
+        if len(self.windows):
+            self.windows[-1] = new_window
+            if activate:
+                self._activate_window(new_window)
+        else:
+            self.push_window(new_window, activate=activate)
+
+    def _activate_window(self, window):
         if window.buttons:
             window.buttons.activate()
         window.redraw()
 
-    def deactivate_window(self, window):
+    def _deactivate_window(self, window):
         if window.buttons:
             window.buttons.deactivate()
 
@@ -173,9 +181,7 @@ class PagedApp(App):
 
     def set_page(self, val):
         self._page = val % len(self.pages)
-        if self.window:
-            self.pop_window()
-        self.push_window(self.pages[self.page])
+        self.set_window(self.pages[self.page])
         self.draw_dots()
 
     def on_activate(self):

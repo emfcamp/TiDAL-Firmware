@@ -89,7 +89,7 @@ JOY_LEFT = Pin(_hw["JLEFT"], Pin.IN, Pin.PULL_UP)
 JOY_RIGHT = Pin(_hw["JRIGHT"], Pin.IN, Pin.PULL_UP)
 JOY_CENTRE = Pin(_hw["JCEN"], Pin.IN, Pin.PULL_UP)
 
-all_buttons = [
+ALL_BUTTONS = [
     BUTTON_A,
     BUTTON_B,
     BUTTON_FRONT,

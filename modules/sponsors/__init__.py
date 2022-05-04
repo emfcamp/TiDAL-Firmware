@@ -1,14 +1,15 @@
 import tidal
 from textwindow import TextWindow
 from app import PagedApp
+from buttons import Buttons
 from . import sponsor1_png
 from . import sponsor2_png
 from . import sponsor3_png
 
 class ImageWindow(TextWindow):
     """Simple window class that just displays a single image, centred on screen"""
-    def __init__(self, frozen_img):
-        super().__init__(tidal.BLACK, tidal.BLUE)
+    def __init__(self, frozen_img, buttons):
+        super().__init__(tidal.BLACK, tidal.BLUE, None, None, buttons)
         self.display = tidal.display
         self.img = frozen_img
 
@@ -18,8 +19,13 @@ class ImageWindow(TextWindow):
 
 class Sponsors(PagedApp):
 
-    pages = (
-        ImageWindow(sponsor1_png),
-        ImageWindow(sponsor2_png),
-        ImageWindow(sponsor3_png),
-    )
+    def __init__(self):
+        super().__init__()
+        # Normally switching pages would cancel any autorepeat on the left/right
+        # buttons, sharing a common Buttons instance avoids that.
+        shared_buttons = Buttons()
+        self.pages = (
+            ImageWindow(sponsor1_png, shared_buttons),
+            ImageWindow(sponsor2_png, shared_buttons),
+            ImageWindow(sponsor3_png, shared_buttons),
+        )
