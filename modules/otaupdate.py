@@ -26,6 +26,10 @@ class OtaUpdate:
     def get_app_id(self):
         return "otaupdate"
 
+    def check_for_interrupts(self):
+        # Only needed once the app returns to the scheduler having completed
+        return False
+
     def on_start(self):
         self.window = textwindow.TextWindow(self.BG, self.FG, self.title)
 
