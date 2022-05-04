@@ -7,3 +7,6 @@
 [submodule "st7789"]
 	path = st7789
 	url = git@github.com:russhughes/st7789_mpy.git
+[submodule "micropython-lib"]
+	path = micropython-lib
+	url = git@github.com:micropython/micropython-lib.git
