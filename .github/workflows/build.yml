@@ -3,7 +3,8 @@ on:
   pull_request:
   workflow_dispatch:
   push:
-    branches: main
+    tags:
+      - "v*"
 jobs:
   Build-Firmware:
     runs-on: ubuntu-latest
@@ -58,12 +59,19 @@ jobs:
             micropython/ports/esp32/build-tildamk6/bootloader/bootloader.bin
             micropython/ports/esp32/build-tildamk6/partition_table/partition-table.bin
             micropython/ports/esp32/build-tildamk6/ota_data_initial.bin
-      - name: Create release
+      - name: Create latest release for tags
         uses: "marvinpinto/action-automatic-releases@latest"
+        if: github.event_name == 'push'
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           automatic_release_tag: "latest"
-          prerelease: true
-          title: "Development Build"
+          title: "Latest release build"
+          files: |
+            micropython/ports/esp32/build-tildamk6/micropython.bin
+      - name: Create specific release for tags
+        uses: "marvinpinto/action-automatic-releases@latest"
+        if: github.event_name == 'push'
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
           files: |
             micropython/ports/esp32/build-tildamk6/micropython.bin
