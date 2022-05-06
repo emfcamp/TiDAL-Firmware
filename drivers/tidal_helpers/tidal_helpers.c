@@ -101,6 +101,9 @@ STATIC void tidal_lightsleep_isr(void *arg) {
         // It shouldn't be possible to get to here with handler not valid, but...
         return;
     }
+    // Give py code an indication what interrupt fired (and thus needs resetting) by nulling the handler
+    MP_STATE_PORT(machine_pin_irq_handler)[gpio] = mp_const_none;
+
     mp_sched_schedule(handler, MP_OBJ_NEW_SMALL_INT(gpio));
     mp_hal_wake_main_task_from_isr();
 }
@@ -196,6 +199,16 @@ STATIC mp_obj_t tidal_lightsleep(mp_obj_t time_obj) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(tidal_lightsleep_obj, tidal_lightsleep);
 
+STATIC mp_obj_t tidal_get_irq_handler(mp_obj_t gpio_obj) {
+    gpio_num_t gpio = get_pin(gpio_obj);
+    mp_obj_t handler = MP_STATE_PORT(machine_pin_irq_handler)[gpio];
+    if (handler == MP_OBJ_NULL) {
+        handler = mp_const_none;
+    }
+    return handler;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(tidal_get_irq_handler_obj, tidal_get_irq_handler);
+
 STATIC const mp_rom_map_elem_t tidal_helpers_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_ota) },
     { MP_ROM_QSTR(MP_QSTR_get_variant), MP_ROM_PTR(&tidal_helper_get_variant_obj) },
@@ -209,6 +222,7 @@ STATIC const mp_rom_map_elem_t tidal_helpers_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_esp_sleep_enable_gpio_switch), MP_ROM_PTR(&tidal_esp_sleep_enable_gpio_switch_obj) },
     { MP_ROM_QSTR(MP_QSTR_uart_tx_flush), MP_ROM_PTR(&tidal_uart_tx_flush_obj) },
     { MP_ROM_QSTR(MP_QSTR_lightsleep), MP_ROM_PTR(&tidal_lightsleep_obj) },
+    { MP_ROM_QSTR(MP_QSTR_get_irq_handler), MP_ROM_PTR(&tidal_get_irq_handler_obj) },
 
     { MP_ROM_QSTR(MP_QSTR_ESP_PD_DOMAIN_RTC_PERIPH), MP_ROM_INT(ESP_PD_DOMAIN_RTC_PERIPH) },
     { MP_ROM_QSTR(MP_QSTR_ESP_PD_OPTION_OFF), MP_ROM_INT(ESP_PD_OPTION_OFF) },

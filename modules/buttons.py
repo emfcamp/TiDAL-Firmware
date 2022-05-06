@@ -22,7 +22,7 @@ class Button:
         return (not self.updown) and self.autorepeat and (self.state == 0)
 
     def send_autorepeat(self):
-        # print(f"Autorepeating {self.pin}")
+        # print(f"Autorepeating {self.pin} whose state is {self.pin.value()}")
         self.callback(self.pin)
 
 class Buttons:
@@ -62,10 +62,15 @@ class Buttons:
         return str(button.pin) in self._callbacks
 
     def _register_irq(self, button):
-        button.state = button.pin.value()
-        level = 1 if button.state == 0 else 0
-        # print(f"Registering {button.pin} for {level}")
-        tidal_helpers.set_lightsleep_irq(button.pin, level, _button_irq)
+        while True:
+            button.state = button.pin.value()
+            level = 1 if button.state == 0 else 0
+            # print(f"Registering {button.pin} for {level}")
+            tidal_helpers.set_lightsleep_irq(button.pin, level, _button_irq)
+            # And check we didn't just miss a transition
+            if button.state == button.pin.value():
+                break
+            # else go round again
 
     def check_for_interrupts(self):
         if self._isr_flag:
@@ -89,18 +94,21 @@ class Buttons:
                     # Button pressed down
                     button.callback(button.pin)
 
-                # Check that, if we made a callback, that it didn't unregister the button
-                valid = self.is_active() and self._is_registered(button)
-                if valid:
-                    # and if it didn't, re-enable the interrupt
-                    self._register_irq(button)
+            # Check that we're still active and the button is still registered
+            # (any callback we may have made above might've changed that), and
+            # if so, reenable the interrupt if it's been fired (which is
+            # indicated by handler being None).
+            valid = self.is_active() and self._is_registered(button)
+            if valid and tidal_helpers.get_irq_handler(button.pin) is None:
+                self._register_irq(button)
 
             if valid and button.should_autorepeat() and self._autorepeating_button == None:
                 self._autorepeating_button = button
-                self._autorepeat_timer = get_scheduler().after(self.autorepeat_delay_time, lambda: self._autorepeat_delay_expired())
+                self._autorepeat_timer = get_scheduler().after(self.autorepeat_delay_time, self._autorepeat_delay_expired)
 
         if self._autorepeating_button and self._autorepeating_button.state == 1:
             # Button no longer down
+            # print(f"Cancelling autorepeat of {self._autorepeating_button.pin}")
             self._autorepeat_timer.cancel()
             self._autorepeat_timer = None
             self._autorepeating_button = None
@@ -108,6 +116,7 @@ class Buttons:
     def _autorepeat_delay_expired(self):
         ab = self._autorepeating_button
         if ab:
+            # print(f"Starting autorepeat of {ab.pin}")
             self._autorepeat_timer = get_scheduler().periodic(ab.autorepeat, ab.send_autorepeat)
 
     def deactivate(self):
