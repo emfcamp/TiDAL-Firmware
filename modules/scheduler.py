@@ -72,11 +72,20 @@ class Scheduler:
         self._root_app = initial_app
         self.switch_app(initial_app)
         tidal_helpers.esp_sleep_enable_gpio_wakeup()
+        self._level = 0
+        self.enter()
+
+    def enter(self): 
         first_time = True
+        self._level += 1
+        enter_level = self._level
         while True:
             while self.check_for_interrupts() or first_time:
                 first_time = False
                 uasyncio.run_until_complete()
+
+            if self._level < enter_level:
+                break
 
             t = self._get_next_sleep_time()
             if self.sleep_enabled:
@@ -91,6 +100,9 @@ class Scheduler:
                     time.sleep(0.1)
                 else:
                     time.sleep(t / 1000)
+
+    def exit(self):
+        self._level = self._level - 1
 
     def set_sleep_enabled(self, flag):
         print(f"Light sleep enabled: {flag}")

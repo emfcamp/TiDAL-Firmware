@@ -18,12 +18,13 @@ class Launcher(MenuApp):
     def choices(self):
         # Note, the text for each choice needs to be <= 16 characters in order to fit on screen
         return (
-            ("Sponsors", lambda: self.launch("sponsors", "Sponsors")),
             ("USB Keyboard", lambda: self.launch("hid", "USBKeyboard")),
             ("Web REPL", lambda: self.launch("web_repl", "WebRepl")),
             ("Torch", lambda: self.launch("torch", "Torch")),
             ("Logo", lambda: self.launch("emflogo", "EMFLogo")),
             ("Update Firmware", lambda: self.launch("otaupdate", "OtaUpdate")),
+            ("Wi-Fi Config", lambda: self.launch("wifi_client", "WifiClient")),
+            ("Sponsors", lambda: self.launch("sponsors", "Sponsors")),
         )
     
     # Boot entry point
@@ -34,8 +35,6 @@ class Launcher(MenuApp):
         super().__init__()
         self._apps = {}
         self.show_splash = True
-        if not get_scheduler().is_sleep_enabled():
-            self.title += "\nSLEEP DISABLED"
 
     def on_start(self):
         super().on_start()
@@ -54,6 +53,8 @@ class Launcher(MenuApp):
             tidal.display.bitmap(emf_png, 0, 0)
             self.after(SPLASHSCREEN_TIME, lambda: self.dismiss_splash())
         else:
+            if not get_scheduler().is_sleep_enabled():
+                self.window.set_title(self.title + "\nSLEEP DISABLED", redraw=False)
             super().on_activate()
 
     def dismiss_splash(self):

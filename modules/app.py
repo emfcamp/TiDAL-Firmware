@@ -2,6 +2,7 @@ import tidal
 from buttons import Buttons
 from scheduler import get_scheduler
 from textwindow import TextWindow, Menu
+from keyboard import Keyboard
 
 class App:
 
@@ -84,6 +85,25 @@ class App:
         if window := self.window:
             self._activate_window(window)
 
+    def present_window(self, window):
+        """Pushes window, and does not return until finish_presenting() is called"""
+        self.push_window(window)
+        get_scheduler().enter()
+        self.pop_window()
+
+    def finish_presenting(self):
+        get_scheduler().exit()
+
+    def keyboard_prompt(self, prompt, initial_value="", multiline_allowed=False):
+        """Prompts the user to enter a value using the onscreen keyboard"""
+        result = [initial_value]
+        def completion(val):
+            result[0] = val
+            self.finish_presenting()
+        keyboard = Keyboard(completion, prompt, initial_value, multiline_allowed)
+        self.present_window(keyboard) # Doesn't return until all finished
+        return result[0]
+
     def set_window(self, new_window, activate=True):
         if len(self.windows):
             self.windows[-1] = new_window
@@ -116,6 +136,8 @@ class ButtonOnlyWindow:
 class TextApp(App):
     """An app using a single TextWindow by default"""
 
+    title = None
+
     def __init__(self):
         super().__init__()
         window = TextWindow(self.BG, self.FG, self.title, None, Buttons())
@@ -124,6 +146,8 @@ class TextApp(App):
 
 class MenuApp(App):
     """An app using a single Menu window"""
+
+    title = None
 
     def __init__(self):
         super().__init__()

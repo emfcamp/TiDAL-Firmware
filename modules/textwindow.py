@@ -1,5 +1,5 @@
 import tidal
-import vga1_8x8 as default_font
+import vga2_8x8 as default_font
 
 class TextWindow:
 
@@ -14,9 +14,9 @@ class TextWindow:
         self.fg = fg
         self.font = font
         self.current_line = 0
-        self.offset = 0
+        self.pos_y = 0
         self.display = tidal.display
-        self.title = title
+        self.set_title(title, redraw=False)
         self.buttons = buttons
 
     def width(self):
@@ -30,6 +30,9 @@ class TextWindow:
 
     def height_chars(self):
         return self.display.height() // self.font.HEIGHT
+
+    def line_height(self):
+        return self.font.HEIGHT + 1
 
     def cls(self):
         """Clears entire screen, redraws title if there is one"""
@@ -50,7 +53,7 @@ class TextWindow:
             # Passing in a line also updates next_line
             self.set_next_line(line)
         y = self.get_line_pos(line)
-        h = self.height() - y
+        h = self.height() - (y - self.pos_y)
         self.display.fill_rect(0, y, self.width(), h, self.bg)
 
     def println(self, text="", y=None, fg=None, bg=None, centre=False):
@@ -61,7 +64,7 @@ class TextWindow:
             bg = self.bg
         if fg is None:
             fg = self.fg
-        ypos = self.offset + y * (self.font.HEIGHT + 1)
+        ypos = self.pos_y + self.line_offset + y * self.line_height()
         self.draw_line(text, ypos, fg, bg, centre)
 
     def draw_line(self, text, ypos, fg, bg, centre):
@@ -71,24 +74,35 @@ class TextWindow:
             xpos = (w - text_width) // 2
         else:
             xpos = (w - self.width_chars() * self.font.WIDTH) // 2
-        self.display.fill_rect(0, ypos, w, self.font.HEIGHT + 1, bg)
+        self.display.fill_rect(0, ypos, w, self.line_height(), bg)
+        self.draw_text(text, xpos, ypos, fg, bg)
+
+    def draw_text(self, text, xpos, ypos, fg, bg):
+        # Replace the non-ASCII £ with the correct encoding for vga font. Oh for
+        # some proper codecs support, or even str.translate...
+        text = text.encode().replace(b'\xC2\xA3', b'\x9C')
+
         self.display.text(self.font, text, xpos, ypos, fg, bg)
 
     def draw_title(self):
         if self.title:
             title_lines = self.title.split("\n")
             for i, line in enumerate(title_lines):
-                self.draw_line(line, i * (self.font.HEIGHT + 1), self.fg, self.bg, True)
-            liney = len(title_lines) * (self.font.HEIGHT + 1)
+                self.draw_line(line, self.pos_y + i * self.line_height(), self.fg, self.bg, True)
+            liney = self.pos_y + len(title_lines) * self.line_height()
             w = self.width()
             self.display.fill_rect(0, liney, w, 1, self.bg)
             self.display.hline(0, liney + 1, w, self.fg)
             self.display.fill_rect(0, liney + 2, w, 3, self.bg)
-            self.offset = liney + 5
 
-    def set_title(self, title):
+    def set_title(self, title, redraw=True):
         self.title = title
-        self.draw_title()
+        if title is None:
+            self.line_offset = 0
+        else:
+            self.line_offset = len(title.split("\n")) * self.line_height() + 5
+        if redraw:
+            self.draw_title()
 
     def set_next_line(self, next_line):
         self.current_line = next_line
@@ -97,7 +111,10 @@ class TextWindow:
         return self.current_line
 
     def get_line_pos(self, line):
-        return self.offset + line * (self.font.HEIGHT + 1)
+        return self.pos_y + self.line_offset + line * (self.font.HEIGHT + 1)
+
+    def get_max_lines(self):
+        return (self.height() - self.self.line_offset) // self.line_height()
 
     def progress_bar(self, line, percentage, fg=None):
         """Display a line-sized progress bar for a percentage value 0-100"""
@@ -109,6 +126,23 @@ class TextWindow:
         # In case progress goes down, clear the right-hand side of the line
         self.display.fill_rect(x + percentage, y, self.width() - (x + percentage), self.font.HEIGHT, self.bg)
 
+    def flow_lines(self, text):
+        # Don't word wrap, just chop off
+        lines = text.split("\n")
+        result = []
+        max_len = self.width_chars()
+        for line in lines:
+            line_len = len(line)
+            i = 0
+            while i < line_len:
+                n = min(line_len - i, max_len)
+                result.append(line[i:i+n])
+                i = i + n
+
+        if len(result) == 0:
+            # Have to return at least one line
+            result.append("")
+        return result
 
 class Menu(TextWindow):
 
@@ -145,16 +179,20 @@ class Menu(TextWindow):
     def draw_choices(self):
         for i in range(len(self.choices)):
             self.println(**self.choice_line_args(i, focus=(i == self._focus_idx)))
+        self.clear_from_line(len(self.choices))
 
     def redraw(self):
         self.draw_title()
         self.draw_choices()
-        self.clear_from_line(len(self.choices))
 
-    def set_choices(self, choices):
+    def set_choices(self, choices, redraw=True):
+        if choices is None:
+            choices = ()
         self.choices = choices
-        self.draw_choices()
+        self._focus_idx = min(self._focus_idx, len(choices)) # Probably no point trying to preserve this?
+        if redraw:
+            self.draw_choices()
 
-    def set(self, title, choices):
-        self.set_title(title)
-        self.set_choices(choices)
+    def set(self, title, choices, redraw=True):
+        self.set_title(title, redraw)
+        self.set_choices(choices, redraw)

@@ -1,5 +1,6 @@
 from app import TextApp
 from scheduler import get_scheduler
+import wifi
 
 class WebRepl(TextApp):
 
@@ -15,34 +16,28 @@ class WebRepl(TextApp):
             with open("webrepl_cfg.py", "wt", encoding="utf-8") as cfg:
                 cfg.write("PASS = 'tilda'\n")
 
-        try:
-            with open("wifi_cfg.py") as f:
-                pass
-        except OSError:
-            # No wifi config, use tilda/tilda
-            with open("wifi_cfg.py", "wt", encoding="utf-8") as cfg:
-                cfg.write("""
-import network
-
-ssid = "tilda"
-password = "tilda"
-
-ap = network.WLAN(network.AP_IF)
-ap.active(True)
-ap.config(essid=ssid, password=password)
-""")
+        if not wifi.is_configured_sta() and not wifi.get_ssid():
+            settings.set("wifi_ssid", "tidal")
+            settings.set("wifi_password", "tidal")
+            settings.set("wifi_ap", True)
+            settings.save()
 
     def on_activate(self):
         super().on_activate()
         window = self.window
         window.cls()
-        import wifi_cfg
+        # TODO does webrepl work when not in AP mode?
+        if wifi.is_configured_sta():
+            window.println("WIFI not in")
+            window.println("AP mode!")
+        else:
+            if not wifi.isuporconnected():
+                wifi.configure_interface()
+            window.println("SSID:")
+            window.println(wifi.get_ssid())
+            window.println("Password: ")
+            window.println(wifi.get_password())
 
-        window.println("SSID:")
-        window.println(getattr(wifi_cfg, "ssid", "?"))
-        window.println("")
-        window.println("Password: ")
-        window.println(getattr(wifi_cfg, "password", "?"))
         get_scheduler().set_sleep_enabled(False)
 
         import esp
