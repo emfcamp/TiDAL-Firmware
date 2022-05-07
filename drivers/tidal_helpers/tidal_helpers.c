@@ -4,6 +4,7 @@
 #include "mphalport.h"
 #include "modmachine.h" // for machine_pin_type
 #include "esp_sleep.h"
+#include "device/usbd.h"
 #include "rom/uart.h"
 
 // Have to redefine this from machine_pin.c, unfortunately
@@ -188,7 +189,8 @@ STATIC mp_obj_t tidal_lightsleep(mp_obj_t time_obj) {
         esp_sleep_enable_timer_wakeup(((uint64_t)time_ms) * 1000);
     }
 
-    esp_light_sleep_start();
+    if (!tud_connected())
+        esp_light_sleep_start();
 
     if (time_ms) {
         // Reset this
