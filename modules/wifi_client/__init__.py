@@ -10,40 +10,39 @@ class WifiClient(MenuApp):
     FOCUS_FG = BLACK
     FOCUS_BG = CYAN
     DEFAULT_TITLE = "Wi-Fi Config"
-    NUM_RETRIES = 5
+    CONNECTION_TIMEOUT = 20 # seconds
 
     choices = ()
+
+    def make_join_fn(self, idx):
+        # I will never get on with how Python does variable capture...
+        def fn():
+            self.join_index(idx)
+        return fn
 
     def update_ui(self, redraw=True):
         choices = []
         title = self.DEFAULT_TITLE
-        if self.ssid:
-            title += f"\n{self.ssid}"
-            if wifi.is_ap():
-                title += " (AP)"
-            if wifi.isuporconnected():
-                title += f"\n{wifi.get_ip()}"
-            else:
-                title += "\nNot connected"
-                choices.append(("Connect", lambda: self.join_wifi(self.ssid, wifi.get_password())))
-        elif self.wifi_networks:
-            for (ssid, _) in self.wifi_networks:
-                choices.append((ssid, self.join_selected))
-        else:
-            title += "\nNo SSID set"
+        if wifi.status():
+            title += f"\n{wifi.get_ssid()}\n{wifi.get_ip()}"
+            choices.append(("[Disconnect]", self.disconnect))
+        elif self.connecting is not None:
+            title += f"\nConnecting to\n{wifi.get_ssid()}..."
+            choices.append(("[Cancel]", self.disconnect))
 
-        choices.append(("Scan...", self.scan))
-        # choices.append(("Hidden SSID...", self.connect_hidden_ssid))
+        if wifi.get_sta_status() != network.STAT_CONNECTING:
+            for i, (ssid, _) in enumerate(self.wifi_networks):
+                choices.append((ssid, self.make_join_fn(i)))
+            choices.append(("[Rescan]", self.scan))
         self.window.set(title, choices, redraw=redraw)
 
     def scan(self):
-        self.ssid = None
         self.window.set_choices(None)
         self.window.set_title(self.DEFAULT_TITLE)
         self.window.println("Scanning...", 0)
         self.window.clear_from_line(1)
         self.wifi_networks = []
-        for ap in network.WLAN(network.STA_IF).scan():
+        for ap in wifi.scan():
             print(f"Found {ap}")
             if ap[0]:
                 pass_required = ap[4] != 0
@@ -57,9 +56,10 @@ class WifiClient(MenuApp):
     def on_start(self):
         super().on_start()
         get_scheduler().set_sleep_enabled(False)
-        wifi.configure_interface()
-        self.ssid = wifi.get_ssid()
         self.wifi_networks = []
+        if ssid := wifi.get_default_ssid():
+            self.wifi_networks.append((ssid, wifi.get_default_password() is not None))
+        self.connecting = None
         self.connection_timer = None
 
     def on_activate(self):
@@ -71,54 +71,55 @@ class WifiClient(MenuApp):
             self.connection_timer.cancel()
             self.connection_timer = None
 
-    def get_wifi_status(self):
-        status = wifi.status()
-        if status == network.STAT_IDLE:
-            return "Disconnected"
-        elif status == network.STAT_CONNECTING:
-            return "Connecting"
-        elif status == network.STAT_GOT_IP:
-            self.connecting = False
-            return f"IP: {wifi.get_ip()}"
-        elif status == network.STAT_WRONG_PASSWORD:
-            return "Bad password"
-        else:
-            return "Error"
-
-    def join_selected(self):
-        (ssid, password_required) = self.wifi_networks[self.window.focus_idx()]
+    def join_index(self, i):
+        (ssid, password_required) = self.wifi_networks[i]
         password = None
         if password_required:
             if ssid == "badge":
                 # Special case for EMF
                 password = "badge"
+            elif ssid == wifi.get_default_ssid():
+                password = wifi.get_default_password()
             else:
                 password = self.keyboard_prompt("Enter password:")
-                # print(f"Got password {password}")
-        return self.join_wifi(self.wifi_networks[self.window.focus_idx()][0], password)
+        return self.join_wifi(ssid, password)
 
     def join_wifi(self, ssid, password):
         self.window.set_choices(None)
-        self.window.println("Connecting...", 0)
-        self.ssid = ssid
+        self.password = password
         wifi.connect(ssid, password)
+        self.connecting = self.CONNECTION_TIMEOUT
         self.connection_timer = self.periodic(1000, self.update_connection)
+        self.update_ui()
+
+    # This can also cancel when mid-connecting
+    def disconnect(self):
+        self.cancel_timer()
+        wifi.disconnect()
+        self.update_ui()
 
     def cancel_timer(self):
         if self.connection_timer:
             self.connection_timer.cancel()
             self.connection_timer = None
+        self.connecting = None
 
     def update_connection(self):
-        print(self.get_wifi_status())
-        status = wifi.status()
-        if status == network.STAT_CONNECTING:
+        self.connecting -= 1
+        if self.connecting <= 0:
+            # We've timed out, even if the connection isn't showing an error,
+            # which it won't without having set
+            # WLAN.config(reconnects=settings.get("wifi_reconnects", ...)
+            print("Connection attempt timed out")
+            self.disconnect()
             return
 
-        if status == network.STAT_GOT_IP:
-            wifi.save_settings()
-        else:
-            self.ssid = None
+        status = wifi.get_sta_status()
+        if status == network.STAT_CONNECTING:
+            return
+        elif status == network.STAT_GOT_IP:
+            wifi.save_defaults(wifi.get_ssid(), self.password)
+            # The update_ui call will take care of everything else
 
         self.cancel_timer()
         self.update_ui()

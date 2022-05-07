@@ -65,32 +65,31 @@ class OtaUpdate:
         window = self.window
         line = window.get_next_line()
 
-        if not wifi.is_configured_sta():
+        ssid = wifi.get_ssid()
+        if not ssid:
             window.println("No WIFI config!")
             return
 
-        if not wifi.isconnected():
-            window.println("Connecting...", line)
+        if not wifi.status():
             wifi.connect()
-
             while True:
-                window.clear_from_line(line)
-                # Give WIFI chance to get IP address
-                for retry in range(0, 15):
-                    stat = wifi.status()
-                    if stat == network.STAT_CONNECTING:
-                        time.sleep(1.0)
-                    else:
-                        break
-
-                if wifi.status() == network.STAT_GOT_IP:
+                window.println("Connecting to", line)
+                window.println(f"{ssid}...", line + 1)
+                if wifi.wait():
+                    # Returning true means connected
                     break
+
+                window.println("WiFi timed out", line)
+                window.println("[A] to retry", line + 1)
+                while BUTTON_A.value() == 1:
+                    time.sleep(0.2)
+
+                if wifi.get_sta_status() == network.STAT_CONNECTING:
+                    pass # go round loop and keep waiting
                 else:
-                    window.println("WiFi timed out", line)
-                    window.println("[A] to retry", line + 1)
-                    while BUTTON_A.value() == 1:
-                        time.sleep(0.2)
-                
+                    wifi.disconnect()
+                    wifi.connect()
+
         window.println("IP:")
         window.println(wifi.get_ip())
 
