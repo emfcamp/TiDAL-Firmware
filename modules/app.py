@@ -26,7 +26,7 @@ class App:
     def on_start(self):
         """This is called once when the app is first launched"""
         if self.buttons:
-            self.buttons.on_press(tidal.BUTTON_FRONT, lambda _: self.navigate_back())
+            self.buttons.on_press(tidal.BUTTON_FRONT, self.navigate_back)
 
     # Note: we don't actually stop apps yet...
     # def on_stop(self):
@@ -34,11 +34,12 @@ class App:
 
     def on_activate(self):
         """This is called whenever the app is switched to the foreground"""
+        self.set_rotation(tidal.get_display_rotation(), redraw=False) # Resync this if necessary
         if window := self.window:
             self._activate_window(window)
         else:
             window = ButtonOnlyWindow()
-            window.buttons.on_press(tidal.BUTTON_FRONT, lambda _: self.navigate_back())
+            window.buttons.on_press(tidal.BUTTON_FRONT, self.navigate_back)
             self.push_window(window, activate=True)
 
     def on_deactivate(self):
@@ -121,6 +122,14 @@ class App:
         if window.buttons:
             window.buttons.deactivate()
 
+    def get_rotation(self):
+        return tidal.get_display_rotation()
+
+    def set_rotation(self, rotation, redraw=True):
+        self.buttons.set_rotation(rotation)
+        tidal.set_display_rotation(rotation)
+        if redraw:
+            self.window.redraw()
 
 class ButtonOnlyWindow:
     """This class only exists to wrap a Buttons instance for any App which doesn't actually use a Window for drawing
@@ -157,9 +166,12 @@ class MenuApp(App):
     def on_start(self):
         super().on_start()
         win = self.window
-        self.buttons.on_press(tidal.JOY_DOWN, lambda _: win.set_focus_idx(win.focus_idx() + 1))
-        self.buttons.on_press(tidal.JOY_UP, lambda _: win.set_focus_idx(win.focus_idx() - 1))
-        def select(_):
+        self.buttons.on_press(tidal.JOY_DOWN, lambda: win.set_focus_idx(win.focus_idx() + 1))
+        self.buttons.on_press(tidal.JOY_UP, lambda: win.set_focus_idx(win.focus_idx() - 1))
+        # For rotation to work, interrupts have to be active on all direction buttons even if just a no-op
+        self.buttons.on_press(tidal.JOY_LEFT, lambda: None)
+        self.buttons.on_press(tidal.JOY_RIGHT, lambda: None)
+        def select():
             if len(win.choices):
                 win.choices[win.focus_idx()][1]()
         self.buttons.on_press(tidal.JOY_CENTRE, select, autorepeat=False)
@@ -175,7 +187,7 @@ class PagedApp(App):
 
     def __init__(self):
         super().__init__()
-        self._page = None
+        self._page = 0
 
     def draw_dots(self):
         display = tidal.display
@@ -195,9 +207,10 @@ class PagedApp(App):
                 # Paged windows have to have a buttons so they can be navigated left and right
                 page.buttons = Buttons()
             # Add our navigation buttons to whatever the page windows may have defined
-            page.buttons.on_press(tidal.JOY_LEFT, lambda _: self.set_page(self.page - 1))
-            page.buttons.on_press(tidal.JOY_RIGHT, lambda _: self.set_page(self.page + 1))
-            page.buttons.on_press(tidal.BUTTON_FRONT, lambda _: self.navigate_back())
+            page.buttons.on_press(tidal.JOY_LEFT, lambda: self.set_page(self.page - 1))
+            page.buttons.on_press(tidal.JOY_RIGHT, lambda: self.set_page(self.page + 1))
+            page.buttons.on_press(tidal.BUTTON_FRONT, self.navigate_back)
+        self.push_window(self.pages[self.page], activate=False)
 
     @property
     def page(self):
@@ -210,5 +223,4 @@ class PagedApp(App):
 
     def on_activate(self):
         super().on_activate()
-        if self.page is None:
-            self.set_page(0)
+        self.draw_dots()

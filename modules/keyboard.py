@@ -30,10 +30,10 @@ class Keyboard(TextWindow):
         self.x = 0
         self.y = 0
         self.completion_callback = completion_callback
-        buttons.on_press(tidal.JOY_LEFT, lambda _: self.set_xy(self.x - 1, self.y))
-        buttons.on_press(tidal.JOY_RIGHT, lambda _: self.set_xy(self.x + 1, self.y))
-        buttons.on_press(tidal.JOY_UP, lambda _: self.set_xy(self.x, self.y - 1))
-        buttons.on_press(tidal.JOY_DOWN, lambda _: self.set_xy(self.x, self.y + 1))
+        buttons.on_press(tidal.JOY_LEFT, lambda : self.set_xy(self.x - 1, self.y))
+        buttons.on_press(tidal.JOY_RIGHT, lambda : self.set_xy(self.x + 1, self.y))
+        buttons.on_press(tidal.JOY_UP, lambda : self.set_xy(self.x, self.y - 1))
+        buttons.on_press(tidal.JOY_DOWN, lambda : self.set_xy(self.x, self.y + 1))
         buttons.on_press(tidal.JOY_CENTRE, self.click, autorepeat=False)
         buttons.on_press(tidal.BUTTON_A, self.toggle_shift, autorepeat=False)
         buttons.on_press(tidal.BUTTON_B, self.backspace)
@@ -136,18 +136,18 @@ class Keyboard(TextWindow):
         self.x = x % len(self.KEYS[self.y])
         self.draw_key(self.x, self.y, True)
 
-    def click(self, _):
+    def click(self):
         k = self.keys[self.y][self.x]
         if not self.multiline_allowed and k == "\n":
             self.completion_callback(self.text)
         else:
             self.set_text(self.text + k, redraw=True)
 
-    def backspace(self, _):
+    def backspace(self):
         self.text = self.text[:-1]
         self.draw_textarea()
 
-    def back_button(self, _):
+    def back_button(self):
         self.completion_callback(self.text)
 
     def set(self, prompt, text, redraw=False):

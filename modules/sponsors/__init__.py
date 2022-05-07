@@ -29,3 +29,10 @@ class Sponsors(PagedApp):
             ImageWindow(sponsor2_png, shared_buttons),
             ImageWindow(sponsor3_png, shared_buttons),
         )
+
+    def on_activate(self):
+        # ST7789 does _not_ like trying to render images larger than the screen
+        # in its current rotation... So for now given we have portrait
+        # placeholder data, force the rotation.
+        self.set_rotation(0, redraw=False)
+        super().on_activate()

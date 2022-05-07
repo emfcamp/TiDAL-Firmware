@@ -55,7 +55,6 @@ def rgbToHsv(r, g, b):
 class Torch(TextApp):
     
     title = "Torch"
-    interval = 0.2
     
     BG = st7789.BLACK
     FG = st7789.WHITE
@@ -97,16 +96,16 @@ class Torch(TextApp):
         self.led.write()
         self.update_screen(full=False)
 
-    def toggle_led(self, _):
+    def toggle_led(self):
         self.state ^= True
         self.update_led()
 
-    def brightness_up(self, _):
+    def brightness_up(self):
         self.state = True
         self.led_v = min((self.led_v * 255) / BRIGHTNESS_STEP, 255) / 255
         self.update_led()
 
-    def brightness_down(self, _):
+    def brightness_down(self):
         self.state = True
         self.led_v = ((self.led_v * 255) * BRIGHTNESS_STEP) / 255
         self.update_led()
@@ -132,11 +131,10 @@ class Torch(TextApp):
         self.buttons.on_press(BUTTON_A, self.toggle_led)
         self.buttons.on_press(JOY_UP, self.brightness_up)
         self.buttons.on_press(JOY_DOWN, self.brightness_down)
-        self.buttons.on_press(JOY_LEFT, lambda p: self.hue_step(-HUE_STEP))
-        self.buttons.on_press(JOY_RIGHT, lambda p: self.hue_step(HUE_STEP))
+        self.buttons.on_press(JOY_LEFT, lambda: self.hue_step(-HUE_STEP))
+        self.buttons.on_press(JOY_RIGHT, lambda: self.hue_step(HUE_STEP))
 
     def on_activate(self):
         super().on_activate()
         self.update_led()
         self.update_screen()
-

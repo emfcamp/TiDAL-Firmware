@@ -209,6 +209,12 @@ STATIC mp_obj_t tidal_get_irq_handler(mp_obj_t gpio_obj) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(tidal_get_irq_handler_obj, tidal_get_irq_handler);
 
+STATIC mp_obj_t tidal_pin_number(mp_obj_t gpio_obj) {
+    gpio_num_t gpio = get_pin(gpio_obj);
+    return MP_OBJ_NEW_SMALL_INT(gpio);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(tidal_pin_number_obj, tidal_pin_number);
+
 STATIC const mp_rom_map_elem_t tidal_helpers_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_ota) },
     { MP_ROM_QSTR(MP_QSTR_get_variant), MP_ROM_PTR(&tidal_helper_get_variant_obj) },
@@ -223,6 +229,7 @@ STATIC const mp_rom_map_elem_t tidal_helpers_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_uart_tx_flush), MP_ROM_PTR(&tidal_uart_tx_flush_obj) },
     { MP_ROM_QSTR(MP_QSTR_lightsleep), MP_ROM_PTR(&tidal_lightsleep_obj) },
     { MP_ROM_QSTR(MP_QSTR_get_irq_handler), MP_ROM_PTR(&tidal_get_irq_handler_obj) },
+    { MP_ROM_QSTR(MP_QSTR_pin_number), MP_ROM_PTR(&tidal_pin_number_obj) },
 
     { MP_ROM_QSTR(MP_QSTR_ESP_PD_DOMAIN_RTC_PERIPH), MP_ROM_INT(ESP_PD_DOMAIN_RTC_PERIPH) },
     { MP_ROM_QSTR(MP_QSTR_ESP_PD_OPTION_OFF), MP_ROM_INT(ESP_PD_OPTION_OFF) },

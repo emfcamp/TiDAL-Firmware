@@ -175,6 +175,18 @@ def init_lcd():
     display.vscrdef(40, 240, 40)
     display.vscsad(40)
 
+# Mapping of angles (as used by App and Buttons) to display params
+_DISPLAY_ROTATIONS = { 0: 2, 90: 1, 180: 0, 270: 3 }
+_display_rotation = 0 # as an angle
+
+def set_display_rotation(rotation):
+    global _display_rotation
+    if rotation != _display_rotation:
+        _display_rotation = rotation
+        display.rotation(_DISPLAY_ROTATIONS[rotation])
+
+def get_display_rotation():
+    return _display_rotation
 
 def lcd_fps() -> int:
     import time

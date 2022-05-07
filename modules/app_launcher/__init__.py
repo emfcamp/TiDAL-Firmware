@@ -38,6 +38,7 @@ class Launcher(MenuApp):
 
     def on_start(self):
         super().on_start()
+        self.buttons.on_press(tidal.BUTTON_B, self.rotate)
         initial_item = 0
         try:
             with open("/lastapplaunch.txt") as f:
@@ -71,3 +72,6 @@ class Launcher(MenuApp):
         with open("/lastapplaunch.txt", "w") as f:
             f.write(str(self.window.focus_idx()))
         get_scheduler().switch_app(app)
+
+    def rotate(self):
+        self.set_rotation((self.get_rotation() + 90) % 360)
