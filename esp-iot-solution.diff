@@ -30,7 +30,7 @@ index 14ee198..7fc09b5 100644
                                  )
  
 diff --git a/components/usb/tinyusb/additions/include/tusb_config.h b/components/usb/tinyusb/additions/include/tusb_config.h
-index 2b6e48c..c821ee6 100644
+index 2b6e48c..c4ca8c5 100644
 --- a/components/usb/tinyusb/additions/include/tusb_config.h
 +++ b/components/usb/tinyusb/additions/include/tusb_config.h
 @@ -109,7 +109,9 @@ extern "C" {
@@ -39,7 +39,7 @@ index 2b6e48c..c821ee6 100644
  #define CFG_TUD_MSC                 CONFIG_TINYUSB_MSC_ENABLED
 -#define CFG_TUD_HID                 CONFIG_TINYUSB_HID_ENABLED
 +#define CFG_TUD_HID_KBD             1
-+#define CFG_TUD_U2FHID              1
++#define CFG_TUD_U2FHID              false
 +#define CFG_TUD_HID                 1
  #define CFG_TUD_MIDI                CONFIG_TINYUSB_MIDI_ENABLED
  #define CFG_TUD_CUSTOM_CLASS        CONFIG_TINYUSB_CUSTOM_CLASS_ENABLED
