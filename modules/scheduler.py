@@ -17,12 +17,18 @@ class TimerTask:
         self.target_time = target_time
         self.fn = fn
         self.period_interval = period_interval
+        self._cancelled = False
 
     def cancel(self):
+        self._cancelled = True
         if self.scheduler:
-            self.scheduler.cancel_task(self)
+            self.scheduler._remove_timer_task(self)
+            self.scheduler = None
 
     async def async_call(self):
+        if self._cancelled:
+            # Then the task was cancelled after it became ready to run
+            return
         self.fn()
 
 class Scheduler:
@@ -140,7 +146,7 @@ class Scheduler:
         task.scheduler = self
         self._timers.sort(key=lambda t: t.target_time)
 
-    def cancel_task(self, task):
+    def _remove_timer_task(self, task):
         self._timers.remove(task)
 
     def peek_timer(self):
