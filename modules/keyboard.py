@@ -127,7 +127,7 @@ class Keyboard(TextWindow):
         self.shifted = flag
         self.redraw()
 
-    def toggle_shift(self, _):
+    def toggle_shift(self):
         self.set_shift(not self.shifted)
 
     def set_xy(self, x, y):
