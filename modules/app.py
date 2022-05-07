@@ -126,9 +126,10 @@ class App:
         return tidal.get_display_rotation()
 
     def set_rotation(self, rotation, redraw=True):
-        self.buttons.set_rotation(rotation)
+        if buttons := self.buttons:
+            buttons.set_rotation(rotation)
         tidal.set_display_rotation(rotation)
-        if redraw:
+        if redraw and self.window:
             self.window.redraw()
 
 class ButtonOnlyWindow:

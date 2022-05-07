@@ -36,6 +36,7 @@ class OtaUpdate:
         self.window = textwindow.TextWindow(self.BG, self.FG, self.title)
 
     def on_activate(self):
+        set_display_rotation(0)
         window = self.window
         window.cls()
 

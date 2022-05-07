@@ -8,6 +8,7 @@ class EMFLogo(App):
         super().on_start()
 
     def on_activate(self):
+        self.set_rotation(0) # We're portrait only
         super().on_activate()
         display.vscrdef(40, 240, 40)
         display.vscsad(40)
