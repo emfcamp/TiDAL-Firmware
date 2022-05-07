@@ -117,14 +117,14 @@ index 743653c..e77569a 100644
                             TUD_DFU_DESC_LEN(DFU_ALT_COUNT) * CFG_TUD_DFU
  };
 diff --git a/components/usb/tinyusb/additions/src/descriptors_control.c b/components/usb/tinyusb/additions/src/descriptors_control.c
-index c868fd4..9866df7 100644
+index c868fd4..949c931 100644
 --- a/components/usb/tinyusb/additions/src/descriptors_control.c
 +++ b/components/usb/tinyusb/additions/src/descriptors_control.c
 @@ -15,6 +15,29 @@
  #include "esp_log.h"
  #include "descriptors_control.h"
  #include "dfu_device.h"
-+#include "/firmware/drivers/tidal_usb/u2f_hid.h"
++#include "../../../../../../drivers/tidal_usb/u2f_hid.h"
 +
 +
 +#define TILDA_REPORT_DESC_U2F(...) \
