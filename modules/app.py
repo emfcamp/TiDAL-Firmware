@@ -1,92 +1,227 @@
-import time
-import uasyncio
-
-class MainTask:
-    
-    _awaitables = {}
-    _current_app = None
-    
-    async def sleep(self):
-        # Sleep for 5 minutes, wrapped in an async funtion
-        # so it can be scheduled as a cancellable task
-        await uasyncio.sleep(300)
-    
-    async def app_active(self, app: str) -> bool:
-        """Await this to pause execution until the specified app
-        is active. Returns a boolean which is True if the app was active
-        or False if we waited for it to become active. """
-        # Infinite loop while the app is inactive, but with
-        # a sleep in the middle so it doesn't use resources.
-        was_already_active = self._current_app == app
-        while self._current_app != app:
-            task = self._awaitables.get(
-                app,
-                uasyncio.create_task(self.sleep())
-            )
-            self._awaitables[app] = task
-            try:
-                await task
-            except:
-                # We have context switched, swallow that CancelledError
-                pass
-            # Remove the awaitable, so it's re-created next time it's
-            # requested
-            del self._awaitables[app]
-        return was_already_active
-    
-    def context_changed(self, app: str) -> None:
-        # Cancel the corresponding sleep for this app, to wake it
-        self._current_app = app
-        print(f"Changing context to {app}")
-        if awaitable := self._awaitables.get(app):
-            awaitable.cancel()
-        return
-
-
-task_coordinator = MainTask()
-
+import tidal
+from buttons import Buttons
+from scheduler import get_scheduler
+from textwindow import TextWindow, Menu
+from keyboard import Keyboard
 
 class App:
-    app_id = __name__
-    interval = 0.1
-    post_wake_interval = 0.5
-    running = True
+
+    # Defaults for TextApp and MenuApp
+    BG = tidal.BLUE
+    FG = tidal.WHITE
+
+    def __init__(self):
+        self.started = False
+        self.windows = []
+
+    def get_app_id(self):
+        if name := getattr(self, "app_id", None):
+            return name
+        else:
+            return self.__class__.__name__
 
     def run_sync(self):
-        self.on_start()
-        self.on_wake()
-        time.sleep(self.post_wake_interval)
-        while self.running:
-            self.update()
-            time.sleep(self.interval)
-        self.on_stop()
-
-    async def run(self):
-        self.on_start()
-        first_run = True
-        while self.running:
-            was_active = await task_coordinator.app_active(self.app_id)
-            if first_run or not was_active:
-                self.on_wake()
-                first_run = False
-                await uasyncio.sleep(self.post_wake_interval)
-            self.update()
-            await uasyncio.sleep(self.interval)
-        self.on_stop()
-    
-    async def isActive(self):
-        while True:
-            yield
+        get_scheduler().main(self)
 
     def on_start(self):
+        """This is called once when the app is first launched"""
+        if self.buttons:
+            self.buttons.on_press(tidal.BUTTON_FRONT, self.navigate_back)
+
+    # Note: we don't actually stop apps yet...
+    # def on_stop(self):
+    #     return NotImplemented
+
+    def on_activate(self):
+        """This is called whenever the app is switched to the foreground"""
+        self.set_rotation(tidal.get_display_rotation(), redraw=False) # Resync this if necessary
+        if window := self.window:
+            self._activate_window(window)
+        else:
+            window = ButtonOnlyWindow()
+            window.buttons.on_press(tidal.BUTTON_FRONT, self.navigate_back)
+            self.push_window(window, activate=True)
+
+    def on_deactivate(self):
         return NotImplemented
 
-    def on_stop(self):
-        return NotImplemented
+    def check_for_interrupts(self):
+        if self.buttons:
+            return self.buttons.check_for_interrupts()
+        return False
 
-    def on_wake(self):
-        return NotImplemented
+    def navigate_back(self):
+        get_scheduler().switch_app(None)
+
+    def after(self, ms, callback):
+        """Create a one-shot timer"""
+        return get_scheduler().after(ms, callback)
+
+    def periodic(self, ms, callback):
+        """Create a periodic timer that fires repeatedly until cancel() is called on it"""
+        return get_scheduler().periodic(ms, callback)
+
+    @property
+    def window(self):
+        if len(self.windows):
+            return self.windows[-1]
+        else:
+            return None
     
-    def update(self):
-        return NotImplemented
+    @property
+    def buttons(self):
+        if window := self.window:
+            return window.buttons
+        else:
+            return None
+    
+    def push_window(self, window, activate=True):
+        self.windows.append(window)
+        if activate:
+            self._activate_window(window)
 
+    def pop_window(self):
+        self._deactivate_window(self.windows[-1])
+        del self.windows[-1]
+        if window := self.window:
+            self._activate_window(window)
+
+    def present_window(self, window):
+        """Pushes window, and does not return until finish_presenting() is called"""
+        self.push_window(window)
+        get_scheduler().enter()
+        self.pop_window()
+
+    def finish_presenting(self):
+        get_scheduler().exit()
+
+    def keyboard_prompt(self, prompt, initial_value="", multiline_allowed=False):
+        """Prompts the user to enter a value using the onscreen keyboard"""
+        result = [initial_value]
+        def completion(val):
+            result[0] = val
+            self.finish_presenting()
+        keyboard = Keyboard(completion, prompt, initial_value, multiline_allowed)
+        self.present_window(keyboard) # Doesn't return until all finished
+        return result[0]
+
+    def set_window(self, new_window, activate=True):
+        if len(self.windows):
+            self.windows[-1] = new_window
+            if activate:
+                self._activate_window(new_window)
+        else:
+            self.push_window(new_window, activate=activate)
+
+    def _activate_window(self, window):
+        if window.buttons:
+            window.buttons.activate()
+        window.redraw()
+
+    def _deactivate_window(self, window):
+        if window.buttons:
+            window.buttons.deactivate()
+
+    def get_rotation(self):
+        return tidal.get_display_rotation()
+
+    def set_rotation(self, rotation, redraw=True):
+        if buttons := self.buttons:
+            buttons.set_rotation(rotation)
+        tidal.set_display_rotation(rotation)
+        if redraw and self.window:
+            self.window.redraw()
+
+class ButtonOnlyWindow:
+    """This class only exists to wrap a Buttons instance for any App which doesn't actually use a Window for drawing
+       (and presumably draws directly to the display in its on_activate)
+    """
+    def __init__(self):
+        self.buttons = Buttons()
+
+    def redraw(self):
+        pass
+
+
+class TextApp(App):
+    """An app using a single TextWindow by default"""
+
+    title = None
+
+    def __init__(self):
+        super().__init__()
+        window = TextWindow(self.BG, self.FG, self.title, None, Buttons())
+        self.push_window(window, activate=False)
+
+
+class MenuApp(App):
+    """An app using a single Menu window"""
+
+    title = None
+
+    def __init__(self):
+        super().__init__()
+        window = Menu(self.BG, self.FG, self.FOCUS_BG, self.FOCUS_FG, self.title, self.choices, None, Buttons())
+        self.push_window(window, activate=False)
+
+    def on_start(self):
+        super().on_start()
+        win = self.window
+        self.buttons.on_press(tidal.JOY_DOWN, lambda: win.set_focus_idx(win.focus_idx() + 1))
+        self.buttons.on_press(tidal.JOY_UP, lambda: win.set_focus_idx(win.focus_idx() - 1))
+        # For rotation to work, interrupts have to be active on all direction buttons even if just a no-op
+        self.buttons.on_press(tidal.JOY_LEFT, lambda: None)
+        self.buttons.on_press(tidal.JOY_RIGHT, lambda: None)
+        def select():
+            if len(win.choices):
+                win.choices[win.focus_idx()][1]()
+        self.buttons.on_press(tidal.JOY_CENTRE, select, autorepeat=False)
+        self.buttons.on_press(tidal.BUTTON_A, select, autorepeat=False)
+        self.buttons.on_press(tidal.BUTTON_B, select, autorepeat=False)
+
+
+class PagedApp(App):
+    """An app that supports left/right switching between multiple page Windows"""
+
+    PAGE_FOOTER = 7
+    DOTS_SEP = 10
+
+    def __init__(self):
+        super().__init__()
+        self._page = 0
+
+    def draw_dots(self):
+        display = tidal.display
+        y = display.height() - self.PAGE_FOOTER + 3
+        n = len(self.pages)
+        x = (display.width() - ((n - 1) * self.DOTS_SEP)) // 2
+        for i in range(n):
+            if i == self._page:
+                display.fill_circle(x + (self.DOTS_SEP * i), y, 3, self.pages[i].fg)
+            else:
+                display.fill_circle(x + (self.DOTS_SEP * i), y, 1, self.pages[i].fg)
+
+    def on_start(self):
+        super().on_start()
+        for i, page in enumerate(self.pages):
+            if page.buttons is None:
+                # Paged windows have to have a buttons so they can be navigated left and right
+                page.buttons = Buttons()
+            # Add our navigation buttons to whatever the page windows may have defined
+            page.buttons.on_press(tidal.JOY_LEFT, lambda: self.set_page(self.page - 1))
+            page.buttons.on_press(tidal.JOY_RIGHT, lambda: self.set_page(self.page + 1))
+            page.buttons.on_press(tidal.BUTTON_FRONT, self.navigate_back)
+        self.push_window(self.pages[self.page], activate=False)
+
+    @property
+    def page(self):
+        return self._page
+
+    def set_page(self, val):
+        self._page = val % len(self.pages)
+        self.set_window(self.pages[self.page])
+        self.draw_dots()
+
+    def on_activate(self):
+        super().on_activate()
+        self.draw_dots()

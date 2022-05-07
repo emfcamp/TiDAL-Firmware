@@ -1,8 +1,5 @@
 from tidal import *
-from neopixel import NeoPixel
-from buttons import Buttons
-from textwindow import TextWindow
-from app import App, task_coordinator
+from app import TextApp
 
 BRIGHTNESS_STEP = 0.8
 HUE_STEP = 0.125
@@ -55,35 +52,32 @@ def rgbToHsv(r, g, b):
     return (h, s, v)
 
 
-class Torch(TextWindow, App):
+class Torch(TextApp):
     
-    app_id = "torch"
     title = "Torch"
-    interval = 0.2
     
     BG = st7789.BLACK
     FG = st7789.WHITE
 
     def update_screen(self, full=True):
+        win = self.window
         if full:
-            self.cls()
-            self.println("Press Joystick")
-            self.println("or A for on/off")
-            self.println()
-            self.println("Joystick up/down")
-            self.println("for brightness.")
-            self.println()
-            self.println("Left/right for")
-            self.println("colour.")
-            self.println()
-            # window.println("B for pattern")
+            win.println("Press Joystick")
+            win.println("or A for on/off.")
+            win.println()
+            win.println("Joystick up/down")
+            win.println("for brightness.")
+            win.println()
+            win.println("Left/right for")
+            win.println("colour.")
+            win.println()
             
-        self.println("LED: {}".format("ON" if self.state else "OFF"), 12)
+        win.println("LED: {}".format("ON" if self.state else "OFF"), 12)
         if self.led_h < 0:
-            self.println("Colour: WHITE", 13)
+            win.println("Colour: WHITE", 13)
         else:
-            self.println("Colour: Hue={}'".format(int(self.led_h * 360)), 13)
-        self.println("Brightness: {}%".format(int(self.led_v * 100)), 14)
+            win.println("Colour: Hue={}'".format(int(self.led_h * 360)), 13)
+        win.println("Brightness: {}%".format(int(self.led_v * 100)), 14)
 
     def update_led(self):
         if self.led_h >= 0:
@@ -94,7 +88,7 @@ class Torch(TextWindow, App):
             hue = 0
             saturation = 0
         # print("LED h={} s={} v={}".format(hue, saturation, led_v))
-        LED_PWREN.value(self.state and 0 or 1)
+        led_power_on(self.state)
         if self.state:
             self.led[0] = hsvToRgb(hue, saturation, self.led_v)
         else:
@@ -102,16 +96,16 @@ class Torch(TextWindow, App):
         self.led.write()
         self.update_screen(full=False)
 
-    def toggle_led(self, _):
+    def toggle_led(self):
         self.state ^= True
         self.update_led()
 
-    def brightness_up(self, _):
+    def brightness_up(self):
         self.state = True
         self.led_v = min((self.led_v * 255) / BRIGHTNESS_STEP, 255) / 255
         self.update_led()
 
-    def brightness_down(self, _):
+    def brightness_down(self):
         self.state = True
         self.led_v = ((self.led_v * 255) * BRIGHTNESS_STEP) / 255
         self.update_led()
@@ -127,28 +121,20 @@ class Torch(TextWindow, App):
         self.update_led()
 
     def on_start(self):
+        super().on_start()
         self.state = False
         self.led_h = HUE_WHITE
         self.led_v = 1.0
-        self.buttons = None
-        self.led = NeoPixel(LED_DATA, 1)
+        self.led = led
 
-        buttons = Buttons()
-        buttons.on_press(JOY_CENTRE, self.toggle_led)
-        buttons.on_press(BUTTON_A, self.toggle_led)
-        buttons.on_press(JOY_UP, self.brightness_up)
-        buttons.on_press(JOY_DOWN, self.brightness_down)
-        buttons.on_press(JOY_LEFT, lambda p: self.hue_step(-HUE_STEP))
-        buttons.on_press(JOY_RIGHT, lambda p: self.hue_step(HUE_STEP))
-        self.buttons = buttons
+        self.buttons.on_press(JOY_CENTRE, self.toggle_led)
+        self.buttons.on_press(BUTTON_A, self.toggle_led)
+        self.buttons.on_press(JOY_UP, self.brightness_up)
+        self.buttons.on_press(JOY_DOWN, self.brightness_down)
+        self.buttons.on_press(JOY_LEFT, lambda: self.hue_step(-HUE_STEP))
+        self.buttons.on_press(JOY_RIGHT, lambda: self.hue_step(HUE_STEP))
 
-    def on_wake(self):
+    def on_activate(self):
+        super().on_activate()
         self.update_led()
         self.update_screen()
-
-    def update(self):
-        self.buttons.poll()
-        self.update_screen(full=False)
-        if BUTTON_FRONT.value() == 0:
-            task_coordinator.context_changed("menu")
-
