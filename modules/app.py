@@ -151,10 +151,11 @@ class TextApp(App):
     """An app using a single TextWindow by default"""
 
     title = None
+    font = None
 
     def __init__(self):
         super().__init__()
-        window = TextWindow(self.BG, self.FG, self.title, None, Buttons())
+        window = TextWindow(self.BG, self.FG, self.title, self.font, Buttons())
         self.push_window(window, activate=False)
 
 
@@ -162,10 +163,11 @@ class MenuApp(App):
     """An app using a single Menu window"""
 
     title = None
+    font = None
 
     def __init__(self):
         super().__init__()
-        window = Menu(self.BG, self.FG, self.FOCUS_BG, self.FOCUS_FG, self.title, self.choices, None, Buttons())
+        window = Menu(self.BG, self.FG, self.FOCUS_BG, self.FOCUS_FG, self.title, self.choices, self.font, Buttons())
         self.push_window(window, activate=False)
 
     def supports_rotation(self):

@@ -81,7 +81,7 @@ class Keyboard(TextWindow):
             # There's no glyph in the font we use for a enter key - instead use
             # left-pointing-arrow and draw an extra bit.
             self.display.rect(xpos + 1, ypos + 1, key_width - 1, key_height - 1, bg)
-            self.display.text(self.font, "\x1B", xpos + 2, ypos + 2, fg, bg)
+            self.display.text(self.font, self.LEFT_ARROW, xpos + 2, ypos + 2, fg, bg)
             self.display.vline(xpos + 8, ypos + 2, 4, fg)
         else:
             self.display.rect(xpos + 1, ypos + 1, key_width - 1, key_height - 1, bg)

@@ -3,6 +3,11 @@ import vga2_8x8 as default_font
 
 class TextWindow:
 
+    UP_ARROW = '\x18'
+    DOWN_ARROW = '\x19'
+    RIGHT_ARROW = '\x1A'
+    LEFT_ARROW = '\x1B'
+
     def __init__(self, bg=None, fg=None, title=None, font=None, buttons=None):
         if bg is None:
             bg = tidal.BLUE
@@ -32,7 +37,11 @@ class TextWindow:
         return self.display.height() // self.font.HEIGHT
 
     def line_height(self):
-        return self.font.HEIGHT + 1
+        if self.font.HEIGHT <= 8:
+            return self.font.HEIGHT + 1
+        else:
+            # The larger fonts look fine without an extra pixel
+            return self.font.HEIGHT
 
     def cls(self):
         """Clears entire screen, redraws title if there is one"""
@@ -111,10 +120,10 @@ class TextWindow:
         return self.current_line
 
     def get_line_pos(self, line):
-        return self.pos_y + self.line_offset + line * (self.font.HEIGHT + 1)
+        return self.pos_y + self.line_offset + line * self.line_height()
 
     def get_max_lines(self):
-        return (self.height() - self.self.line_offset) // self.line_height()
+        return (self.height() - self.line_offset) // self.line_height()
 
     def progress_bar(self, line, percentage, fg=None):
         """Display a line-sized progress bar for a percentage value 0-100"""
@@ -152,46 +161,68 @@ class Menu(TextWindow):
         self.focus_bg = focus_bg
         self.choices = choices
         self._focus_idx = 0
+        self._top_idx = 0
 
-    def choice_line_args(self, idx, focus=False):
-        line_info = {
-            "y": idx,
-            "fg": self.focus_fg if focus else self.fg,
-            "bg": self.focus_bg if focus else self.bg,
-            "centre": False
-        }
-        args = self.choices[idx][0]
-        if isinstance(args, str):
-            args = { "text": args }
-        line_info.update(args)
-        return line_info
+    def draw_item(self, index, focus):
+        text = self.choices[index][0]
+        # The top and bottom items visible on screen should draw an arrow if there are more items not shown
+        max_chars = self.width_chars() - 1
+        if index == self._top_idx and self._top_idx > 0:
+            text = text[0:max_chars] + (" " * (max_chars - len(text))) + self.UP_ARROW
+        elif index == self._top_idx + self.get_max_lines() - 1 and len(self.choices) > index + 1:
+            text = text[0:max_chars] + (" " * (max_chars - len(text))) + self.DOWN_ARROW
+
+        fg = self.focus_fg if focus else self.fg
+        bg = self.focus_bg if focus else self.bg
+
+        self.println(text, index - self._top_idx, fg, bg)
 
     def focus_idx(self):
         return self._focus_idx
 
-    def set_focus_idx(self, i, redraw=True):
-        if redraw:
-            self.println(**self.choice_line_args(self._focus_idx, focus=False))
-        self._focus_idx = i % len(self.choices)
-        if redraw:
-            self.println(**self.choice_line_args(self._focus_idx, focus=True))
+    @property
+    def _end_idx(self):
+        """One more than the bottom-most index shown on screen"""
+        return self._top_idx + min(self.get_max_lines(), len(self.choices) - self._top_idx)
 
-    def draw_choices(self):
-        for i in range(len(self.choices)):
-            self.println(**self.choice_line_args(i, focus=(i == self._focus_idx)))
-        self.clear_from_line(len(self.choices))
+    def check_focus_visible(self):
+        if self._focus_idx < self._top_idx:
+            self._top_idx = self._focus_idx
+            return True
+        elif self._focus_idx >= self._top_idx + self.get_max_lines():
+            self._top_idx = self._focus_idx - self.get_max_lines() + 1
+            return True
+        else:
+            return False
+
+    def set_focus_idx(self, i, redraw=True):
+        prev_focus = self._focus_idx
+        self._focus_idx = i % len(self.choices)
+        needs_full_redraw = self.check_focus_visible()
+        if needs_full_redraw:
+            self.draw_items()
+        elif redraw:
+            self.draw_item(prev_focus, focus=False)
+            self.draw_item(self._focus_idx, focus=True)
+
+    def draw_items(self):
+        for i in range(self._top_idx, self._end_idx):
+            self.draw_item(i, i == self._focus_idx)
+        self.clear_from_line(self._end_idx - self._top_idx)
 
     def redraw(self):
         self.draw_title()
-        self.draw_choices()
+        self.check_focus_visible()
+        self.draw_items()
 
     def set_choices(self, choices, redraw=True):
         if choices is None:
             choices = ()
         self.choices = choices
         self._focus_idx = min(self._focus_idx, len(choices)) # Probably no point trying to preserve this?
+        self.check_focus_visible()
         if redraw:
-            self.draw_choices()
+            self.draw_items()
 
     def set(self, title, choices, redraw=True):
         self.set_title(title, redraw)
