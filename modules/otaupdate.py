@@ -12,15 +12,9 @@ import wifi
 # But it acts sufficiently like it does, to satisfy the app launcher
 class OtaUpdate:
     
-    title = "Firmware Update"
     buttons = None
     started = False
     
-    BG = MAGENTA
-    FG = WHITE
-
-    confirmed = False
-
     def run_sync(self):
         self.on_start()
         self.on_activate()
@@ -32,11 +26,13 @@ class OtaUpdate:
         # Only needed once the app returns to the scheduler having completed
         return False
 
+    def supports_rotation(self):
+        return False
+
     def on_start(self):
-        self.window = textwindow.TextWindow(self.BG, self.FG, self.title)
+        self.window = textwindow.TextWindow(MAGENTA, WHITE, "Firmware Update")
 
     def on_activate(self):
-        set_display_rotation(0)
         window = self.window
         window.cls()
 
@@ -104,6 +100,7 @@ class OtaUpdate:
         window = self.window
         window.println()
         line = window.get_next_line()
+        self.confirmed = False
 
         retry = True
         while retry:

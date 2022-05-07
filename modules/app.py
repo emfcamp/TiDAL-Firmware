@@ -50,6 +50,10 @@ class App:
             return self.buttons.check_for_interrupts()
         return False
 
+    def supports_rotation(self):
+        """Override this to allow the app to open in landscape"""
+        return False
+
     def navigate_back(self):
         get_scheduler().switch_app(None)
 
@@ -163,6 +167,9 @@ class MenuApp(App):
         super().__init__()
         window = Menu(self.BG, self.FG, self.FOCUS_BG, self.FOCUS_FG, self.title, self.choices, None, Buttons())
         self.push_window(window, activate=False)
+
+    def supports_rotation(self):
+        return True
 
     def on_start(self):
         super().on_start()

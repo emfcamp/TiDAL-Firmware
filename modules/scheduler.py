@@ -1,3 +1,4 @@
+import tidal
 import tidal_helpers
 import time
 import uasyncio
@@ -50,6 +51,9 @@ class Scheduler:
             # Nothing to do
             return
         print(f"Switching app to {app.get_app_id()}")
+
+        if not app.supports_rotation() and tidal.get_display_rotation():
+            tidal.set_display_rotation(0)
 
         if app.buttons:
             app.buttons.activate()
