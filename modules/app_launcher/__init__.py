@@ -25,6 +25,7 @@ class Launcher(MenuApp):
             ("Update Firmware", lambda: self.launch("otaupdate", "OtaUpdate")),
             ("Wi-Fi Config", lambda: self.launch("wifi_client", "WifiClient")),
             ("Sponsors", lambda: self.launch("sponsors", "Sponsors")),
+            ("Battery", lambda: self.launch("battery", "Battery")),
         )
     
     # Boot entry point
