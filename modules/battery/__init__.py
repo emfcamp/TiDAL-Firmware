@@ -37,12 +37,10 @@ class Battery(TextApp):
 
     def __init__(self):
         super().__init__()
-        self.value = 0
         self.pin = tidal.BUTTON_A
 
     def update_screen(self, full=True):
         win = self.window
-        self.value += 1
         reading = self.read_battery_state()
         win.println("    Raw: {} ".format(reading[2]), 1)
         win.println("Voltage: {} ".format(reading[0]), 2)
