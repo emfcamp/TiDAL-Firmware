@@ -6,6 +6,7 @@ from esp32 import Partition
 tidal_helpers.esp_sleep_enable_gpio_switch(False)
 
 # Initialize USB early on
+tidal_helpers.inhibit_sleep()
 tidal.usb.initialize()
 tidal.init_lcd()
 

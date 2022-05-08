@@ -115,7 +115,7 @@ class Scheduler:
         self.sleep_enabled = flag
 
     def is_sleep_enabled(self):
-        return self.sleep_enabled
+        return self.sleep_enabled and tidal_helpers.can_sleep()
 
     def check_for_interrupts(self):
         """Check for any pending interrupts and schedule uasyncio tasks for them."""

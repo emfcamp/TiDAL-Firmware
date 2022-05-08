@@ -4,8 +4,12 @@
 #include "mphalport.h"
 #include "modmachine.h" // for machine_pin_type
 #include "esp_sleep.h"
+#include "esp_wifi.h"
 #include "device/usbd.h"
 #include "rom/uart.h"
+
+static const char *TAG = "tidal_helpers";
+time_t no_sleep_before = 0;
 
 // Have to redefine this from machine_pin.c, unfortunately
 typedef struct _machine_pin_obj_t {
@@ -45,6 +49,45 @@ STATIC mp_obj_t tidal_esp_sleep_enable_gpio_wakeup() {
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(tidal_esp_sleep_enable_gpio_wakeup_obj, tidal_esp_sleep_enable_gpio_wakeup);
+
+// inhibit_sleep() -> None : Prevent sleep for the next 15 seconds
+STATIC mp_obj_t tidal_helper_inhibit_sleep() {
+    time_t now;
+    time(&now);
+    no_sleep_before = now + 15;
+    ESP_LOGE(TAG, "Now %lu, No sleep before %lu", now, no_sleep_before);
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(tidal_helper_inhibit_sleep_obj, tidal_helper_inhibit_sleep);
+
+// can_sleep() -> bool : Returns False if sleep is prevented by USB state
+STATIC mp_obj_t tidal_helper_can_sleep() {
+    // The devboard should not go into light sleep as it has no CHARGE_DET to wake from
+    #if defined(CONFIG_TIDAL_VARIANT_DEVBOARD)
+        return mp_const_false;
+    #endif
+    
+    // Do not sleep if we have a bound on sleep time from an interrupt
+    time_t now;
+    time(&now);
+    if (now < no_sleep_before) {
+        return mp_const_false;
+    }
+    
+    // Any activity on USB since last usb reset blocks sleep
+    if (tud_connected()) {
+        return mp_const_false;
+    }
+    
+    // Active WIFI usage blocks sleep
+    wifi_mode_t wifi_mode;
+    esp_err_t ok = esp_wifi_get_mode(&wifi_mode);
+    if (ok == ESP_OK && wifi_mode != WIFI_MODE_NULL) {
+        return mp_const_false;
+    }
+    return mp_const_true;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(tidal_helper_can_sleep_obj, tidal_helper_can_sleep);
 
 STATIC mp_obj_t tidal_esp_sleep_pd_config(mp_obj_t domain_obj, mp_obj_t option_obj) {
     esp_sleep_pd_domain_t domain = (esp_sleep_pd_domain_t)mp_obj_get_int(domain_obj);
@@ -189,8 +232,7 @@ STATIC mp_obj_t tidal_lightsleep(mp_obj_t time_obj) {
         esp_sleep_enable_timer_wakeup(((uint64_t)time_ms) * 1000);
     }
 
-    if (!tud_connected())
-        esp_light_sleep_start();
+    esp_light_sleep_start();
 
     if (time_ms) {
         // Reset this
@@ -220,6 +262,8 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_1(tidal_pin_number_obj, tidal_pin_number);
 STATIC const mp_rom_map_elem_t tidal_helpers_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_ota) },
     { MP_ROM_QSTR(MP_QSTR_get_variant), MP_ROM_PTR(&tidal_helper_get_variant_obj) },
+    { MP_ROM_QSTR(MP_QSTR_can_sleep), MP_ROM_PTR(&tidal_helper_can_sleep_obj) },
+    { MP_ROM_QSTR(MP_QSTR_inhibit_sleep), MP_ROM_PTR(&tidal_helper_inhibit_sleep_obj) },
     { MP_ROM_QSTR(MP_QSTR_esp_sleep_enable_gpio_wakeup), MP_ROM_PTR(&tidal_esp_sleep_enable_gpio_wakeup_obj) },
     { MP_ROM_QSTR(MP_QSTR_esp_sleep_pd_config), MP_ROM_PTR(&tidal_esp_sleep_pd_config_obj) },
     { MP_ROM_QSTR(MP_QSTR_gpio_wakeup), MP_ROM_PTR(&tidal_gpio_wakeup_obj) },
