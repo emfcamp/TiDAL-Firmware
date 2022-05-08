@@ -17,7 +17,7 @@ MORSE_WORD = 7 * MORSE_DOT
 # Flash patterns for the torch (name, [pattern]), 0 is no flashing
 # Where pattern is a list of (time in ms, hue, brightness) tuples
 FLASH_PATTERNS = [
-    ("On", [(1000, HUE_WHITE, 1.0)]),
+    ("None", [(1000, HUE_WHITE, 1.0)]),
     ("Flash", [(200, HUE_WHITE, 1.0), (400, HUE_WHITE, 0)]),
     ("Colours", [(400, HUE_RED, 1.0), (400, HUE_GREEN, 1.0), (400, HUE_BLUE, 1.00)]),
     ("SOS", [(MORSE_DOT, HUE_WHITE, 1.0), (MORSE_DOT, HUE_WHITE, 0), (MORSE_DOT, HUE_WHITE, 1.0), (MORSE_DOT, HUE_WHITE, 0), (MORSE_DOT, HUE_WHITE, 1.0), (MORSE_DOT, HUE_WHITE, 0),
@@ -92,7 +92,7 @@ class Torch(TextApp):
             win.println("Left/right for")
             win.println("colour.")
             win.println()
-            win.println("B for flash. ")
+            win.println("B for flash mode. ")
             win.println()
             
         win.println("LED: {}".format("ON" if self.state else "OFF"), 12)
@@ -124,20 +124,24 @@ class Torch(TextApp):
             self.update_screen(full=False)
 
     def toggle_led(self):
+        self.flash_stop()
         self.state ^= True
         self.update_led()
 
     def brightness_up(self):
+        self.flash_stop()
         self.state = True
         self.led_v = min((self.led_v * 255) / BRIGHTNESS_STEP, 255) / 255
         self.update_led()
 
     def brightness_down(self):
+        self.flash_stop()
         self.state = True
         self.led_v = ((self.led_v * 255) * BRIGHTNESS_STEP) / 255
         self.update_led()
 
     def hue_step(self, delta):
+        self.flash_stop()
         self.state = True
         # led_h == -HUE_STEP is special case meaning white (saturation=0), so valid range is [-HUE_STEP, 1]
         self.led_h += delta
@@ -147,20 +151,25 @@ class Torch(TextApp):
             self.led_h = 1 - HUE_STEP
         self.update_led()
 
+    def flash_stop(self):
+        if self.flash_mode == 0:
+            return
+        # Turn off flashing
+        self.flash_mode = 0
+        if self.timer is not None:
+            self.timer.cancel()
+            self.timer = None
+        # Turn off the LED
+        self.state = False
+        self.led_h = HUE_WHITE
+        self.led_v = 1.0
+        self.update_led()
+
     def flash_change_mode(self):
         self.flash_mode += 1
         self.flash_state = 0
         if self.flash_mode >= len(FLASH_PATTERNS):
-            # Turn off flashing
-            self.flash_mode = 0
-            if self.timer is not None:
-                self.timer.cancel()
-                self.timer = None
-            # Turn off the LED
-            self.state = False
-            self.led_h = HUE_WHITE
-            self.led_v = 1.0
-            self.update_led()
+            self.flash_stop()
             return
         self.flash_set_state()
 
