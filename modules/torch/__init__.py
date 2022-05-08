@@ -14,6 +14,8 @@ MORSE_DOT = 300
 MORSE_DASH = 3 * MORSE_DOT
 MORSE_WORD = 7 * MORSE_DOT
 
+# Flash patterns for the torch (name, [pattern]), 0 is no flashing
+# Where pattern is a list of (time in ms, hue, brightness) tuples
 FLASH_PATTERNS = [
     ("On", [(1000, HUE_WHITE, 1.0)]),
     ("Flash", [(200, HUE_WHITE, 1.0), (400, HUE_WHITE, 0)]),
