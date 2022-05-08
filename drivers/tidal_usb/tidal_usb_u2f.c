@@ -3,7 +3,7 @@
 #include "u2f_hid.h"
 #include "esp_log.h"
 
-#ifdef CFG_TUD_U2FHID
+#if CFG_TUD_U2FHID
 static const char *TAG = "tidalU2F";
 
 
@@ -116,14 +116,11 @@ void handle_u2f_init(u2fhid_init_request const* init_request) {
         .init.BCNTH = 0,
         .init.BCNTL = 17,
     };
-    // Zero out the data packet and then copy in the (17 byte)
-    // response and set the length flags.
-    memset(response.init.data, 0, sizeof response.init.data);
     memcpy(response.init.data, &response_data, 17);
     
     // Cast this to a char array so we can debug print it
     uint8_t *as_buf = (uint8_t *) &response;
-    for (int i=0;i<64;i++) {
+    for (int i=0;i<HID_RPT_SIZE;i++) {
         printf("%x ", as_buf[i]);
     }
     printf("\n");
