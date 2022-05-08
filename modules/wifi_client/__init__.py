@@ -9,10 +9,8 @@ class WifiClient(MenuApp):
     
     FOCUS_FG = BLACK
     FOCUS_BG = CYAN
-    DEFAULT_TITLE = "Wi-Fi Config"
+    TITLE = "Wi-Fi Config"
     CONNECTION_TIMEOUT = 20 # seconds
-
-    choices = ()
 
     def make_join_fn(self, idx):
         # I will never get on with how Python does variable capture...
@@ -22,7 +20,7 @@ class WifiClient(MenuApp):
 
     def update_ui(self, redraw=True):
         choices = []
-        title = self.DEFAULT_TITLE
+        title = self.TITLE
         if wifi.status():
             title += f"\n{wifi.get_ssid()}\n{wifi.get_ip()}"
             choices.append(("[Disconnect]", self.disconnect))
@@ -38,7 +36,7 @@ class WifiClient(MenuApp):
 
     def scan(self):
         self.window.set_choices(None)
-        self.window.set_title(self.DEFAULT_TITLE)
+        self.window.set_title(self.TITLE)
         self.window.println("Scanning...", 0)
         self.window.clear_from_line(1)
         self.wifi_networks = []

@@ -54,8 +54,7 @@ def rgbToHsv(r, g, b):
 
 class Torch(TextApp):
     
-    title = "Torch"
-    
+    TITLE = "Torch"
     BG = st7789.BLACK
     FG = st7789.WHITE
 

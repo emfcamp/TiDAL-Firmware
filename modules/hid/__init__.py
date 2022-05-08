@@ -5,7 +5,7 @@ from scheduler import get_scheduler
 
 class USBKeyboard(TextApp):
 
-    title = "USB Keyboard"
+    TITLE = "USB Keyboard"
 
     def __init__(self):
         super().__init__()

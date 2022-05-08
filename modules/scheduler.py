@@ -121,6 +121,9 @@ class Scheduler:
     def is_sleep_enabled(self):
         return self.sleep_enabled
 
+    def reset_inactivity(self):
+        pass # TODO!
+
     def check_for_interrupts(self):
         """Check for any pending interrupts and schedule uasyncio tasks for them."""
         found = False
