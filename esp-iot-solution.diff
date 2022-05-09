@@ -117,7 +117,7 @@ index 743653c..e77569a 100644
                             TUD_DFU_DESC_LEN(DFU_ALT_COUNT) * CFG_TUD_DFU
  };
 diff --git a/components/usb/tinyusb/additions/src/descriptors_control.c b/components/usb/tinyusb/additions/src/descriptors_control.c
-index c868fd4..949c931 100644
+index c868fd4..5640c7f 100644
 --- a/components/usb/tinyusb/additions/src/descriptors_control.c
 +++ b/components/usb/tinyusb/additions/src/descriptors_control.c
 @@ -15,6 +15,29 @@
@@ -179,7 +179,7 @@ index c868fd4..949c931 100644
 +#if CFG_TUD_HID_KBD
      // Interface number, string index, protocol, report descriptor len, EP In address, size & polling interval
 -    TUD_HID_DESCRIPTOR(ITF_NUM_HID, STRID_HID_INTERFACE, HID_PROTOCOL_NONE, sizeof(desc_hid_report), (0x80 | EPNUM_HID_DATA), 16, 10)
-+    TUD_HID_DESCRIPTOR(ITF_NUM_HID, STRID_HID_INTERFACE, HID_PROTOCOL_KEYBOARD, sizeof(desc_hid_report), (0x80 | EPNUM_HID_DATA), 8, 10),
++    TUD_HID_DESCRIPTOR(ITF_NUM_HID, STRID_HID_INTERFACE, HID_PROTOCOL_NONE, sizeof(desc_hid_report), (0x80 | EPNUM_HID_DATA), 8, 10),
 +#endif
 +#if CFG_TUD_U2FHID
 +    TUD_HID_DESCRIPTOR(ITF_NUM_HID_2, STRID_HID_INTERFACE_2, HID_PROTOCOL_NONE, sizeof(desc_hid_report_2), (0x80 | EPNUM_HID_DATA_2), 8, 10),
