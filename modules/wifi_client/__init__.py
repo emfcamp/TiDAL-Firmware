@@ -3,7 +3,6 @@ import network
 import settings
 import wifi
 from app import MenuApp
-from scheduler import get_scheduler
 
 class WifiClient(MenuApp):
     
@@ -53,7 +52,6 @@ class WifiClient(MenuApp):
 
     def on_start(self):
         super().on_start()
-        get_scheduler().set_sleep_enabled(False)
         self.wifi_networks = []
         if ssid := wifi.get_default_ssid():
             self.wifi_networks.append((ssid, wifi.get_default_password() is not None))
@@ -68,6 +66,10 @@ class WifiClient(MenuApp):
         if self.connection_timer:
             self.connection_timer.cancel()
             self.connection_timer = None
+
+        if not wifi.status():
+            # If we're not connected, stop preventing sleep
+            wifi.stop()
 
     def join_index(self, i):
         (ssid, password_required) = self.wifi_networks[i]

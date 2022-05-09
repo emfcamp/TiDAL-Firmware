@@ -1,6 +1,5 @@
 import tidal
 import tidal_helpers
-import scheduler
 from esp32 import Partition
 
 # sleep_sel just gets in the way of using lightsleep
@@ -17,10 +16,6 @@ if tidal.BUTTON_FRONT.value() == 0:
 else:
     from app_launcher import Launcher
     menu = Launcher()
-    # Prevent USB sleep for 15 seconds if we're
-    # going to launch the main menu.
-    scheduler = scheduler.get_scheduler()
-    scheduler.inhibit_sleep()
 
 
 # If we've made it to here, any OTA update has _probably_ gone ok...
