@@ -33,6 +33,9 @@ def accesspoint_get_ip():
     else:
         return None
 
+def active():
+    return _STA_IF.active()
+
 def save_defaults(ssid, password):
     settings.set("wifi_ssid", ssid)
     settings.set("wifi_password", password)
@@ -67,13 +70,14 @@ def disconnect():
     '''
     Disconnect from the WiFi network
     '''
-    _STA_IF.disconnect()
+    if _STA_IF.status() != network.STAT_IDLE:
+        _STA_IF.disconnect()
 
 def stop():
     '''
     Disconnect from the WiFi network and disable the station interface
     '''
-    _STA_IF.disconnect()
+    disconnect()
     _STA_IF.active(False)
 
 def status():

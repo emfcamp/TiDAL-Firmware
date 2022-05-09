@@ -104,10 +104,12 @@ class Buttons:
 
     async def check_buttons(self):
         # print("Checking buttons...")
+        button_changed_state = False
         for button in self._callbacks.values():
             new_state = button.pin.value()
             valid = True
             if new_state != button.state:
+                button_changed_state = True
                 # print(f"{button.pin} state changed to {new_state}")
                 button.state = new_state
                 if button.updown:
@@ -133,6 +135,9 @@ class Buttons:
             # Button no longer down
             self._cancel_autorepeat()
 
+        if button_changed_state:
+            get_scheduler().reset_inactivity()
+
     def _send_callback_for_button(self, pin_number, *args):
         # if pin_number is eg JOY_LEFT, and the current rotation is 180, this
         # function will actually call the callback set for JOY_RIGHT, if there
@@ -151,6 +156,7 @@ class Buttons:
 
     def _send_autorepeat(self):
         # print(f"Autorepeating {self._autorepeating_button.pin} whose state is {self._autorepeating_button.pin.value()}")
+        get_scheduler().reset_inactivity()
         self._send_callback_for_button(self._autorepeating_button.pin_number)
 
     def _cancel_autorepeat(self):
@@ -173,10 +179,9 @@ class Buttons:
             if button.updown and button.state == 0:
                 # Simulate a button up
                 button.state = 1
-                self._send_callback_for_button(button.pin_number, False)
+                self._send_callback_for_button(False)
 
         _current = None
-        self._isr_flag = False
 
     def activate(self):
         global _current
@@ -215,7 +220,7 @@ BTN_UP = tidal.JOY_UP
 BTN_SELECT = tidal.JOY_CENTRE
 BTN_START = tidal.BUTTON_FRONT
 
-def _get_current_buttons():
+def get_current_buttons():
     global _current
     if _current is None:
         _current = Buttons()
@@ -227,11 +232,11 @@ def value(button):
     return not button.value()
 
 def attach(button, callback):
-    b = _get_current_buttons()
+    b = get_current_buttons()
     b.on_up_down(callback)
 
 def detach(button, callback):
-    b = _get_current_buttons()
+    b = get_current_buttons()
     b.on_up_down(None)
 
 def getCallback(button):
@@ -241,4 +246,4 @@ def getCallback(button):
         return _current.get_callback(button)
 
 def rotate(value):
-    _get_current_buttons().set_rotation(value)
+    get_current_buttons().set_rotation(value)
