@@ -4,11 +4,15 @@
 #include "mphalport.h"
 #include "modmachine.h" // for machine_pin_type
 #include "esp_sleep.h"
+#include "esp_wifi.h"
+#include "device/usbd.h"
 #include "rom/uart.h"
 #include "soc/rtc_cntl_reg.h"
 #include "esp32s2/rom/usb/usb_dc.h"
 #include "esp32s2/rom/usb/chip_usb_dw_wrapper.h"
 #include "esp32s2/rom/usb/usb_persist.h"
+
+static const char *TAG = "tidal_helpers";
 
 // Have to redefine this from machine_pin.c, unfortunately
 typedef struct _machine_pin_obj_t {
@@ -54,6 +58,15 @@ STATIC mp_obj_t tidal_esp_sleep_enable_gpio_wakeup() {
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(tidal_esp_sleep_enable_gpio_wakeup_obj, tidal_esp_sleep_enable_gpio_wakeup);
+
+// usb_connected() -> bool : Returns True if any USB packets have been received since last usb reset
+STATIC mp_obj_t tidal_helper_usb_connected() {
+    if (tud_connected())
+        return mp_const_true;
+    else
+        return mp_const_false;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(tidal_helper_usb_connected_obj, tidal_helper_usb_connected);
 
 STATIC mp_obj_t tidal_esp_sleep_pd_config(mp_obj_t domain_obj, mp_obj_t option_obj) {
     esp_sleep_pd_domain_t domain = (esp_sleep_pd_domain_t)mp_obj_get_int(domain_obj);
@@ -235,6 +248,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_1(tidal_pin_number_obj, tidal_pin_number);
 STATIC const mp_rom_map_elem_t tidal_helpers_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_ota) },
     { MP_ROM_QSTR(MP_QSTR_get_variant), MP_ROM_PTR(&tidal_helper_get_variant_obj) },
+    { MP_ROM_QSTR(MP_QSTR_usb_connected), MP_ROM_PTR(&tidal_helper_usb_connected_obj) },
     { MP_ROM_QSTR(MP_QSTR_esp_sleep_enable_gpio_wakeup), MP_ROM_PTR(&tidal_esp_sleep_enable_gpio_wakeup_obj) },
     { MP_ROM_QSTR(MP_QSTR_esp_sleep_pd_config), MP_ROM_PTR(&tidal_esp_sleep_pd_config_obj) },
     { MP_ROM_QSTR(MP_QSTR_gpio_wakeup), MP_ROM_PTR(&tidal_gpio_wakeup_obj) },
