@@ -15,7 +15,7 @@ class App:
         self.windows = []
 
     def get_app_id(self):
-        if name := getattr(self, "app_id", None):
+        if name := getattr(self, "APP_ID", None):
             return name
         else:
             return self.__class__.__name__
@@ -150,24 +150,27 @@ class ButtonOnlyWindow:
 class TextApp(App):
     """An app using a single TextWindow by default"""
 
-    title = None
-    font = None
+    TITLE = None
+    FONT = None
 
     def __init__(self):
         super().__init__()
-        window = TextWindow(self.BG, self.FG, self.title, self.font, Buttons())
+        window = TextWindow(self.BG, self.FG, self.TITLE, self.FONT, Buttons())
         self.push_window(window, activate=False)
 
 
 class MenuApp(App):
     """An app using a single Menu window"""
 
-    title = None
-    font = None
+    TITLE = None
+    FONT = None
+    CHOICES = ()
 
     def __init__(self):
+        assert self.FOCUS_BG is not None, "MenuApp subclasses must define a default FOCUS_BG colour!"
+        assert self.FOCUS_FG is not None, "MenuApp subclasses must define a default FOCUS_FG colour!"
         super().__init__()
-        window = Menu(self.BG, self.FG, self.FOCUS_BG, self.FOCUS_FG, self.title, self.choices, self.font, Buttons())
+        window = Menu(self.BG, self.FG, self.FOCUS_BG, self.FOCUS_FG, self.TITLE, self.CHOICES, self.FONT, Buttons())
         self.push_window(window, activate=False)
 
     def supports_rotation(self):

@@ -7,8 +7,8 @@ SPLASHSCREEN_TIME = 300 # ms
 
 class Launcher(MenuApp):
 
-    app_id = "menu"
-    title = "EMF 2022 - TiDAL\nBoot Menu"
+    APP_ID = "menu"
+    TITLE = "EMF 2022 - TiDAL\nBoot Menu"
     BG = tidal.BLUE
     FG = tidal.WHITE
     FOCUS_FG = tidal.BLACK
@@ -38,6 +38,7 @@ class Launcher(MenuApp):
 
     def on_start(self):
         super().on_start()
+        self.window.set_choices(self.choices, redraw=False)
         self.buttons.on_press(tidal.BUTTON_B, self.rotate)
         initial_item = 0
         try:
@@ -55,7 +56,7 @@ class Launcher(MenuApp):
             self.after(SPLASHSCREEN_TIME, lambda: self.dismiss_splash())
         else:
             if not get_scheduler().is_sleep_enabled():
-                self.window.set_title(self.title + "\nSLEEP DISABLED", redraw=False)
+                self.window.set_title(self.TITLE + "\nSLEEP DISABLED", redraw=False)
             super().on_activate()
 
     def dismiss_splash(self):

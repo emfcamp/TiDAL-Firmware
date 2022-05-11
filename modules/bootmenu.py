@@ -1,4 +1,5 @@
 from tidal import *
+
 import textwindow
 import time
 
@@ -16,6 +17,12 @@ def run_otaupdate():
     import otaupdate
     app = otaupdate.OtaUpdate()
     app.run_sync()
+
+def run_download_mode():
+    import downloadmode
+    app = downloadmode.DownloadMode()
+    app.run_sync()
+
 
 def erase_storage():
     from esp32 import Partition
@@ -58,26 +65,29 @@ def erase_storage():
 
 
 # Note, this is a minimal app definition that does not rely on IRQs, timers or uasyncio working
+# For consistency, it is structured to look similar to a MenuApp even though it doesn't actually
+# derive from it.
 class BootMenu:
 
-    title = "Recovery Menu"
+    TITLE = "Recovery Menu"
     BG = RED
     FG = WHITE
     FOCUS_FG = RED
     FOCUS_BG = WHITE
 
     # Note, the text for each choice needs to be <= 16 characters in order to fit on screen
-    choices = (
+    CHOICES = (
         ("App Launcher", run_applauncher),
         ("Nosleep Launcher", run_applauncher_nosleep),
         ("Firmware Update", run_otaupdate),
         ("Erase storage",  erase_storage),
         ("Power off (UVLO)", system_power_off),
+        ("USB flashing", run_download_mode),
     )
 
     def main(self):
         print("Showing Recovery Menu")
-        window = textwindow.Menu(self.BG, self.FG, self.FOCUS_BG, self.FOCUS_FG, self.title, self.choices)
+        window = textwindow.Menu(self.BG, self.FG, self.FOCUS_BG, self.FOCUS_FG, self.TITLE, self.CHOICES)
         window.redraw()
         while True:
             if JOY_DOWN.value() == 0:
@@ -85,6 +95,6 @@ class BootMenu:
             elif JOY_UP.value() == 0:
                 window.set_focus_idx(window.focus_idx() - 1)
             elif JOY_CENTRE.value() == 0:
-                self.choices[window.focus_idx()][1]()
+                window.choices[window.focus_idx()][1]()
                 break
             time.sleep(0.2)

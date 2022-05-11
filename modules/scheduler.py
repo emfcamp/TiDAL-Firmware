@@ -36,6 +36,7 @@ class Scheduler:
     _current_app = None
     _root_app = None
     sleep_enabled = True
+    no_sleep_before = 0
 
     def __init__(self):
         self._timers = []
@@ -98,7 +99,7 @@ class Scheduler:
                 break
 
             t = self._get_next_sleep_time()
-            if self.sleep_enabled:
+            if self.is_sleep_enabled():
                 # print(f"Sleepy time {t}")
                 # Make sure any debug prints show up on the USB UART
                 tidal_helpers.uart_tx_flush(0)
@@ -118,8 +119,20 @@ class Scheduler:
         print(f"Light sleep enabled: {flag}")
         self.sleep_enabled = flag
 
+    def inhibit_sleep(self):
+        now = time.ticks_ms()
+        self.no_sleep_before = now + 15000
+
     def is_sleep_enabled(self):
-        return self.sleep_enabled
+        return (
+            self.sleep_enabled and
+            tidal_helpers.get_variant() != "devboard" and
+            not tidal_helpers.usb_connected() and
+            time.ticks_ms() >= self.no_sleep_before
+        )
+
+    def reset_inactivity(self):
+        pass # TODO!
 
     def check_for_interrupts(self):
         """Check for any pending interrupts and schedule uasyncio tasks for them."""
