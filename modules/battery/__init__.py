@@ -41,13 +41,20 @@ class Battery(TextApp):
 
     def update_screen(self, full=True):
         win = self.window
+        # win.cls()
         reading = self.read_battery_state()
-        win.println("     Raw:{}  ".format(reading[2]), 1)
-        win.println(" Voltage:{}  ".format(reading[0]), 2)
-        win.println("       %:{}  ".format(reading[1]), 3)
-        win.println("Charging:{}  ".format("Yes" if tidal.CHARGE_DET.value() == 0 else "No"), 4)
-
-        self.window.progress_bar(7, int(reading[1]))
+        if reading[2] < 0.8:
+            win.println(" ", 1);
+            win.println("  Unavailable  ", 2);
+            win.println(" ", 3);
+            win.println(" ", 4);
+            win.println(" ", 7);
+        else:
+            win.println("     Raw:{}  ".format(reading[2]), 1)
+            win.println(" Voltage:{}  ".format(reading[0]), 2)
+            win.println("       %:{}  ".format(reading[1]), 3)
+            win.println("Charging:{}  ".format("Yes" if tidal.CHARGE_DET.value() == 0 else "No"), 4)
+            self.window.progress_bar(7, int(reading[1]))
 
 
     def read_battery_state(self):
