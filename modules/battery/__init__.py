@@ -45,7 +45,7 @@ class Battery(TextApp):
         win.println("     Raw:{}  ".format(reading[2]), 1)
         win.println(" Voltage:{}  ".format(reading[0]), 2)
         win.println("       %:{}  ".format(reading[1]), 3)
-        win.println("Charging:{}  ".format("Yes" if tidal.CHARGE_DET.value() == 1 else "No"), 4)
+        win.println("Charging:{}  ".format("Yes" if tidal.CHARGE_DET.value() == 0 else "No"), 4)
 
         self.window.progress_bar(7, int(reading[1]))
 
@@ -82,8 +82,6 @@ class Battery(TextApp):
         # Make sure the pullup is disabled.
         # We should probably disable interrupts from the pin too here.
         self.pin.init(self.pin.IN, None)
-        window = self.window
-        window.cls()
         self.update_screen()
         if self.timer is None:
             self.timer = self.periodic(500, self.update_screen)
