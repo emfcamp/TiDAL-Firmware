@@ -63,6 +63,7 @@ class WifiClient(MenuApp):
         super().on_activate()
 
     def on_deactivate(self):
+        super().on_deactivate()
         if self.connection_timer:
             self.connection_timer.cancel()
             self.connection_timer = None

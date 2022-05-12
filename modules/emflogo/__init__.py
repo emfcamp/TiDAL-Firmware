@@ -20,5 +20,6 @@ class EMFLogo(App):
         display.vscsad(40 + self.i)
 
     def on_deactivate(self):
+        super().on_deactivate()
         display.vscsad(40) # Scroll screen back up to top
         self.timer_task.cancel()
