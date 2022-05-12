@@ -1,9 +1,13 @@
+import settings
 import tidal
 import tidal_helpers
 import time
 import uasyncio
+import wifi
 
 _scheduler = None
+
+_FAR_FUTURE = const(2**63)
 
 def get_scheduler():
     """Return the global scheduler object."""
@@ -36,10 +40,11 @@ class Scheduler:
     _current_app = None
     _root_app = None
     sleep_enabled = True
-    no_sleep_before = 0
 
     def __init__(self):
         self._timers = []
+        self.no_sleep_before = time.ticks_ms() + (settings.get("boot_nosleep_time", 15) * 1000)
+        self._wake_lcd_buttons = None
 
     def switch_app(self, app):
         """Asynchronously switch to the specified app."""
@@ -71,25 +76,20 @@ class Scheduler:
             app.on_start()
         app.on_activate()
 
-    def _get_next_sleep_time(self):
-        if next_timer_task := self.peek_timer():
-            next_time = next_timer_task.target_time
-            return max(1, next_time - time.ticks_ms())
-        else:
-            return 0
-
     def main(self, initial_app):
         """Main entry point to the scheduler. Does not return."""
         self._root_app = initial_app
         self.switch_app(initial_app)
         tidal_helpers.esp_sleep_enable_gpio_wakeup()
         self._level = 0
+        self.reset_inactivity()
         self.enter()
 
     def enter(self): 
         first_time = True
         self._level += 1
         enter_level = self._level
+        deactivated_app = None
         while True:
             while self.check_for_interrupts() or first_time:
                 first_time = False
@@ -98,19 +98,63 @@ class Scheduler:
             if self._level < enter_level:
                 break
 
-            t = self._get_next_sleep_time()
-            if self.is_sleep_enabled():
+            # Work out when we need to sleep until
+            now = time.ticks_ms()
+            lcd_sleep_time = self._last_activity_time + self.get_inactivity_time()
+            should_sleep_lcd = lcd_sleep_time <= now
+            can_sleep = self.can_sleep()
+            if can_sleep and should_sleep_lcd:
+                # Then we have to notify the app that we're going to switch off
+                # the LCD, which might alter the next timer wakeup if the app
+                # has timers it cancels in its on_deactivate(), hence why we do
+                # this before calling peek_timer()
+                deactivated_app = self._current_app
+                if deactivated_app:
+                    deactivated_app.on_deactivate()
+
+            if next_timer_task := self.peek_timer():
+                next_time = next_timer_task.target_time
+            else:
+                next_time = _FAR_FUTURE
+
+            # Force a wake when the screen is due to switch off
+            if now < lcd_sleep_time:
+                next_time = min(next_time, lcd_sleep_time)
+
+            if next_time <= now:
+                # Oops we missed a timer, continue to go back to check_for_interrupts() at top of loop
+                continue
+            elif next_time == _FAR_FUTURE:
+                t = 0
+            else:
+                t = next_time - now
+
+            if can_sleep:
                 # print(f"Sleepy time {t}")
                 # Make sure any debug prints show up on the USB UART
                 tidal_helpers.uart_tx_flush(0)
+                if should_sleep_lcd:
+                    tidal.lcd_power_off()
+                    # Switch buttons so that (a) a press while the screen is off
+                    # doesn't get passed to the app, and (b) so that any button
+                    # wakes the screen, even ones the app hasn't registered an
+                    # interrupt for.
+                    self.wake_lcd_buttons.activate()
+
                 wakeup_cause = tidal_helpers.lightsleep(t)
                 # print(f"Returned from lightsleep reason={wakeup_cause}")
+
+                if deactivated_app:
+                    # This will also reactivate its buttons
+                    deactivated_app.on_activate()
+                    deactivated_app = None
+
             else:
                 if t == 0:
                     # Add a bit of a sleep (which uses less power than straight-up looping)
-                    time.sleep(0.1)
-                else:
-                    time.sleep(t / 1000)
+                    t = 100
+                # Don't sleep for more than 0.1s otherwise buttons will be unresponsive
+                time.sleep(min(0.1, t / 1000))
 
     def exit(self):
         self._level = self._level - 1
@@ -119,24 +163,45 @@ class Scheduler:
         print(f"Light sleep enabled: {flag}")
         self.sleep_enabled = flag
 
-    def inhibit_sleep(self):
-        now = time.ticks_ms()
-        self.no_sleep_before = now + 15000
-
     def is_sleep_enabled(self):
+        return self.sleep_enabled
+
+    def can_sleep(self):
         return (
             self.sleep_enabled and
             tidal_helpers.get_variant() != "devboard" and
             not tidal_helpers.usb_connected() and
+            not wifi.active() and
             time.ticks_ms() >= self.no_sleep_before
         )
 
     def reset_inactivity(self):
-        pass # TODO!
+        # print("Reset inactivity")
+        self._last_activity_time = time.ticks_ms()
+        tidal.lcd_power_on()
+
+    @property
+    def wake_lcd_buttons(self):
+        if self._wake_lcd_buttons is None:
+            import buttons
+            self._wake_lcd_buttons = buttons.Buttons()
+            for button in tidal.ALL_BUTTONS:
+                # We don't need these button presses to do anything, they just have to exist
+                self._wake_lcd_buttons.on_press(button, lambda: 0)
+        return self._wake_lcd_buttons
+
+    def usb_plug_event(self, charging):
+        print(f"CHARGE_DET charging={charging}")
+        if charging:
+            # Prevent sleep again to give USB chance to enumerate
+            self.no_sleep_before = time.ticks_ms() + (settings.get("usb_nosleep_time", 15) * 1000)
+
+    def get_inactivity_time(self):
+        return settings.get("inactivity_time", 30) * 1000
 
     def check_for_interrupts(self):
         """Check for any pending interrupts and schedule uasyncio tasks for them."""
-        found = False
+        found = self.wake_lcd_buttons.check_for_interrupts()
         if self._current_app and self._current_app.check_for_interrupts():
             found = True
         t = time.ticks_ms()

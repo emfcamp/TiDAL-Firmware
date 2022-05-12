@@ -1,7 +1,6 @@
 from tidal import *
 from app import TextApp
 import joystick
-from scheduler import get_scheduler
 
 class USBKeyboard(TextApp):
 
@@ -29,7 +28,6 @@ class USBKeyboard(TextApp):
         window.println("cursor keys, A")
         window.println("and B are")
         window.println("themselves.")
-        get_scheduler().set_sleep_enabled(False)
 
     def send_key(self, k, down):
         if down:

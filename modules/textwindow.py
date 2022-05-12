@@ -21,6 +21,7 @@ class TextWindow:
         self.current_line = 0
         self.pos_y = 0
         self.display = tidal.display
+        self.line_offset = None
         self.set_title(title, redraw=False)
         self.buttons = buttons
 
@@ -106,12 +107,17 @@ class TextWindow:
 
     def set_title(self, title, redraw=True):
         self.title = title
+        prev_line_offset = self.line_offset
         if title is None:
             self.line_offset = 0
         else:
             self.line_offset = len(title.split("\n")) * self.line_height() + 5
         if redraw:
-            self.draw_title()
+            if prev_line_offset is None or self.line_offset == prev_line_offset:
+                self.draw_title()
+            else:
+                # A full redraw is needed if the height of the title has changed
+                self.redraw()
 
     def set_next_line(self, next_line):
         self.current_line = next_line
