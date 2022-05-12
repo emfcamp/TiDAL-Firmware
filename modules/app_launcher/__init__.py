@@ -92,6 +92,5 @@ class Launcher(MenuApp):
         self.set_rotation((self.get_rotation() + 90) % 360)
 
     def charge_state_changed(self, charging):
-        # We'll only hit this if Scheduler.should_sleep() is false
-        # print(f"Launcher CHARGE_DET charging={charging}")
         self.update_title(redraw=True)
+        get_scheduler().usb_plug_event(charging)
