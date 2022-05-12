@@ -3,6 +3,7 @@ import tidal_helpers
 from app import MenuApp
 from scheduler import get_scheduler
 import emf_png
+import term
 
 SPLASHSCREEN_TIME = 300 # ms
 
@@ -33,6 +34,15 @@ class Launcher(MenuApp):
     # Boot entry point
     def main(self):
         get_scheduler().main(self)
+
+    def as_terminal_app(self):
+        while True:
+            term.clear()
+            choice = term.menu(
+                self.window.title.replace("\n", " "),
+                [text for (text, cb) in self.choices]
+            )
+            self.choices[choice][1]()
 
     def __init__(self):
         super().__init__()
