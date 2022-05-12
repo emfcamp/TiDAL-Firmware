@@ -51,6 +51,8 @@ class Buttons:
         self._autorepeating_button = None
         self._isr_flag = False
         self._rotation = tidal.get_display_rotation()
+        # This doesn't seem like the best place to put this, but I can't think of a better offhand
+        self.on_up_down(tidal.CHARGE_DET, get_scheduler().usb_plug_event)
 
     def is_active(self):
         return _current == self

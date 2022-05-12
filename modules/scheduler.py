@@ -44,15 +44,7 @@ class Scheduler:
     def __init__(self):
         self._timers = []
         self.no_sleep_before = time.ticks_ms() + (settings.get("boot_nosleep_time", 15) * 1000)
-        # Could do this more directly, but this is easy
-        import buttons
-        self._wake_lcd_buttons = buttons.Buttons()
-        for button in tidal.ALL_BUTTONS:
-            # We don't need these button presses to do anything, they just have to exist
-            self._wake_lcd_buttons.on_press(button, lambda: 0)
-        # CHARGE_DET isn't a button, but Buttons.on_up_down works for any GPIO
-        # in a way compatible with lightsleep, so it's convenient
-        self._wake_lcd_buttons.on_up_down(tidal.CHARGE_DET, self._usb_plug_event)
+        self._wake_lcd_buttons = None
 
     def switch_app(self, app):
         """Asynchronously switch to the specified app."""
@@ -94,7 +86,6 @@ class Scheduler:
         self.enter()
 
     def enter(self): 
-        import buttons
         first_time = True
         self._level += 1
         enter_level = self._level
@@ -148,7 +139,7 @@ class Scheduler:
                     # doesn't get passed to the app, and (b) so that any button
                     # wakes the screen, even ones the app hasn't registered an
                     # interrupt for.
-                    self._wake_lcd_buttons.activate()
+                    self.wake_lcd_buttons.activate()
 
                 wakeup_cause = tidal_helpers.lightsleep(t)
                 # print(f"Returned from lightsleep reason={wakeup_cause}")
@@ -189,18 +180,28 @@ class Scheduler:
         self._last_activity_time = time.ticks_ms()
         tidal.lcd_power_on()
 
-    def _usb_plug_event(self, charging):
-        # We don't actually have to do anything here, the side effect of Buttons
-        # calling reset_inactivity is all we needed
-        # print(f"CHARGE_DET charging={charging}")
-        pass
+    @property
+    def wake_lcd_buttons(self):
+        if self._wake_lcd_buttons is None:
+            import buttons
+            self._wake_lcd_buttons = buttons.Buttons()
+            for button in tidal.ALL_BUTTONS:
+                # We don't need these button presses to do anything, they just have to exist
+                self._wake_lcd_buttons.on_press(button, lambda: 0)
+        return self._wake_lcd_buttons
+
+    def usb_plug_event(self, charging):
+        print(f"CHARGE_DET charging={charging}")
+        if charging:
+            # Prevent sleep again to give USB chance to enumerate
+            self.no_sleep_before = time.ticks_ms() + (settings.get("usb_nosleep_time", 15) * 1000)
 
     def get_inactivity_time(self):
         return settings.get("inactivity_time", 30) * 1000
 
     def check_for_interrupts(self):
         """Check for any pending interrupts and schedule uasyncio tasks for them."""
-        found = self._wake_lcd_buttons.check_for_interrupts()
+        found = self.wake_lcd_buttons.check_for_interrupts()
         if self._current_app and self._current_app.check_for_interrupts():
             found = True
         t = time.ticks_ms()
