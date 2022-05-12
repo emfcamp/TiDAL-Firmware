@@ -13,6 +13,7 @@ class App:
     def __init__(self):
         self.started = False
         self.windows = []
+        self._is_active = False
 
     def get_app_id(self):
         if name := getattr(self, "APP_ID", None):
@@ -34,6 +35,7 @@ class App:
 
     def on_activate(self):
         """This is called whenever the app is switched to the foreground"""
+        self._is_active = True
         self.set_rotation(tidal.get_display_rotation(), redraw=False) # Resync this if necessary
         if window := self.window:
             self._activate_window(window)
@@ -43,7 +45,11 @@ class App:
             self.push_window(window, activate=True)
 
     def on_deactivate(self):
-        return NotImplemented
+        self._is_active = False
+
+    def is_active(self):
+        """Returns True if the app is currently in the foreground """
+        return self._is_active
 
     def check_for_interrupts(self):
         if self.buttons:
