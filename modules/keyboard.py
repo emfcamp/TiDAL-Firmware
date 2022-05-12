@@ -58,13 +58,14 @@ class Keyboard(TextWindow):
         return self.line_offset + ((self.num_text_lines + 1) * (self.font.HEIGHT + 1)) + len(self.KEYS) * self.key_height + 1
 
     def draw_key(self, x, y, focussed):
+        w = self.width()
         key_width = self.key_width
+        xoff = (w - (12 * key_width)) // 2
         k = self.keys[y][x]
         if k == " ":
             key_width = 6 * key_width
         key_height = self.key_height
-        w = self.width()
-        xpos = self.ROW_OFFSETS[y] + x * key_width
+        xpos = xoff + self.ROW_OFFSETS[y] + x * key_width
         ypos = self.get_line_pos(self.num_text_lines + 1) + y * key_height
         if focussed:
             fg = self.bg
@@ -94,12 +95,12 @@ class Keyboard(TextWindow):
             key_height -= 1
         if x == 0:
             # First key, fill preceding gap
-            if self.ROW_OFFSETS[y] > 0:
-                self.display.fill_rect(0, ypos, self.ROW_OFFSETS[y], key_height + 1, self.bg)
+            if xoff + self.ROW_OFFSETS[y] > 0:
+                self.display.fill_rect(0, ypos, xoff + self.ROW_OFFSETS[y], key_height + 1, self.bg)
         if x + 1 == len(self.keys[y]):
             # Last key, fill end gap
             xpos += key_width + 1
-            self.display.fill_rect(xpos, ypos, self.width() - xpos, key_height + 1, self.bg)
+            self.display.fill_rect(xpos, ypos, w - xpos, key_height + 1, self.bg)
 
     def redraw(self):
         self.draw_title()

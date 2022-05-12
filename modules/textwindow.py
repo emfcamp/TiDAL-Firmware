@@ -31,11 +31,11 @@ class TextWindow:
     def height(self):
         return self.display.height()
 
-    def width_chars(self):
-        return self.display.width() // self.font.WIDTH
+    def width_chars(self, font=None):
+        return self.display.width() // (font or self.font).WIDTH
 
-    def height_chars(self):
-        return self.display.height() // self.font.HEIGHT
+    def height_chars(self, font=None):
+        return self.display.height() // (font or self.font).HEIGHT
 
     def line_height(self):
         if self.font.HEIGHT <= 8:
@@ -87,12 +87,14 @@ class TextWindow:
         self.display.fill_rect(0, ypos, w, self.line_height(), bg)
         self.draw_text(text, xpos, ypos, fg, bg)
 
-    def draw_text(self, text, xpos, ypos, fg, bg):
+    def draw_text(self, text, xpos, ypos, fg, bg, font=None):
         # Replace the non-ASCII £ with the correct encoding for vga font. Oh for
         # some proper codecs support, or even str.translate...
         text = text.encode().replace(b'\xC2\xA3', b'\x9C')
+        if font is None:
+            font = self.font
 
-        self.display.text(self.font, text, xpos, ypos, fg, bg)
+        self.display.text(font, text, xpos, ypos, fg, bg)
 
     def draw_title(self):
         if self.title:
@@ -141,11 +143,11 @@ class TextWindow:
         # In case progress goes down, clear the right-hand side of the line
         self.display.fill_rect(x + percentage, y, self.width() - (x + percentage), self.font.HEIGHT, self.bg)
 
-    def flow_lines(self, text):
+    def flow_lines(self, text, font=None):
         # Don't word wrap, just chop off
         lines = text.split("\n")
         result = []
-        max_len = self.width_chars()
+        max_len = self.width_chars(font)
         for line in lines:
             line_len = len(line)
             i = 0

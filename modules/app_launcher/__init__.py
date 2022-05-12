@@ -20,6 +20,7 @@ class Launcher(MenuApp):
         # Note, the text for each choice needs to be <= 16 characters in order to fit on screen
         return (
             ("USB Keyboard", lambda: self.launch("hid", "USBKeyboard")),
+            ("Name Badge", lambda: self.launch("hello", "Hello")),
             # ("Web REPL", lambda: self.launch("web_repl", "WebRepl")),
             ("Torch", lambda: self.launch("torch", "Torch")),
             ("Logo", lambda: self.launch("emflogo", "EMFLogo")),
