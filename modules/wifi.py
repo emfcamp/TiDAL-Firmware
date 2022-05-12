@@ -1,5 +1,6 @@
 import network, time, machine
 import settings
+import tidal_helpers
 
 _STA_IF = network.WLAN(network.STA_IF)
 _AP_IF  = network.WLAN(network.AP_IF)
@@ -51,6 +52,8 @@ def connect(*args):
     :param password: optional, password of network to connect to
     '''
     _STA_IF.active(True)
+    # HACK: set tx power to minimum
+    tidal_helpers.esp_wifi_set_max_tx_power(8)
     if len(args) == 0:
         if password := get_default_password():
             _STA_IF.connect(get_default_ssid(), password)
