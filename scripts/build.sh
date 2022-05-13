@@ -5,6 +5,11 @@ source /esp-idf/export.sh
 export IOT_SOLUTION_PATH=/firmware/esp-iot-solution
 
 cd /firmware
+cd modules
+ln -sfn /firmware/micropython-micro-gui/drivers/boolpalette.py ./drivers/boolpalette.py
+ln -sfn /firmware/micropython-micro-gui/gui ./gui
+
+cd /firmware
 cd micropython
 make -C mpy-cross
 
