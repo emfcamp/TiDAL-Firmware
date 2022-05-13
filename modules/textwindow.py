@@ -88,13 +88,8 @@ class TextWindow:
         self.draw_text(text, xpos, ypos, fg, bg)
 
     def draw_text(self, text, xpos, ypos, fg, bg, font=None):
-        # Replace the non-ASCII £ with the correct encoding for vga font. Oh for
-        # some proper codecs support, or even str.translate...
-        text = text.encode().replace(b'\xC2\xA3', b'\x9C')
-        if font is None:
-            font = self.font
-
-        self.display.text(font, text, xpos, ypos, fg, bg)
+        btext = to_cp437(text)
+        self.display.text(font or self.font, btext, xpos, ypos, fg, bg)
 
     def draw_title(self):
         if self.title:
@@ -160,6 +155,7 @@ class TextWindow:
             # Have to return at least one line
             result.append("")
         return result
+
 
 class Menu(TextWindow):
 
@@ -235,3 +231,90 @@ class Menu(TextWindow):
     def set(self, title, choices, redraw=True):
         self.set_title(title, redraw)
         self.set_choices(choices, redraw)
+
+
+_cp437 = {
+    "Ç": b'\x80',
+    "ü": b'\x81',
+    "é": b'\x82',
+    "â": b'\x83',
+    "ä": b'\x84',
+    "à": b'\x85',
+    "å": b'\x86',
+    "ç": b'\x87',
+    "ê": b'\x88',
+    "ë": b'\x89',
+    "è": b'\x8A',
+    "ï": b'\x8B',
+    "î": b'\x8C',
+    "ì": b'\x8D',
+    "Ä": b'\x8E',
+    "Å": b'\x8F',
+    "É": b'\x90',
+    "æ": b'\x91',
+    "Æ": b'\x92',
+    "ô": b'\x93',
+    "ö": b'\x94',
+    "ò": b'\x95',
+    "û": b'\x96',
+    "ù": b'\x97',
+    "ÿ": b'\x98',
+    "Ö": b'\x99',
+    "Ü": b'\x9A',
+    "¢": b'\x9B',
+    "£": b'\x9C',
+    "¥": b'\x9D',
+    "₧": b'\x9E',
+    "ƒ": b'\x9F',
+    "á": b'\xA0',
+    "í": b'\xA1',
+    "ó": b'\xA2',
+    "ú": b'\xA3',
+    "ñ": b'\xA4',
+    "Ñ": b'\xA5',
+    "ª": b'\xA6',
+    "º": b'\xA7',
+    "¿": b'\xA8',
+    "⌐": b'\xA9',
+    "¬": b'\xAA',
+    "½": b'\xAB',
+    "¼": b'\xAC',
+    "¡": b'\xAD',
+    "«": b'\xAE',
+    "»": b'\xAF',
+    "ß": b'\xE1', # This is actually beta, but looks sufficently like sharp s
+    "€": b'\xEE', # This is actually epsilon, but looks sufficiently like euro
+    "≡": b'\xF0',
+    "±": b'\xF1',
+    "≥": b'\xF2',
+    "≤": b'\xF3',
+    "⌠": b'\xF4',
+    "⌡": b'\xF5',
+    "÷": b'\xF6',
+    "≈": b'\xF7',
+    "°": b'\xF8',
+    "∙": b'\xF9',
+    "·": b'\xFA',
+    "√": b'\xFB',
+    "ⁿ": b'\xFC',
+    "²": b'\xFD',
+    "■": b'\xFE',
+}
+
+def to_cp437(text):
+    if len(text) == 0:
+        # micropy is doing something dodgy with bytes(bytearray()) such that
+        # it's not null terminated whereas everything else accessible with
+        # mp_obj_str_get_str(), including bytes(), is. So shortcirtuit to avoid
+        # that.
+        return bytes()
+
+    result = bytearray()
+    for ch in text:
+        if b := _cp437.get(ch):
+            result += b
+        else:
+            result += ch.encode()
+    # Of course returning a bytearray here messes up as it's not implictly
+    # castable to a char* in mp_obj_str_get_str, but bytes is...
+    return bytes(result)
