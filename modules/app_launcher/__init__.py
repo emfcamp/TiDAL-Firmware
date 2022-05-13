@@ -90,5 +90,6 @@ class Launcher(MenuApp):
         get_scheduler().switch_app(app)
 
     def charge_state_changed(self, charging):
-        self.update_title(redraw=True)
+        if not self.show_splash:
+            self.update_title(redraw=True)
         get_scheduler().usb_plug_event(charging)
