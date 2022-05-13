@@ -181,7 +181,7 @@ class Buttons:
             if button.updown and button.state == 0:
                 # Simulate a button up
                 button.state = 1
-                self._send_callback_for_button(False)
+                self._send_callback_for_button(button.pin_number, False)
 
         _current = None
 
