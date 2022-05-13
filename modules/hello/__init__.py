@@ -19,11 +19,7 @@ class Hello(App):
 
     def on_start(self):
         super().on_start()
-        self.buttons.on_press(BUTTON_B, self.rotate)
         self.buttons.on_press(JOY_CENTRE, self.edit_name)
-
-    def rotate(self):
-        self.set_rotation((self.get_rotation() + 90) % 360)
 
     def edit_name(self):
         new_name = self.keyboard_prompt("Set name:", self.window.name, multiline_allowed=True)

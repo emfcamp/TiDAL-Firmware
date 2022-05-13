@@ -28,6 +28,9 @@ class App:
         """This is called once when the app is first launched"""
         if self.buttons:
             self.buttons.on_press(tidal.BUTTON_FRONT, self.navigate_back)
+            if self.supports_rotation():
+                self.buttons.on_press(tidal.BUTTON_B, self.rotate)
+
 
     # Note: we don't actually stop apps yet...
     # def on_stop(self):
@@ -57,7 +60,7 @@ class App:
         return False
 
     def supports_rotation(self):
-        """Override this to allow the app to open in landscape"""
+        """Override this to allow the app to open in landscape and to default BUTTON_B to rotate"""
         return False
 
     def navigate_back(self):
@@ -142,6 +145,9 @@ class App:
         if redraw and self.window:
             self.window.redraw()
 
+    def rotate(self):
+        self.set_rotation((self.get_rotation() + 90) % 360)
+
 class ButtonOnlyWindow:
     """This class only exists to wrap a Buttons instance for any App which doesn't actually use a Window for drawing
        (and presumably draws directly to the display in its on_activate)
@@ -195,7 +201,6 @@ class MenuApp(App):
                 win.choices[win.focus_idx()][1]()
         self.buttons.on_press(tidal.JOY_CENTRE, select, autorepeat=False)
         self.buttons.on_press(tidal.BUTTON_A, select, autorepeat=False)
-        self.buttons.on_press(tidal.BUTTON_B, select, autorepeat=False)
 
 
 class PagedApp(App):
