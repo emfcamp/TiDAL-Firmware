@@ -19,6 +19,7 @@ else:
     menu = Launcher()
 
 import _thread
+import tidal
 _thread.stack_size(16 * 1024)
 menu_thread = _thread.start_new_thread(menu.main, ())
 
@@ -26,6 +27,6 @@ menu_thread = _thread.start_new_thread(menu.main, ())
 Partition.mark_app_valid_cancel_rollback()
 
 from term_menu import UartMenu
-term_menu = UartMenu(None, None)
+term_menu = UartMenu(gts=tidal.system_power_off, pm=None)
 term_menu.main()
 
