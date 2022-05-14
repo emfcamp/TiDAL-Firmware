@@ -52,3 +52,6 @@ freeze("$(MPY_DIR)/../st7789/fonts/bitmap", "vga2_bold_16x32.py")
 include("$(MPY_DIR)/extmod/uasyncio/manifest.py")
 include("$(MPY_DIR)/extmod/webrepl/manifest.py")
 include("$(MPY_DIR)/drivers/neopixel/manifest.py")
+
+freeze("$(MPY_DIR)/../micropython-micro-gui/drivers", "boolpalette.py")
+freeze("$(MPY_DIR)/../micropython-micro-gui", ("gui/core", "gui/primitives", "gui/fonts", "gui/widgets"))

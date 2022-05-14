@@ -1,1 +1,0 @@
-/firmware/micropython-micro-gui/drivers/boolpalette.py

@@ -1,18 +1,12 @@
 # st7789_passthrough.py Driver for ST7789 LCD displays using the ST7789 C driver for nano-gui
 
-from time import sleep_ms #, ticks_us, ticks_diff
 import framebuf
 import gc
 import micropython
 import uasyncio as asyncio
-from drivers.boolpalette import BoolPalette
+import st7789
+from boolpalette import BoolPalette
 from tidal import display as tidal_display
-
-# User orientation constants
-LANDSCAPE = 0  # Default
-REFLECT = 1
-USD = 2
-PORTRAIT = 4
 
 @micropython.viper
 def _lcopy(dest:ptr16, source:ptr8, lut:ptr16, length:int):
@@ -32,23 +26,15 @@ class ST7789Passthrough(framebuf.FrameBuffer):
     # Convert r, g, b in range 0-255 to a 16 bit colour value rgb565.
     # LS byte goes into LUT offset 0, MS byte into offset 1
     # Same mapping in linebuf so LS byte is shifted out 1st
-    # For some reason color must be inverted on this controller.
-    @staticmethod
+    # @staticmethod
     def rgb(r, g, b):
-        return ((b & 0xf8) << 5 | (g & 0x1c) << 11 | (g & 0xe0) >> 5 | (r & 0xf8)) ^ 0xffff
+        return ((b & 0xf8) << 5 | (g & 0x1c) << 11 | (g & 0xe0) >> 5 | (r & 0xf8))
 
-    # rst and cs are active low, SPI is mode 0
-    def __init__(self, spi, cs, dc, rst, height=240, width=240,
-                 disp_mode=LANDSCAPE, init_spi=False):
-        if not 0 <= disp_mode <= 7:
-            raise ValueError('Invalid display mode:', disp_mode)
-        # self._spi = spi  # Clock cycle time for write 16ns 62.5MHz max (read is 150ns)
-        # self._rst = rst  # Pins
-        # self._dc = dc
-        # self._cs = cs
+    def __init__(self):
+        height = 240
+        width = 135
         self.height = height  # Required by Writer class
         self.width = width
-        # self._spi_init = init_spi  # Possible user callback
         self._lock = asyncio.Lock()
         mode = framebuf.GS4_HMSB  # Use 4bit greyscale.
         self.palette = BoolPalette(mode)
@@ -57,7 +43,9 @@ class ST7789Passthrough(framebuf.FrameBuffer):
         self._mvb = memoryview(buf)
         super().__init__(buf, width, height, mode)
         self._linebuf = bytearray(self.width * 2)  # 16 bit color out
-        # self._init(disp_mode, orientation)
+        # It is useful (but not essential) to call show() here. Without it, the
+        # user gets no indication that a ugui app is loading for the first time,
+        # which takes a considerable length of time.
         self.show()
 
     #@micropython.native # Made virtually no difference to timing.

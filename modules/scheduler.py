@@ -98,6 +98,9 @@ class Scheduler:
             if self._level < enter_level:
                 break
 
+            if cur := self._current_app:
+                cur.on_tick()
+
             # Work out when we need to sleep until
             now = time.ticks_ms()
             lcd_sleep_time = self._last_activity_time + self.get_inactivity_time()

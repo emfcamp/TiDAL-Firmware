@@ -8,25 +8,39 @@
 
 from machine import Pin
 import gc
-from drivers.st7789.st7789_passthrough import *
+import tidal
+from st7789_passthrough import *
 SSD = ST7789Passthrough
-
-mode = PORTRAIT  # Options PORTRAIT, USD, REFLECT combined with |
 
 gc.collect()  # Precaution before instantiating framebuf
 
-portrait = mode & PORTRAIT
-ht, wd = (240, 135) if portrait else (135, 240)
-ssd = SSD(None, height=ht, width=wd, dc=None, cs=None, rst=None, disp_mode=mode)
+ssd = SSD()
 
 # Create and export a Display instance
 from gui.core.ugui import Display
-# Define control buttons: adjust joystick orientation to match display
-# Orientation is only correct for basic LANDSCAPE and PORTRAIT modes
-pnxt, pprev, pin, pdec = (7, 8, 15, 16) if portrait else (15, 16, 7, 8)
-nxt = Pin(pnxt, Pin.IN, Pin.PULL_UP)  # Move to next control
-sel = Pin(9, Pin.IN, Pin.PULL_UP)  # Operate current control
-prev = Pin(pprev, Pin.IN, Pin.PULL_UP)  # Move to previous control
-increase = Pin(pin, Pin.IN, Pin.PULL_UP)  # Increase control's value
-decrease = Pin(pdec, Pin.IN, Pin.PULL_UP)  # Decrease control's value
-display = Display(ssd, nxt, sel, prev, increase, decrease)
+
+class DummyInput:
+    def precision(self, val):
+        pass
+
+    def adj_mode(self, v=None):
+        pass
+
+    def is_adjust(self):
+        return False
+
+    def is_precision(self):
+        return False
+
+    def encoder(self):
+        return True # Nonsense but makes the code not try to be smart about handling button autorepeat itself
+
+class NoInputDisplay(Display):
+    def __init__(self, objssd):
+        # Note, does NOT call super
+        self.ipdev = DummyInput()
+        self.height = objssd.height
+        self.width = objssd.width
+        self._is_grey = False
+
+display = NoInputDisplay(ssd)

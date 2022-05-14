@@ -50,6 +50,10 @@ class App:
     def on_deactivate(self):
         self._is_active = False
 
+    def on_tick(self):
+        # Only for things that need scheduler hooks, like UguiApp
+        pass
+
     def is_active(self):
         """Returns True if the app is currently in the foreground """
         return self._is_active
