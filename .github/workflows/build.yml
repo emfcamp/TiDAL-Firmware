@@ -50,6 +50,7 @@ jobs:
           cd micropython/ports/esp32
           make submodules BOARD=tildamk6 USER_C_MODULES=$GITHUB_WORKSPACE/drivers/micropython.cmake IOT_SOLUTION_PATH=$GITHUB_WORKSPACE/esp-iot-solution TARGET=esp32s3
           make BOARD=tildamk6 USER_C_MODULES=$GITHUB_WORKSPACE/drivers/micropython.cmake $@ IOT_SOLUTION_PATH=$GITHUB_WORKSPACE/esp-iot-solution TARGET=esp32s3
+          echo "{\"build\":\"$(git describe --tags --always)\", \"name\":\"$(git describe --tags --always)\"}" > build-tildamk6/tidal.txt
       - name: Archive firmware
         uses: actions/upload-artifact@v3
         with:
@@ -59,6 +60,7 @@ jobs:
             micropython/ports/esp32/build-tildamk6/bootloader/bootloader.bin
             micropython/ports/esp32/build-tildamk6/partition_table/partition-table.bin
             micropython/ports/esp32/build-tildamk6/ota_data_initial.bin
+            micropython/ports/esp32/build-tildamk6/tidal.txt
       - name: Create latest release for tags
         uses: "marvinpinto/action-automatic-releases@latest"
         if: github.event_name == 'push'
@@ -68,6 +70,7 @@ jobs:
           title: "Latest release build"
           files: |
             micropython/ports/esp32/build-tildamk6/micropython.bin
+            micropython/ports/esp32/build-tildamk6/tidal.txt
       - name: Create specific release for tags
         uses: "marvinpinto/action-automatic-releases@latest"
         if: github.event_name == 'push'
@@ -75,3 +78,4 @@ jobs:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           files: |
             micropython/ports/esp32/build-tildamk6/micropython.bin
+            micropython/ports/esp32/build-tildamk6/tidal.txt
