@@ -9,7 +9,6 @@ class WifiClient(MenuApp):
     FOCUS_FG = BLACK
     FOCUS_BG = CYAN
     TITLE = "Wi-Fi Config"
-    CONNECTION_TIMEOUT = 20 # seconds
 
     def make_join_fn(self, idx):
         # I will never get on with how Python does variable capture...
@@ -89,7 +88,7 @@ class WifiClient(MenuApp):
         self.window.set_choices(None)
         self.password = password
         wifi.connect(ssid, password)
-        self.connecting = self.CONNECTION_TIMEOUT
+        self.connecting = wifi.get_connection_timeout()
         self.connection_timer = self.periodic(1000, self.update_connection)
         self.update_ui()
 
@@ -110,7 +109,7 @@ class WifiClient(MenuApp):
         if self.connecting <= 0:
             # We've timed out, even if the connection isn't showing an error,
             # which it won't without having set
-            # WLAN.config(reconnects=settings.get("wifi_reconnects", ...)
+            # WLAN.config(reconnects=...)
             print("Connection attempt timed out")
             self.disconnect()
             return
