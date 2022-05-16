@@ -30,7 +30,8 @@ class App:
             self.buttons.on_press(tidal.BUTTON_FRONT, self.navigate_back)
             if self.supports_rotation():
                 self.buttons.on_press(tidal.BUTTON_B, self.rotate)
-
+            else:
+                self.buttons.on_press(tidal.BUTTON_B, self.flip)
 
     # Note: we don't actually stop apps yet...
     # def on_stop(self):
@@ -147,6 +148,10 @@ class App:
 
     def rotate(self):
         self.set_rotation((self.get_rotation() + 90) % 360)
+
+    def flip(self):
+        self.set_rotation((self.get_rotation() + 180) % 360)
+
 
 class ButtonOnlyWindow:
     """This class only exists to wrap a Buttons instance for any App which doesn't actually use a Window for drawing
