@@ -166,6 +166,17 @@ class Menu(TextWindow):
         self.choices = choices
         self._focus_idx = 0
         self._top_idx = 0
+        if buttons:
+            buttons.on_press(tidal.JOY_DOWN, lambda: self.set_focus_idx(self.focus_idx() + 1))
+            buttons.on_press(tidal.JOY_UP, lambda: self.set_focus_idx(self.focus_idx() - 1))
+            # For rotation to work, interrupts have to be active on all direction buttons even if just a no-op
+            buttons.on_press(tidal.JOY_LEFT, lambda: None)
+            buttons.on_press(tidal.JOY_RIGHT, lambda: None)
+            def select():
+                if len(self.choices):
+                    self.choices[self.focus_idx()][1]()
+            buttons.on_press(tidal.JOY_CENTRE, select, autorepeat=False)
+            buttons.on_press(tidal.BUTTON_A, select, autorepeat=False)
 
     def draw_item(self, index, focus):
         text = self.choices[index][0]
@@ -173,7 +184,7 @@ class Menu(TextWindow):
         max_chars = self.width_chars() - 1
         if index == self._top_idx and self._top_idx > 0:
             text = text[0:max_chars] + (" " * (max_chars - len(text))) + self.UP_ARROW
-        elif index == self._top_idx + self.get_max_lines() - 1 and len(self.choices) > index + 1:
+        elif index == self._top_idx + self.get_max_items() - 1 and len(self.choices) > index + 1:
             text = text[0:max_chars] + (" " * (max_chars - len(text))) + self.DOWN_ARROW
 
         fg = self.focus_fg if focus else self.fg
@@ -187,14 +198,19 @@ class Menu(TextWindow):
     @property
     def _end_idx(self):
         """One more than the bottom-most index shown on screen"""
-        return self._top_idx + min(self.get_max_lines(), len(self.choices) - self._top_idx)
+        return self._top_idx + min(self.get_max_items(), len(self.choices) - self._top_idx)
+
+    def get_max_items(self):
+        return self.get_max_lines()
 
     def check_focus_visible(self):
+        # Returns true if things needed to be scrolled
+        max_items = self.get_max_items()
         if self._focus_idx < self._top_idx:
             self._top_idx = self._focus_idx
             return True
-        elif self._focus_idx >= self._top_idx + self.get_max_lines():
-            self._top_idx = self._focus_idx - self.get_max_lines() + 1
+        elif self._focus_idx >= self._top_idx + max_items:
+            self._top_idx = self._focus_idx - max_items + 1
             return True
         else:
             return False
@@ -202,7 +218,7 @@ class Menu(TextWindow):
     def set_focus_idx(self, i, redraw=True):
         prev_focus = self._focus_idx
         self._focus_idx = i % len(self.choices)
-        needs_full_redraw = self.check_focus_visible()
+        needs_full_redraw = redraw and self.check_focus_visible()
         if needs_full_redraw:
             self.draw_items()
         elif redraw:

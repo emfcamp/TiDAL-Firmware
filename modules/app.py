@@ -183,29 +183,16 @@ class MenuApp(App):
     FONT = None
     CHOICES = ()
 
-    def __init__(self):
+    def __init__(self, window=None):
         assert self.FOCUS_BG is not None, "MenuApp subclasses must define a default FOCUS_BG colour!"
         assert self.FOCUS_FG is not None, "MenuApp subclasses must define a default FOCUS_FG colour!"
         super().__init__()
-        window = Menu(self.BG, self.FG, self.FOCUS_BG, self.FOCUS_FG, self.TITLE, self.CHOICES, self.FONT, Buttons())
+        if not window:
+            window = Menu(self.BG, self.FG, self.FOCUS_BG, self.FOCUS_FG, self.TITLE, self.CHOICES, self.FONT, Buttons())
         self.push_window(window, activate=False)
 
     def supports_rotation(self):
         return True
-
-    def on_start(self):
-        super().on_start()
-        win = self.window
-        self.buttons.on_press(tidal.JOY_DOWN, lambda: win.set_focus_idx(win.focus_idx() + 1))
-        self.buttons.on_press(tidal.JOY_UP, lambda: win.set_focus_idx(win.focus_idx() - 1))
-        # For rotation to work, interrupts have to be active on all direction buttons even if just a no-op
-        self.buttons.on_press(tidal.JOY_LEFT, lambda: None)
-        self.buttons.on_press(tidal.JOY_RIGHT, lambda: None)
-        def select():
-            if len(win.choices):
-                win.choices[win.focus_idx()][1]()
-        self.buttons.on_press(tidal.JOY_CENTRE, select, autorepeat=False)
-        self.buttons.on_press(tidal.BUTTON_A, select, autorepeat=False)
 
 
 class PagedApp(App):

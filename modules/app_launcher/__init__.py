@@ -28,6 +28,7 @@ class Launcher(MenuApp):
             ("Wi-Fi Config", lambda: self.launch("wifi_client", "WifiClient")),
             ("Sponsors", lambda: self.launch("sponsors", "Sponsors")),
             ("Battery", lambda: self.launch("battery", "Battery")),
+            ("Settings", lambda: self.launch("settings_app", "SettingsApp")),
         )
     
     # Boot entry point
