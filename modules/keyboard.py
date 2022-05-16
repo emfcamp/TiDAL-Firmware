@@ -117,11 +117,15 @@ class Keyboard(TextWindow):
         self.draw_textarea()
         self.draw_keys()
 
-        xoff = (self.width() - (12 * self.key_width)) // 2
+        w = 12 * self.key_width
+        xoff = (self.width() - w) // 2
         ypos = self.get_line_pos(self.num_text_lines + 1) + len(self.KEYS) * self.key_height + 1
         col = tidal.color565(128, 128, 128)
         self.display.fill_rect(0, ypos, self.width(), self.line_height(), self.bg)
-        self.draw_text("B=bksp A=shift", xoff, ypos + 1, col, self.bg)
+        self.display.text(self.font, b'B=\x1B A=shift', xoff, ypos + 1, col, self.bg)
+        # And show an "OK" with line pointing to BUTTON_FRONT, if in normal orientation
+        if tidal.get_display_rotation() == 0:
+            self.display.text(self.font, b'\xDAOK', xoff + w - (3 * self.font.WIDTH), ypos + 1, col, self.bg)
 
     def draw_textarea(self):
         lines = self.flow_lines(self.text)
