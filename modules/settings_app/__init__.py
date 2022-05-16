@@ -82,6 +82,14 @@ class SettingsApp(MenuApp):
         super().on_activate()
         self.refresh()
 
+    def on_deactivate(self):
+        # The simplistic way this app is structured, there's no good way to
+        # redraw a make_choice window when we reactivate (eg with updated values
+        # if necessary) so instead just pop back to the root window here
+        while len(self.windows) > 1:
+            self.pop_window()
+        super().on_deactivate()
+
     def refresh(self):
         choices = (
             self.make_choice("Display sleep", "inactivity_time", get_scheduler().get_inactivity_time(), fmt_time,
