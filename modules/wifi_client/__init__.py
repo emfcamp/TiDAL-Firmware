@@ -6,9 +6,7 @@ from app import MenuApp
 
 class WifiClient(MenuApp):
     
-    FOCUS_FG = BLACK
-    FOCUS_BG = CYAN
-    TITLE = "Wi-Fi Config"
+    TITLE = "Wi-Fi Connnect"
 
     def make_join_fn(self, idx):
         # I will never get on with how Python does variable capture...

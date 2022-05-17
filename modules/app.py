@@ -6,10 +6,6 @@ from keyboard import Keyboard
 
 class App:
 
-    # Defaults for TextApp and MenuApp
-    BG = tidal.BLUE
-    FG = tidal.WHITE
-
     def __init__(self):
         self.started = False
         self.windows = []
@@ -27,7 +23,7 @@ class App:
     def on_start(self):
         """This is called once when the app is first launched"""
         if self.buttons:
-            self.buttons.on_press(tidal.BUTTON_FRONT, self.navigate_back)
+            self.buttons.on_press(tidal.BUTTON_FRONT, self.navigate_back, autorepeat=False)
             if self.supports_rotation():
                 self.buttons.on_press(tidal.BUTTON_B, self.rotate)
             else:
@@ -45,7 +41,7 @@ class App:
             self._activate_window(window)
         else:
             window = ButtonOnlyWindow()
-            window.buttons.on_press(tidal.BUTTON_FRONT, self.navigate_back)
+            window.buttons.on_press(tidal.BUTTON_FRONT, self.navigate_back, autorepeat=False)
             self.push_window(window, activate=True)
 
     def on_deactivate(self):
@@ -167,6 +163,8 @@ class ButtonOnlyWindow:
 class TextApp(App):
     """An app using a single TextWindow by default"""
 
+    BG = None
+    FG = None
     TITLE = None
     FONT = None
 
@@ -179,13 +177,15 @@ class TextApp(App):
 class MenuApp(App):
     """An app using a single Menu window"""
 
+    BG = None
+    FG = None
+    FOCUS_FG = None
+    FOCUS_BG = None
     TITLE = None
     FONT = None
     CHOICES = ()
 
     def __init__(self, window=None):
-        assert self.FOCUS_BG is not None, "MenuApp subclasses must define a default FOCUS_BG colour!"
-        assert self.FOCUS_FG is not None, "MenuApp subclasses must define a default FOCUS_FG colour!"
         super().__init__()
         if not window:
             window = Menu(self.BG, self.FG, self.FOCUS_BG, self.FOCUS_FG, self.TITLE, self.CHOICES, self.FONT, Buttons())
@@ -225,7 +225,7 @@ class PagedApp(App):
             # Add our navigation buttons to whatever the page windows may have defined
             page.buttons.on_press(tidal.JOY_LEFT, lambda: self.set_page(self.page - 1))
             page.buttons.on_press(tidal.JOY_RIGHT, lambda: self.set_page(self.page + 1))
-            page.buttons.on_press(tidal.BUTTON_FRONT, self.navigate_back)
+            page.buttons.on_press(tidal.BUTTON_FRONT, self.navigate_back, autorepeat=False)
         self.push_window(self.pages[self.page], activate=False)
 
     @property

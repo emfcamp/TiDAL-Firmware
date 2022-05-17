@@ -114,9 +114,9 @@ class Torch(TextApp):
         if self.led_h < 0:
             win.println("Colour: WHITE", 13)
         else:
-            win.println("Colour: Hue={}'".format(int(self.led_h * 360)), 13)
+            win.println("Colour: Hue={}°".format(int(self.led_h * 360)), 13)
         win.println("Brightness: {}%".format(int(self.led_v * 100)), 14)
-        win.println("Flash:{}  ".format(FLASH_PATTERNS[self.flash_mode][0]), 15)
+        win.println("Flash: {}".format(FLASH_PATTERNS[self.flash_mode][0]), 15)
         if self.flash_mode == 0:
             win.println("Flash: Off ", 16)
         else:

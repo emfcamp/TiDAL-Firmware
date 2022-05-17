@@ -48,6 +48,7 @@ freeze_images("$(MPY_DIR)/../modules", "$(PORT_DIR)/build-tildamk6/modules_gener
 
 freeze("$(MPY_DIR)/../st7789/fonts/bitmap", "vga2_8x8.py")
 freeze("$(MPY_DIR)/../st7789/fonts/bitmap", "vga2_8x16.py")
+freeze("$(MPY_DIR)/../st7789/fonts/bitmap", "vga2_16x16.py")
 freeze("$(MPY_DIR)/../st7789/fonts/bitmap", "vga2_16x32.py")
 freeze("$(MPY_DIR)/../st7789/fonts/bitmap", "vga2_bold_16x32.py")
 include("$(MPY_DIR)/extmod/uasyncio/manifest.py")

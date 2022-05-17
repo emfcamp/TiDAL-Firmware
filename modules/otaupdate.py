@@ -14,10 +14,13 @@ class OtaUpdate:
     
     buttons = None
     started = False
+    sync = False
     
     def run_sync(self):
+        self.sync = True
         self.on_start()
         self.on_activate()
+        self.sync = False # Reset in case we're subsequently re-run from Launcher
 
     def get_app_id(self):
         return "otaupdate"
@@ -31,6 +34,17 @@ class OtaUpdate:
 
     def on_start(self):
         self.window = textwindow.TextWindow(MAGENTA, WHITE, "Firmware Update")
+
+    def wait_for_a(self):
+        while True:
+            if BUTTON_A.value() == 0:
+                return True
+            elif BUTTON_FRONT.value() == 0:
+                if not self.sync:
+                    import scheduler
+                    scheduler.get_scheduler().switch_app(None)
+                return False
+            time.sleep(0.1)
 
     def on_activate(self):
         window = self.window
@@ -55,11 +69,9 @@ class OtaUpdate:
         window.println("Press [A] to")
         window.println("check updates.")
 
-        while BUTTON_A.value() == 1:
-            time.sleep(0.2)
-
-        window.clear_from_line(line)
-        self.connect()
+        if self.wait_for_a():
+            window.clear_from_line(line)
+            self.connect()
 
     def connect(self):
         window = self.window
@@ -81,8 +93,8 @@ class OtaUpdate:
 
                 window.println("WiFi timed out", line)
                 window.println("[A] to retry", line + 1)
-                while BUTTON_A.value() == 1:
-                    time.sleep(0.2)
+                if not self.wait_for_a():
+                    return
 
                 if wifi.get_sta_status() == network.STAT_CONNECTING:
                     pass # go round loop and keep waiting
@@ -114,18 +126,19 @@ class OtaUpdate:
                 window.println("Update failed!")
                 window.println("Error {}".format(e.errno))
                 window.println("[A] to retry")
-                while BUTTON_A.value() == 1:
-                    time.sleep(0.2)
+                if not self.wait_for_a():
+                    result = None
+                    retry = False
 
         if result:
             window.println("Updated OK.")
             window.println("Press [A] to")
             window.println("reboot and")
             window.println("finish update.")
-            while BUTTON_A.value() == 1:
-                time.sleep(0.2)
+            self.wait_for_a()
             machine.reset()
-        # else update was cancelled
+        else:
+            print("Update cancelled")
 
     def progress(self, version, val):
         window = self.window
@@ -142,8 +155,10 @@ class OtaUpdate:
                 line = window.get_next_line()
                 window.println("Press [A] to")
                 window.println("confirm update.")
-                while BUTTON_A.value() == 1:
-                    time.sleep(0.2)
+                if not self.wait_for_a():
+                    print("Cancelling update")
+                    return False
+
                 # Clear confirmation text
                 window.set_next_line(line)
             self.confirmed = True
@@ -152,3 +167,6 @@ class OtaUpdate:
 
         window.progress_bar(window.get_next_line(), val)
         return True
+
+    def on_deactivate(self):
+        pass

@@ -57,16 +57,38 @@ def fmt_time(val):
 
     return " ".join(parts)
 
+def fmt_wifi_dbm(val):
+    if val <= 8:
+        return "2 dBm"
+    elif val <= 20:
+        return "5 dBm"
+    elif val <= 28:
+        return "7 dBm"
+    elif val <= 34:
+        return "8 dBm"
+    elif val <= 44:
+        return "11 dBm"
+    elif val <= 52:
+        return "13 dBm"
+    elif val <= 56:
+        return "14 dBm"
+    elif val <= 60:
+        return "15 dBm"
+    elif val <= 66:
+        return "16 dBm"
+    elif val <= 72:
+        return "18 dBm"
+    elif val <= 80:
+        return "20 dBm"
+    else:
+        return f"??{val}??"
+
 def no_fmt(val):
     return str(val)
 
 class SettingsApp(MenuApp):
 
     TITLE = "Settings"
-    BG = tidal.BLUE
-    FG = tidal.WHITE
-    FOCUS_FG = tidal.BLACK
-    FOCUS_BG = tidal.CYAN
 
     def __init__(self):
         window = SettingsMenu(self.BG, self.FG, self.FOCUS_BG, self.FOCUS_FG, self.TITLE, self.CHOICES, self.FONT, Buttons())
@@ -92,18 +114,18 @@ class SettingsApp(MenuApp):
 
     def refresh(self):
         choices = (
-            self.make_choice("Display sleep", "inactivity_time", get_scheduler().get_inactivity_time(), fmt_time,
+            self.make_choice("Display sleep", None, "inactivity_time", get_scheduler().get_inactivity_time(), fmt_time,
                 (5, 15, 30, 60, 5*60, 10*60, 30*60)),
-            self.make_choice("WiFi TX power", "wifi_tx_power", wifi.DEFAULT_TX_POWER, no_fmt, (8, 20, 28, 34)),
-            self.make_choice("WiFi con timeout", "wifi_connection_timeout", wifi.DEFAULT_CONNECT_TIMEOUT, fmt_time,
-                (10, 20, 30, 60, 120)),
-            self.make_choice("Boot sleep delay", "boot_nosleep_time", 15, fmt_time,
+            self.make_choice("WiFi TX power", None, "wifi_tx_power", wifi.DEFAULT_TX_POWER, fmt_wifi_dbm, (8, 20, 28, 34)),
+            self.make_choice("WiFi con timeout", "WiFi connection\ntimeout", "wifi_connection_timeout",
+                wifi.DEFAULT_CONNECT_TIMEOUT, fmt_time, (10, 20, 30, 60, 120)),
+            self.make_choice("Boot sleep delay", None, "boot_nosleep_time", 15, fmt_time,
                 (5, 15, 30, 60, 5*60, 10*60, 30*60, 60*60, 8*60*60)),
-            self.make_choice("USB sleep delay", "usb_nosleep_time", 15, fmt_time, (15, 30, 60)),
+            self.make_choice("USB sleep delay", None, "usb_nosleep_time", 15, fmt_time, (15, 30, 60)),
         )
         self.window.set_choices(choices)
 
-    def make_choice(self, title, name, default, fmt, choices):
+    def make_choice(self, title, long_title, name, default, fmt, choices):
         text = f"{title}\n{fmt(settings.get(name, default))}"
         def fn():
             items = []
@@ -113,9 +135,9 @@ class SettingsApp(MenuApp):
                 if val == current_val:
                     idx = i
                 items.append((fmt(val), self.make_setparam_fn(name, val)))
-            menu = Menu(self.BG, self.FG, self.FOCUS_BG, self.FOCUS_FG, title, items, self.FONT, Buttons())
+            menu = Menu(self.BG, self.FG, self.FOCUS_BG, self.FOCUS_FG, long_title or title, items, self.FONT, Buttons())
             menu.set_focus_idx(idx, redraw=False)
-            menu.buttons.on_press(tidal.BUTTON_FRONT, lambda: self.pop_window())
+            menu.buttons.on_press(tidal.BUTTON_FRONT, lambda: self.pop_window(), autorepeat=False)
             self.push_window(menu)
         return (text, fn)
 

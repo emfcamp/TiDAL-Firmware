@@ -39,22 +39,20 @@ class Battery(TextApp):
         super().__init__()
         self.pin = tidal.BUTTON_A
 
-    def update_screen(self, full=True):
+    def update_screen(self):
         win = self.window
-        # win.cls()
+        win.set_next_line(0)
+        win.println()
         reading = self.read_battery_state()
         if reading[2] < 0.8:
-            win.println(" ", 1);
-            win.println("  Unavailable  ", 2);
-            win.println(" ", 3);
-            win.println(" ", 4);
-            win.println(" ", 7);
+            win.println("  Unavailable  ")
+            win.clear_from_line()
         else:
-            win.println("     Raw:{}  ".format(reading[2]), 1)
-            win.println(" Voltage:{}  ".format(reading[0]), 2)
-            win.println("       %:{}  ".format(reading[1]), 3)
-            win.println("Charging:{}  ".format("Yes" if tidal.CHARGE_DET.value() == 0 else "No"), 4)
-            self.window.progress_bar(7, int(reading[1]))
+            win.println("     Raw: {:0.3g}".format(reading[2]))
+            win.println(" Voltage: {:0.3g}".format(reading[0]))
+            win.println("       %: {:0.1f}".format(reading[1]))
+            win.println("Charging: {}".format("Yes" if tidal.CHARGE_DET.value() == 0 else "No"))
+            win.progress_bar(7, int(reading[1]))
 
 
     def read_battery_state(self):
@@ -87,11 +85,10 @@ class Battery(TextApp):
     def on_activate(self):
         super().on_activate()
         # Make sure the pullup is disabled.
-        # We should probably disable interrupts from the pin too here.
         self.pin.init(self.pin.IN, None)
         self.update_screen()
         if self.timer is None:
-            self.timer = self.periodic(500, self.update_screen)
+            self.timer = self.periodic(1000, self.update_screen)
 
     def on_deactivate(self):
         super().on_deactivate()

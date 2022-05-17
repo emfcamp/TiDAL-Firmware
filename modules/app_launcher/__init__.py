@@ -10,10 +10,6 @@ class Launcher(MenuApp):
 
     APP_ID = "menu"
     TITLE = "EMF 2022 - TiDAL\nBoot Menu"
-    BG = tidal.BLUE
-    FG = tidal.WHITE
-    FOCUS_FG = tidal.BLACK
-    FOCUS_BG = tidal.CYAN
 
     @property
     def choices(self):
@@ -25,10 +21,11 @@ class Launcher(MenuApp):
             ("Torch", lambda: self.launch("torch", "Torch")),
             ("Logo", lambda: self.launch("emflogo", "EMFLogo")),
             ("Update Firmware", lambda: self.launch("otaupdate", "OtaUpdate")),
-            ("Wi-Fi Config", lambda: self.launch("wifi_client", "WifiClient")),
+            ("Wi-Fi Connect", lambda: self.launch("wifi_client", "WifiClient")),
             ("Sponsors", lambda: self.launch("sponsors", "Sponsors")),
             ("Battery", lambda: self.launch("battery", "Battery")),
             ("Settings", lambda: self.launch("settings_app", "SettingsApp")),
+            # ("Swatch", lambda: self.launch("swatch", "Swatch")),
         )
     
     # Boot entry point
@@ -58,6 +55,9 @@ class Launcher(MenuApp):
         if self.show_splash and SPLASHSCREEN_TIME:
             # Don't call super, we don't want MenuApp to call cls yet
             self.buttons.deactivate() # Don't respond to buttons until after splashscreen dismissed
+            bg = self.window.bg
+            # Because of COURSE frozen image palettes are opposite endian...
+            emf_png.PALETTE[1] = ((bg & 0xFF) << 8) | (bg >> 8)
             tidal.display.bitmap(emf_png, 0, 0)
             self.after(SPLASHSCREEN_TIME, lambda: self.dismiss_splash())
         else:
