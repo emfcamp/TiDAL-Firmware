@@ -43,6 +43,7 @@ freeze("$(MPY_DIR)/ports/esp8266/modules", "ntptime.py")
 freeze("$(MPY_DIR)/drivers/dht", "dht.py")
 freeze("$(MPY_DIR)/drivers/onewire")
 freeze("$(MPY_DIR)/../modules")
+freeze("$(MPY_DIR)/../micropython-lib/python-ecosys/urequests", "urequests.py")
 freeze_images("$(MPY_DIR)/../modules", "$(PORT_DIR)/build-tildamk6/modules_generated")
 
 freeze("$(MPY_DIR)/../st7789/fonts/bitmap", "vga2_8x8.py")
