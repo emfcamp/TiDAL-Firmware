@@ -114,7 +114,8 @@ class SettingsApp(MenuApp):
 
     def refresh(self):
         choices = (
-            self.make_choice("Display sleep", None, "inactivity_time", get_scheduler().get_inactivity_time(), fmt_time,
+            # TODO refactor all default values into settings.py
+            self.make_choice("Display sleep", None, "inactivity_time", get_scheduler().get_inactivity_time()//1000, fmt_time,
                 (5, 15, 30, 60, 5*60, 10*60, 30*60)),
             self.make_choice("WiFi TX power", None, "wifi_tx_power", wifi.DEFAULT_TX_POWER, fmt_wifi_dbm, (8, 20, 28, 34)),
             self.make_choice("WiFi con timeout", "WiFi connection\ntimeout", "wifi_connection_timeout",
