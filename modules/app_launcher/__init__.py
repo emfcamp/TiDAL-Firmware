@@ -26,6 +26,7 @@ class Launcher(MenuApp):
             ("Battery", lambda: self.launch("battery", "Battery")),
             ("Settings", lambda: self.launch("settings_app", "SettingsApp")),
             # ("Swatch", lambda: self.launch("swatch", "Swatch")),
+            ("uGUI Demo", lambda: self.launch("ugui_demo", "uGUIDemo"))
         )
     
     # Boot entry point
