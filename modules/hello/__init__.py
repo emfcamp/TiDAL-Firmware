@@ -5,7 +5,7 @@ from textwindow import TextWindow
 import settings
 import vga2_bold_16x32
 
-DEFAULT_NAME = "Insert name\nhere"
+DEFAULT_NAME = " Insert name\nhere"
 
 class Hello(App):
     

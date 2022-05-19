@@ -5,7 +5,8 @@ import tidal_helpers
 _STA_IF = network.WLAN(network.STA_IF)
 _AP_IF  = network.WLAN(network.AP_IF)
 
-_DEFAULT_TIMEOUT  = 20
+DEFAULT_CONNECT_TIMEOUT = 20
+DEFAULT_TX_POWER = 20
 
 def get_default_ssid():
     return settings.get("wifi_ssid", "badge")
@@ -37,6 +38,9 @@ def accesspoint_get_ip():
 def active():
     return _STA_IF.active()
 
+def get_connection_timeout():
+    return settings.get("wifi_connection_timeout", DEFAULT_CONNECT_TIMEOUT)
+
 def save_defaults(ssid, password):
     settings.set("wifi_ssid", ssid)
     settings.set("wifi_password", password)
@@ -58,7 +62,7 @@ def connect(*args):
     # 20 = 5 dBm according to https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-reference/network/esp_wifi.html?highlight=esp_wifi_set_max_tx_power#_CPPv425esp_wifi_set_max_tx_power6int8_t
     # Anything above 8 dBm causes too much interference in the crystal circuit
     # which basically breaks all ability to transmit
-    tidal_helpers.esp_wifi_set_max_tx_power(settings.get("wifi_tx_power", 20))
+    tidal_helpers.esp_wifi_set_max_tx_power(settings.get("wifi_tx_power", DEFAULT_TX_POWER))
     if len(args) == 0:
         if password := get_default_password():
             _STA_IF.connect(get_default_ssid(), password)
@@ -92,11 +96,13 @@ def status():
     '''
     return _STA_IF.isconnected()
 
-def wait(duration=_DEFAULT_TIMEOUT):
+def wait(duration=None):
     '''
     Wait until connection has been made to a network using the station interface
     :return: boolean, connected
     '''
+    if duration is None:
+        duration = get_connection_timeout()
     t = duration
     while not status():
         if t <= 0:

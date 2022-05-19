@@ -6,10 +6,6 @@ from keyboard import Keyboard
 
 class App:
 
-    # Defaults for TextApp and MenuApp
-    BG = tidal.BLUE
-    FG = tidal.WHITE
-
     def __init__(self):
         self.started = False
         self.windows = []
@@ -27,10 +23,11 @@ class App:
     def on_start(self):
         """This is called once when the app is first launched"""
         if self.buttons:
-            self.buttons.on_press(tidal.BUTTON_FRONT, self.navigate_back)
+            self.buttons.on_press(tidal.BUTTON_FRONT, self.navigate_back, autorepeat=False)
             if self.supports_rotation():
                 self.buttons.on_press(tidal.BUTTON_B, self.rotate)
-
+            else:
+                self.buttons.on_press(tidal.BUTTON_B, self.flip)
 
     # Note: we don't actually stop apps yet...
     # def on_stop(self):
@@ -44,7 +41,7 @@ class App:
             self._activate_window(window)
         else:
             window = ButtonOnlyWindow()
-            window.buttons.on_press(tidal.BUTTON_FRONT, self.navigate_back)
+            window.buttons.on_press(tidal.BUTTON_FRONT, self.navigate_back, autorepeat=False)
             self.push_window(window, activate=True)
 
     def on_deactivate(self):
@@ -152,6 +149,10 @@ class App:
     def rotate(self):
         self.set_rotation((self.get_rotation() + 90) % 360)
 
+    def flip(self):
+        self.set_rotation((self.get_rotation() + 180) % 360)
+
+
 class ButtonOnlyWindow:
     """This class only exists to wrap a Buttons instance for any App which doesn't actually use a Window for drawing
        (and presumably draws directly to the display in its on_activate)
@@ -166,6 +167,8 @@ class ButtonOnlyWindow:
 class TextApp(App):
     """An app using a single TextWindow by default"""
 
+    BG = None
+    FG = None
     TITLE = None
     FONT = None
 
@@ -178,33 +181,22 @@ class TextApp(App):
 class MenuApp(App):
     """An app using a single Menu window"""
 
+    BG = None
+    FG = None
+    FOCUS_FG = None
+    FOCUS_BG = None
     TITLE = None
     FONT = None
     CHOICES = ()
 
-    def __init__(self):
-        assert self.FOCUS_BG is not None, "MenuApp subclasses must define a default FOCUS_BG colour!"
-        assert self.FOCUS_FG is not None, "MenuApp subclasses must define a default FOCUS_FG colour!"
+    def __init__(self, window=None):
         super().__init__()
-        window = Menu(self.BG, self.FG, self.FOCUS_BG, self.FOCUS_FG, self.TITLE, self.CHOICES, self.FONT, Buttons())
+        if not window:
+            window = Menu(self.BG, self.FG, self.FOCUS_BG, self.FOCUS_FG, self.TITLE, self.CHOICES, self.FONT, Buttons())
         self.push_window(window, activate=False)
 
     def supports_rotation(self):
         return True
-
-    def on_start(self):
-        super().on_start()
-        win = self.window
-        self.buttons.on_press(tidal.JOY_DOWN, lambda: win.set_focus_idx(win.focus_idx() + 1))
-        self.buttons.on_press(tidal.JOY_UP, lambda: win.set_focus_idx(win.focus_idx() - 1))
-        # For rotation to work, interrupts have to be active on all direction buttons even if just a no-op
-        self.buttons.on_press(tidal.JOY_LEFT, lambda: None)
-        self.buttons.on_press(tidal.JOY_RIGHT, lambda: None)
-        def select():
-            if len(win.choices):
-                win.choices[win.focus_idx()][1]()
-        self.buttons.on_press(tidal.JOY_CENTRE, select, autorepeat=False)
-        self.buttons.on_press(tidal.BUTTON_A, select, autorepeat=False)
 
 
 class PagedApp(App):
@@ -237,7 +229,7 @@ class PagedApp(App):
             # Add our navigation buttons to whatever the page windows may have defined
             page.buttons.on_press(tidal.JOY_LEFT, lambda: self.set_page(self.page - 1))
             page.buttons.on_press(tidal.JOY_RIGHT, lambda: self.set_page(self.page + 1))
-            page.buttons.on_press(tidal.BUTTON_FRONT, self.navigate_back)
+            page.buttons.on_press(tidal.BUTTON_FRONT, self.navigate_back, autorepeat=False)
         self.push_window(self.pages[self.page], activate=False)
 
     @property
