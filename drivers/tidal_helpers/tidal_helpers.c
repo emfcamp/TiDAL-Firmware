@@ -11,6 +11,7 @@
 #include "esp32s2/rom/usb/usb_dc.h"
 #include "esp32s2/rom/usb/chip_usb_dw_wrapper.h"
 #include "esp32s2/rom/usb/usb_persist.h"
+#include "esp_wpa2.h"
 
 static const char *TAG = "tidal_helpers";
 
@@ -253,6 +254,57 @@ STATIC mp_obj_t tidal_esp_wifi_set_max_tx_power(mp_obj_t pwr_obj) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(tidal_esp_wifi_set_max_tx_power_obj, tidal_esp_wifi_set_max_tx_power);
 
+STATIC mp_obj_t tidal_esp_wifi_sta_wpa2_ent_enable(mp_obj_t flag_obj) {
+    esp_err_t err;
+    if (mp_obj_is_true(flag_obj)) {
+        err = esp_wifi_sta_wpa2_ent_enable();
+    } else {
+        err = esp_wifi_sta_wpa2_ent_disable();
+    }
+    check_esp_err(err);
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(tidal_esp_wifi_sta_wpa2_ent_enable_obj, tidal_esp_wifi_sta_wpa2_ent_enable);
+
+STATIC mp_obj_t tidal_esp_wifi_sta_wpa2_ent_set_identity(mp_obj_t id_obj) {
+    if (mp_obj_is_true(id_obj)) {
+        size_t len = 0;
+        const char* id = mp_obj_str_get_data(id_obj, &len);
+        esp_err_t err = esp_wifi_sta_wpa2_ent_set_identity((const unsigned char*)id, len);
+        check_esp_err(err);
+    } else {
+        esp_wifi_sta_wpa2_ent_clear_identity();
+    }
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(tidal_esp_wifi_sta_wpa2_ent_set_identity_obj, tidal_esp_wifi_sta_wpa2_ent_set_identity);
+
+STATIC mp_obj_t tidal_esp_wifi_sta_wpa2_ent_set_username(mp_obj_t username_obj) {
+    if (mp_obj_is_true(username_obj)) {
+        size_t len = 0;
+        const char* username = mp_obj_str_get_data(username_obj, &len);
+        esp_err_t err = esp_wifi_sta_wpa2_ent_set_username((const unsigned char*)username, len);
+        check_esp_err(err);
+    } else {
+        esp_wifi_sta_wpa2_ent_clear_username();
+    }
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(tidal_esp_wifi_sta_wpa2_ent_set_username_obj, tidal_esp_wifi_sta_wpa2_ent_set_username);
+
+STATIC mp_obj_t tidal_esp_wifi_sta_wpa2_ent_set_password(mp_obj_t pass_obj) {
+    if (mp_obj_is_true(pass_obj)) {
+        size_t len = 0;
+        const char* password = mp_obj_str_get_data(pass_obj, &len);
+        esp_err_t err = esp_wifi_sta_wpa2_ent_set_password((const unsigned char*)password, len);
+        check_esp_err(err);
+    } else {
+        esp_wifi_sta_wpa2_ent_clear_password();
+    }
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(tidal_esp_wifi_sta_wpa2_ent_set_password_obj, tidal_esp_wifi_sta_wpa2_ent_set_password);
+
 STATIC const mp_rom_map_elem_t tidal_helpers_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_ota) },
     { MP_ROM_QSTR(MP_QSTR_get_variant), MP_ROM_PTR(&tidal_helper_get_variant_obj) },
@@ -270,6 +322,10 @@ STATIC const mp_rom_map_elem_t tidal_helpers_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_get_irq_handler), MP_ROM_PTR(&tidal_get_irq_handler_obj) },
     { MP_ROM_QSTR(MP_QSTR_pin_number), MP_ROM_PTR(&tidal_pin_number_obj) },
     { MP_ROM_QSTR(MP_QSTR_esp_wifi_set_max_tx_power), MP_ROM_PTR(&tidal_esp_wifi_set_max_tx_power_obj) },
+    { MP_ROM_QSTR(MP_QSTR_esp_wifi_sta_wpa2_ent_enable), MP_ROM_PTR(&tidal_esp_wifi_sta_wpa2_ent_enable_obj) },
+    { MP_ROM_QSTR(MP_QSTR_esp_wifi_sta_wpa2_ent_set_identity), MP_ROM_PTR(&tidal_esp_wifi_sta_wpa2_ent_set_identity_obj) },
+    { MP_ROM_QSTR(MP_QSTR_esp_wifi_sta_wpa2_ent_set_username), MP_ROM_PTR(&tidal_esp_wifi_sta_wpa2_ent_set_username_obj) },
+    { MP_ROM_QSTR(MP_QSTR_esp_wifi_sta_wpa2_ent_set_password), MP_ROM_PTR(&tidal_esp_wifi_sta_wpa2_ent_set_password_obj) },
 
     { MP_ROM_QSTR(MP_QSTR_ESP_PD_DOMAIN_RTC_PERIPH), MP_ROM_INT(ESP_PD_DOMAIN_RTC_PERIPH) },
     { MP_ROM_QSTR(MP_QSTR_ESP_PD_OPTION_OFF), MP_ROM_INT(ESP_PD_OPTION_OFF) },
