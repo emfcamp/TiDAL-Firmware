@@ -13,3 +13,6 @@
 [submodule "micropython-micro-gui"]
 	path = micropython-micro-gui
 	url = https://github.com/peterhinch/micropython-micro-gui.git
+[submodule "lodepng"]
+	path = lodepng
+	url = https://github.com/lvandeve/lodepng
