@@ -2,6 +2,7 @@ from tidal import *
 import network
 import settings
 import wifi
+from wifi import WIFI_AUTH_OPEN, WIFI_AUTH_WPA2_PSK, WIFI_AUTH_WPA2_ENTERPRISE
 from app import MenuApp
 
 class WifiClient(MenuApp):
@@ -39,9 +40,9 @@ class WifiClient(MenuApp):
         for ap in wifi.scan():
             print(f"Found {ap}")
             if ap[0]:
-                pass_required = ap[4] != 0
+                authmode = ap[4]
                 try:
-                    self.wifi_networks.append((ap[0].decode("utf-8"), pass_required))
+                    self.wifi_networks.append((ap[0].decode("utf-8"), authmode))
                 except:
                     # Ignore any APs that don't decode as valid UTF-8
                     pass
@@ -51,7 +52,13 @@ class WifiClient(MenuApp):
         super().on_start()
         self.wifi_networks = []
         if ssid := wifi.get_default_ssid():
-            self.wifi_networks.append((ssid, wifi.get_default_password() is not None))
+            if wifi.get_default_username():
+                authmode = WIFI_AUTH_WPA2_ENTERPRISE
+            elif wifi.get_default_password():
+                authmode = WIFI_AUTH_WPA2_PSK # doesn't matter exactly so long as it's not enterprise or open
+            else:
+                authmode = WIFI_AUTH_OPEN
+            self.wifi_networks.append((ssid, authmode))
         self.connecting = None
         self.connection_timer = None
 
@@ -70,22 +77,28 @@ class WifiClient(MenuApp):
             wifi.stop()
 
     def join_index(self, i):
-        (ssid, password_required) = self.wifi_networks[i]
+        (ssid, authmode) = self.wifi_networks[i]
+        username = None
         password = None
-        if password_required:
-            if ssid == "badge":
-                # Special case for EMF
-                password = "badge"
+        if authmode:
+            if ssid == wifi.DEFAULT_SSID:
+                # Extra special case, in case a different network has been connected to and is now the default
+                username = wifi.DEFAULT_USERNAME
+                password = wifi.DEFAULT_PASSWORD
             elif ssid == wifi.get_default_ssid():
+                username = wifi.get_default_username()
                 password = wifi.get_default_password()
             else:
+                if authmode == WIFI_AUTH_WPA2_ENTERPRISE:
+                    username = self.keyboard_prompt("Enter username:")
                 password = self.keyboard_prompt("Enter password:")
-        return self.join_wifi(ssid, password)
+        return self.join_wifi(ssid, password, username)
 
-    def join_wifi(self, ssid, password):
+    def join_wifi(self, ssid, password, username=None):
         self.window.set_choices(None)
+        self.username = username
         self.password = password
-        wifi.connect(ssid, password)
+        wifi.connect(ssid, password, username)
         self.connecting = wifi.get_connection_timeout()
         self.connection_timer = self.periodic(1000, self.update_connection)
         self.update_ui()
@@ -116,7 +129,7 @@ class WifiClient(MenuApp):
         if status == network.STAT_CONNECTING:
             return
         elif status == network.STAT_GOT_IP:
-            wifi.save_defaults(wifi.get_ssid(), self.password)
+            wifi.save_defaults(wifi.get_ssid(), self.password, self.username)
             # The update_ui call will take care of everything else
 
         self.cancel_timer()
