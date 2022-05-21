@@ -20,3 +20,5 @@ include(${CMAKE_CURRENT_LIST_DIR}/ota/micropython.cmake)
 
 # Add general purpose helpers
 include(${CMAKE_CURRENT_LIST_DIR}/tidal_helpers/micropython.cmake)
+
+include(${CMAKE_CURRENT_LIST_DIR}/lodepng/micropython.cmake)
