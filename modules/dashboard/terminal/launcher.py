@@ -70,7 +70,7 @@ def get_install_path():
 	global install_path
 	if install_path is None:
 		# sys.path[0] is current module's path
-		install_path = sys.path[1]
+		install_path = "/"
 	install_path = expandhome(install_path)
 	return install_path
 

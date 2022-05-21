@@ -1,4 +1,4 @@
-import dashboard.resources.woezel_repo as woezel_repo, woezel, term, system, time, wifi, sys, gc
+import dashboard.resources.woezel_repo as woezel_repo, woezel, term, system, time, wifi, sys, gc, term_menu
 
 repo = woezel_repo
 
@@ -15,7 +15,7 @@ def show_categories():
 		opt.append("< Back to launcher")
 		sel = term.menu("Installer - Categories", opt)
 		if sel == len(repo.categories):
-			system.launcher(True)
+			term_menu.return_to_home()
 		opt = []
 		gc.collect()
 		show_category(repo.categories[sel]["slug"], repo.categories[sel]["name"])

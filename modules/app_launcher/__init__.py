@@ -7,6 +7,7 @@ import term
 import sys
 import ujson
 import os
+import functools
 
 SPLASHSCREEN_TIME = 300 # ms
 
@@ -26,7 +27,6 @@ class Launcher(MenuApp):
                 information = f.read()
             return ujson.loads(information)
         except BaseException as e:
-            sys.print_exception(e)
             return {}
 
     def list_user_apps(self):
@@ -79,10 +79,10 @@ class Launcher(MenuApp):
     def choices(self):
         # Note, the text for each choice needs to be <= 16 characters in order to fit on screen
         apps = self.list_core_apps() + self.list_user_apps()
-        return [
-            tuple([app['name'], lambda: self.launch(app['path'], app['callable'])])
-            for app in apps
-        ]
+        choices = []
+        for app in apps:
+            choices.append((app['name'], functools.partial(self.launch, app['path'], app['callable'])))
+        return choices
 
     # Boot entry point
     def main(self):
