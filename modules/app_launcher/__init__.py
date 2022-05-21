@@ -4,6 +4,9 @@ from app import MenuApp
 from scheduler import get_scheduler
 import emf_png
 import term
+import sys
+import ujson
+import os
 
 SPLASHSCREEN_TIME = 300 # ms
 
@@ -16,21 +19,71 @@ class Launcher(MenuApp):
     FOCUS_FG = tidal.BLACK
     FOCUS_BG = tidal.CYAN
 
+    def loadInfo(self, folder, name):
+        try:
+            info_file = "{}/{}/metadata.json".format(folder, name)
+            with open(info_file) as f:
+                information = f.read()
+            return ujson.loads(information)
+        except BaseException as e:
+            sys.print_exception(e)
+            return {}
+
+    def list_user_apps(self):
+        apps = []
+        for folder in sys.path:
+            try:
+                files = os.listdir(folder)
+            except OSError:
+                files = []
+            for name in files:
+                components = [part for part in folder.split("/") if part] + [name]
+                app = {
+                    "path": ".".join(components),
+                    "callable": "main",
+                    "name": name,
+                    "icon": None,
+                    "category": "unknown",
+                    "hidden": False,
+                }
+                metadata = self.loadInfo(folder, name)
+                if metadata:
+                    app.update(metadata)
+                    if not app["hidden"]:
+                        apps.append(app)
+        return apps
+
+    def list_core_apps(self):
+        core_app_info = [
+            ("USB Keyboard", "hid", "USBKeyboard"),
+            ("Name Badge", "hello", "Hello"),
+            ("Torch", "torch", "Torch"),
+            ("Logo", "emflogo", "EMFLogo"),
+            ("Update Firmware", "otaupdate", "OtaUpdate"),
+            ("Wi-Fi Config", "wifi_client", "WifiClient"),
+            ("Sponsors", "sponsors", "Sponsors"),
+            ("Battery", "battery", "Battery"),
+        ]
+        core_apps = []
+        for core_app in core_app_info:
+            core_apps.append({
+                "path": core_app[1],
+                "callable": core_app[2],
+                "name": core_app[0],
+                "icon": None,
+                "category": "unknown",
+            })
+        return core_apps
+
     @property
     def choices(self):
         # Note, the text for each choice needs to be <= 16 characters in order to fit on screen
-        return (
-            ("USB Keyboard", lambda: self.launch("hid", "USBKeyboard")),
-            ("Name Badge", lambda: self.launch("hello", "Hello")),
-            # ("Web REPL", lambda: self.launch("web_repl", "WebRepl")),
-            ("Torch", lambda: self.launch("torch", "Torch")),
-            ("Logo", lambda: self.launch("emflogo", "EMFLogo")),
-            ("Update Firmware", lambda: self.launch("otaupdate", "OtaUpdate")),
-            ("Wi-Fi Config", lambda: self.launch("wifi_client", "WifiClient")),
-            ("Sponsors", lambda: self.launch("sponsors", "Sponsors")),
-            ("Battery", lambda: self.launch("battery", "Battery")),
-        )
-    
+        apps = self.list_core_apps() + self.list_user_apps()
+        return [
+            tuple([app['name'], lambda: self.launch(app['path'], app['callable'])])
+            for app in apps
+        ]
+
     # Boot entry point
     def main(self):
         get_scheduler().main(self)
