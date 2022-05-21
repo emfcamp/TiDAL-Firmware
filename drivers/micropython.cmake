@@ -20,6 +20,3 @@ include(${CMAKE_CURRENT_LIST_DIR}/ota/micropython.cmake)
 
 # Add general purpose helpers
 include(${CMAKE_CURRENT_LIST_DIR}/tidal_helpers/micropython.cmake)
-
-# Add the RTC memory driver from badge.team
-include(${CMAKE_CURRENT_LIST_DIR}/driver_rtcmem/micropython.cmake)
