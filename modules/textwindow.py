@@ -140,6 +140,7 @@ class TextWindow:
         self.display.fill_rect(x, y, percentage, self.font.HEIGHT, fg)
         # In case progress goes down, clear the right-hand side of the line
         self.display.fill_rect(x + percentage, y, self.width() - (x + percentage), self.font.HEIGHT, self.bg)
+        self.display.rect(x, y, 100, self.font.HEIGHT, fg)
 
     def flow_lines(self, text, font=None):
         # Don't word wrap, just chop off
