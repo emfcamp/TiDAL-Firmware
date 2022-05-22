@@ -50,7 +50,7 @@ if you're using the electo magentic yield prototype, use:
 
 If you need to switch which version you're building, run
 
-    docker run -it "$(pwd)"/:/firmware matthewwilkes/esp_idf:4.4 IOT_SOLUTION_PATH=/firmware/esp-iot-solution TARGET=esp32s3 clean
+    docker run -it -v "$(pwd)"/:/firmware matthewwilkes/esp_idf:4.4 IOT_SOLUTION_PATH=/firmware/esp-iot-solution TARGET=esp32s3 clean
 
 to remove the cached definitions.
 

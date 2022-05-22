@@ -1,11 +1,10 @@
-import emf_png
-import time, machine
+import machine
 from machine import I2C
 from machine import Pin
 from machine import SPI
 from neopixel import NeoPixel
 import st7789
-from st7789 import BLACK, BLUE, RED, GREEN, CYAN, MAGENTA, YELLOW, WHITE
+from st7789 import BLACK, BLUE, RED, GREEN, CYAN, MAGENTA, YELLOW, WHITE, color565
 
 import _tidal_usb as usb
 import tidal_helpers
@@ -201,6 +200,7 @@ def lcd_fps() -> int:
     return frames
 
 def power_test_sequence(): #value without/with DFS
+    import time, emf_png
     display.bitmap(emf_png, 0, 0)#39/32mA
     time.sleep(5)
     lcd_backlight_off()#29/22
