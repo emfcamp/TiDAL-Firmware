@@ -23,7 +23,7 @@ ln -sfn $ROOTDIR/tildamk6 $ROOTDIR/micropython/ports/esp32/boards/tildamk6
 cd $ROOTDIR/micropython/ports/esp32
 
 # Make sure we update the manifest, otherwise changes will not be picked up
-rm build-tildamk6/frozen_content.c
+rm build-tildamk6/frozen_content.c || true
 
 make submodules BOARD=tildamk6 USER_C_MODULES="$ROOTDIR"/drivers/micropython.cmake CONFIG_TIDAL_VARIANT_DEVBOARD=y
 make BOARD=tildamk6 USER_C_MODULES="$ROOTDIR"/drivers/micropython.cmake CONFIG_TIDAL_VARIANT_DEVBOARD=y $@
