@@ -2,6 +2,7 @@ import tidal
 import tidal_helpers
 from app import MenuApp
 from scheduler import get_scheduler
+import lodepng
 import emf_png
 
 SPLASHSCREEN_TIME = 300 # ms
@@ -56,10 +57,8 @@ class Launcher(MenuApp):
         if self.show_splash and SPLASHSCREEN_TIME:
             # Don't call super, we don't want MenuApp to call cls yet
             self.buttons.deactivate() # Don't respond to buttons until after splashscreen dismissed
-            bg = self.window.bg
-            # Because of COURSE frozen image palettes are opposite endian...
-            emf_png.PALETTE[1] = ((bg & 0xFF) << 8) | (bg >> 8)
-            tidal.display.bitmap(emf_png, 0, 0)
+            (w, h, buf) = lodepng.decode565(emf_png.DATA)
+            tidal.display.blit_buffer(buf, 0, 0, w, h)
             self.after(SPLASHSCREEN_TIME, lambda: self.dismiss_splash())
         else:
             self.update_title(redraw=False)

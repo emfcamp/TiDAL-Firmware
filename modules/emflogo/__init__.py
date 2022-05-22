@@ -1,5 +1,6 @@
 from tidal import display
 from app import App
+import lodepng
 import emf_png
 
 class EMFLogo(App):
@@ -11,7 +12,8 @@ class EMFLogo(App):
         super().on_activate()
         display.vscrdef(40, 240, 40)
         display.vscsad(40)
-        display.bitmap(emf_png, 0, 0)
+        (w, h, buf) = lodepng.decode565(emf_png.DATA)
+        display.blit_buffer(buf, 0, 0, w, h)
         self.i = 0
         self.timer_task = self.periodic(10, self.update)
 
