@@ -25,7 +25,11 @@ def get_default_ssid():
     return settings.get("wifi_ssid", DEFAULT_SSID)
 
 def get_default_username():
-    return settings.get("wifi_wpa2ent_username", DEFAULT_USERNAME)
+    val = settings.get("wifi_wpa2ent_username", None)
+    if val is None and get_default_ssid() == DEFAULT_SSID:
+        # In case of settings.json that doesn't specify wifi_wpa2ent_username
+        val = DEFAULT_USERNAME
+    return val
 
 def get_default_password():
     return settings.get("wifi_password", DEFAULT_PASSWORD)
@@ -57,7 +61,7 @@ def active():
 def get_connection_timeout():
     return settings.get("wifi_connection_timeout", DEFAULT_CONNECT_TIMEOUT)
 
-def save_defaults(ssid, password, usename):
+def save_defaults(ssid, password, username):
     settings.set("wifi_ssid", ssid)
     settings.set("wifi_wpa2ent_username", username)
     settings.set("wifi_password", password)
