@@ -5,13 +5,34 @@ import tidal_helpers
 _STA_IF = network.WLAN(network.STA_IF)
 _AP_IF  = network.WLAN(network.AP_IF)
 
-_DEFAULT_TIMEOUT  = 20
+DEFAULT_CONNECT_TIMEOUT = 20
+DEFAULT_TX_POWER = 20
+DEFAULT_SSID = "emfcamp-legacy22"
+DEFAULT_USERNAME = "badge"
+DEFAULT_PASSWORD = "badge"
+
+WIFI_AUTH_OPEN = 0
+WIFI_AUTH_WEP = 1
+WIFI_AUTH_WPA_PSK = 2
+WIFI_AUTH_WPA2_PSK = 3
+WIFI_AUTH_WPA_WPA2_PSK = 4
+WIFI_AUTH_WPA2_ENTERPRISE = 5
+WIFI_AUTH_WPA3_PSK = 6
+WIFI_AUTH_WPA2_WPA3_PSK = 7
+WIFI_AUTH_WAPI_PSK = 8
 
 def get_default_ssid():
-    return settings.get("wifi_ssid", "badge")
+    return settings.get("wifi_ssid", DEFAULT_SSID)
+
+def get_default_username():
+    val = settings.get("wifi_wpa2ent_username", None)
+    if val is None and get_default_ssid() == DEFAULT_SSID:
+        # In case of settings.json that doesn't specify wifi_wpa2ent_username
+        val = DEFAULT_USERNAME
+    return val
 
 def get_default_password():
-    return settings.get("wifi_password", "badge")
+    return settings.get("wifi_password", DEFAULT_PASSWORD)
 
 def get_sta_status():
     return _STA_IF.status()
@@ -37,8 +58,12 @@ def accesspoint_get_ip():
 def active():
     return _STA_IF.active()
 
-def save_defaults(ssid, password):
+def get_connection_timeout():
+    return settings.get("wifi_connection_timeout", DEFAULT_CONNECT_TIMEOUT)
+
+def save_defaults(ssid, password, username):
     settings.set("wifi_ssid", ssid)
+    settings.set("wifi_wpa2ent_username", username)
     settings.set("wifi_password", password)
     settings.save()
 
@@ -48,28 +73,30 @@ def save_defaults(ssid, password):
 # STATION MODE
 # ------------
 
-def connect(*args):
+def connect(ssid=None, password=None, username=None):
     '''
     Connect to a WiFi network
     :param ssid: optional, ssid of network to connect to
     :param password: optional, password of network to connect to
+    :param username: optional, WPA2-Enterprise username of network to connect to
     '''
     _STA_IF.active(True)
     # 20 = 5 dBm according to https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-reference/network/esp_wifi.html?highlight=esp_wifi_set_max_tx_power#_CPPv425esp_wifi_set_max_tx_power6int8_t
     # Anything above 8 dBm causes too much interference in the crystal circuit
     # which basically breaks all ability to transmit
-    tidal_helpers.esp_wifi_set_max_tx_power(settings.get("wifi_tx_power", 20))
-    if len(args) == 0:
-        if password := get_default_password():
-            _STA_IF.connect(get_default_ssid(), password)
-        else:
-            _STA_IF.connect(get_default_ssid())
-    elif len(args) == 1:
-        _STA_IF.connect(args[0])
-    elif len(args) == 2:
-        _STA_IF.connect(args[0], args[1])
-    else:
-        raise Exception('Expected either 0 (default network), 1 (ssid) or 2 (ssid, password) parameters.')
+    tidal_helpers.esp_wifi_set_max_tx_power(settings.get("wifi_tx_power", DEFAULT_TX_POWER))
+    if not ssid:
+        ssid = get_default_ssid()
+        username = get_default_username()
+        password = get_default_password()
+    if username:
+        tidal_helpers.esp_wifi_sta_wpa2_ent_set_identity(username)
+        tidal_helpers.esp_wifi_sta_wpa2_ent_set_username(username)
+        tidal_helpers.esp_wifi_sta_wpa2_ent_set_password(password)
+        password = None # Don't pass to WLAN.connect()
+
+    tidal_helpers.esp_wifi_sta_wpa2_ent_enable(username is not None)
+    _STA_IF.connect(ssid, password)
 
 def disconnect():
     '''
@@ -92,11 +119,13 @@ def status():
     '''
     return _STA_IF.isconnected()
 
-def wait(duration=_DEFAULT_TIMEOUT):
+def wait(duration=None):
     '''
     Wait until connection has been made to a network using the station interface
     :return: boolean, connected
     '''
+    if duration is None:
+        duration = get_connection_timeout()
     t = duration
     while not status():
         if t <= 0:

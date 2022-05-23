@@ -2,6 +2,7 @@ import tidal
 import tidal_helpers
 from app import MenuApp
 from scheduler import get_scheduler
+import lodepng
 import emf_png
 import term
 import sys
@@ -15,10 +16,6 @@ class Launcher(MenuApp):
 
     APP_ID = "menu"
     TITLE = "EMF 2022 - TiDAL\nBoot Menu"
-    BG = tidal.BLUE
-    FG = tidal.WHITE
-    FOCUS_FG = tidal.BLACK
-    FOCUS_BG = tidal.CYAN
 
     def loadInfo(self, folder, name):
         try:
@@ -63,6 +60,7 @@ class Launcher(MenuApp):
             ("Wi-Fi Config", "wifi_client", "WifiClient"),
             ("Sponsors", "sponsors", "Sponsors"),
             ("Battery", "battery", "Battery"),
+            ("uGUI Demo", "ugui_demo", "uGUIDemo")
         ]
         core_apps = []
         for core_app in core_app_info:
@@ -105,7 +103,6 @@ class Launcher(MenuApp):
     def on_start(self):
         super().on_start()
         self.window.set_choices(self.choices, redraw=False)
-        self.buttons.on_press(tidal.BUTTON_B, self.rotate)
         self.buttons.on_up_down(tidal.CHARGE_DET, self.charge_state_changed)
         self.buttons.on_press(tidal.BUTTON_FRONT, lambda: self.update_title(redraw=True))
 
@@ -121,7 +118,8 @@ class Launcher(MenuApp):
         if self.show_splash and SPLASHSCREEN_TIME:
             # Don't call super, we don't want MenuApp to call cls yet
             self.buttons.deactivate() # Don't respond to buttons until after splashscreen dismissed
-            tidal.display.bitmap(emf_png, 0, 0)
+            (w, h, buf) = lodepng.decode565(emf_png.DATA)
+            tidal.display.blit_buffer(buf, 0, 0, w, h)
             self.after(SPLASHSCREEN_TIME, lambda: self.dismiss_splash())
         else:
             self.update_title(redraw=False)
@@ -153,9 +151,7 @@ class Launcher(MenuApp):
             f.write(str(self.window.focus_idx()))
         get_scheduler().switch_app(app)
 
-    def rotate(self):
-        self.set_rotation((self.get_rotation() + 90) % 360)
-
     def charge_state_changed(self, charging):
-        self.update_title(redraw=True)
+        if not self.show_splash:
+            self.update_title(redraw=True)
         get_scheduler().usb_plug_event(charging)

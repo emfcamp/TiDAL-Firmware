@@ -8,11 +8,14 @@ class TextWindow:
     RIGHT_ARROW = '\x1A'
     LEFT_ARROW = '\x1B'
 
+    DEFAULT_BG = tidal.color565(0, 0, 0x60)
+    DEFAULT_FG = tidal.WHITE
+
     def __init__(self, bg=None, fg=None, title=None, font=None, buttons=None):
         if bg is None:
-            bg = tidal.BLUE
+            bg = self.DEFAULT_BG
         if fg is None:
-            fg = tidal.WHITE
+            fg = self.DEFAULT_FG
         if font is None:
             font = default_font
         self.bg = bg
@@ -88,13 +91,8 @@ class TextWindow:
         self.draw_text(text, xpos, ypos, fg, bg)
 
     def draw_text(self, text, xpos, ypos, fg, bg, font=None):
-        # Replace the non-ASCII £ with the correct encoding for vga font. Oh for
-        # some proper codecs support, or even str.translate...
-        text = text.encode().replace(b'\xC2\xA3', b'\x9C')
-        if font is None:
-            font = self.font
-
-        self.display.text(font, text, xpos, ypos, fg, bg)
+        btext = to_cp437(text)
+        self.display.text(font or self.font, btext, xpos, ypos, fg, bg)
 
     def draw_title(self):
         if self.title:
@@ -161,15 +159,34 @@ class TextWindow:
             result.append("")
         return result
 
+
 class Menu(TextWindow):
+
+    DEFAULT_FOCUS_FG = tidal.BLACK
+    DEFAULT_FOCUS_BG = tidal.CYAN
 
     def __init__(self, bg, fg, focus_bg, focus_fg, title, choices, font=None, buttons=None):
         super().__init__(bg, fg, title, font, buttons)
+        if focus_fg is None:
+            focus_fg = self.DEFAULT_FOCUS_FG
+        if focus_bg is None:
+            focus_bg = self.DEFAULT_FOCUS_BG
         self.focus_fg = focus_fg
         self.focus_bg = focus_bg
         self.choices = choices
         self._focus_idx = 0
         self._top_idx = 0
+        if buttons:
+            buttons.on_press(tidal.JOY_DOWN, lambda: self.set_focus_idx(self.focus_idx() + 1))
+            buttons.on_press(tidal.JOY_UP, lambda: self.set_focus_idx(self.focus_idx() - 1))
+            # For rotation to work, interrupts have to be active on all direction buttons even if just a no-op
+            buttons.on_press(tidal.JOY_LEFT, lambda: None)
+            buttons.on_press(tidal.JOY_RIGHT, lambda: None)
+            def select():
+                if len(self.choices):
+                    self.choices[self.focus_idx()][1]()
+            buttons.on_press(tidal.JOY_CENTRE, select, autorepeat=False)
+            buttons.on_press(tidal.BUTTON_A, select, autorepeat=False)
 
     def draw_item(self, index, focus):
         text = self.choices[index][0]
@@ -177,7 +194,7 @@ class Menu(TextWindow):
         max_chars = self.width_chars() - 1
         if index == self._top_idx and self._top_idx > 0:
             text = text[0:max_chars] + (" " * (max_chars - len(text))) + self.UP_ARROW
-        elif index == self._top_idx + self.get_max_lines() - 1 and len(self.choices) > index + 1:
+        elif index == self._top_idx + self.get_max_items() - 1 and len(self.choices) > index + 1:
             text = text[0:max_chars] + (" " * (max_chars - len(text))) + self.DOWN_ARROW
 
         fg = self.focus_fg if focus else self.fg
@@ -191,14 +208,19 @@ class Menu(TextWindow):
     @property
     def _end_idx(self):
         """One more than the bottom-most index shown on screen"""
-        return self._top_idx + min(self.get_max_lines(), len(self.choices) - self._top_idx)
+        return self._top_idx + min(self.get_max_items(), len(self.choices) - self._top_idx)
+
+    def get_max_items(self):
+        return self.get_max_lines()
 
     def check_focus_visible(self):
+        # Returns true if things needed to be scrolled
+        max_items = self.get_max_items()
         if self._focus_idx < self._top_idx:
             self._top_idx = self._focus_idx
             return True
-        elif self._focus_idx >= self._top_idx + self.get_max_lines():
-            self._top_idx = self._focus_idx - self.get_max_lines() + 1
+        elif self._focus_idx >= self._top_idx + max_items:
+            self._top_idx = self._focus_idx - max_items + 1
             return True
         else:
             return False
@@ -206,7 +228,7 @@ class Menu(TextWindow):
     def set_focus_idx(self, i, redraw=True):
         prev_focus = self._focus_idx
         self._focus_idx = i % len(self.choices)
-        needs_full_redraw = self.check_focus_visible()
+        needs_full_redraw = redraw and self.check_focus_visible()
         if needs_full_redraw:
             self.draw_items()
         elif redraw:
@@ -235,3 +257,90 @@ class Menu(TextWindow):
     def set(self, title, choices, redraw=True):
         self.set_title(title, redraw)
         self.set_choices(choices, redraw)
+
+
+_cp437 = {
+    "Ç": b'\x80',
+    "ü": b'\x81',
+    "é": b'\x82',
+    "â": b'\x83',
+    "ä": b'\x84',
+    "à": b'\x85',
+    "å": b'\x86',
+    "ç": b'\x87',
+    "ê": b'\x88',
+    "ë": b'\x89',
+    "è": b'\x8A',
+    "ï": b'\x8B',
+    "î": b'\x8C',
+    "ì": b'\x8D',
+    "Ä": b'\x8E',
+    "Å": b'\x8F',
+    "É": b'\x90',
+    "æ": b'\x91',
+    "Æ": b'\x92',
+    "ô": b'\x93',
+    "ö": b'\x94',
+    "ò": b'\x95',
+    "û": b'\x96',
+    "ù": b'\x97',
+    "ÿ": b'\x98',
+    "Ö": b'\x99',
+    "Ü": b'\x9A',
+    "¢": b'\x9B',
+    "£": b'\x9C',
+    "¥": b'\x9D',
+    "₧": b'\x9E',
+    "ƒ": b'\x9F',
+    "á": b'\xA0',
+    "í": b'\xA1',
+    "ó": b'\xA2',
+    "ú": b'\xA3',
+    "ñ": b'\xA4',
+    "Ñ": b'\xA5',
+    "ª": b'\xA6',
+    "º": b'\xA7',
+    "¿": b'\xA8',
+    "⌐": b'\xA9',
+    "¬": b'\xAA',
+    "½": b'\xAB',
+    "¼": b'\xAC',
+    "¡": b'\xAD',
+    "«": b'\xAE',
+    "»": b'\xAF',
+    "ß": b'\xE1', # This is actually beta, but looks sufficently like sharp s
+    "€": b'\xEE', # This is actually epsilon, but looks sufficiently like euro
+    "≡": b'\xF0',
+    "±": b'\xF1',
+    "≥": b'\xF2',
+    "≤": b'\xF3',
+    "⌠": b'\xF4',
+    "⌡": b'\xF5',
+    "÷": b'\xF6',
+    "≈": b'\xF7',
+    "°": b'\xF8',
+    "∙": b'\xF9',
+    "·": b'\xFA',
+    "√": b'\xFB',
+    "ⁿ": b'\xFC',
+    "²": b'\xFD',
+    "■": b'\xFE',
+}
+
+def to_cp437(text):
+    if len(text) == 0:
+        # micropy is doing something dodgy with bytes(bytearray()) such that
+        # it's not null terminated whereas everything else accessible with
+        # mp_obj_str_get_str(), including bytes(), is. So shortcirtuit to avoid
+        # that.
+        return bytes()
+
+    result = bytearray()
+    for ch in text:
+        if b := _cp437.get(ch):
+            result += b
+        else:
+            result += ch.encode()
+    # Of course returning a bytearray here messes up as it's not implictly
+    # castable to a char* in mp_obj_str_get_str, but bytes is...
+    return bytes(result)

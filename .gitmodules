@@ -6,7 +6,13 @@
 	url = https://github.com/espressif/esp-iot-solution
 [submodule "st7789"]
 	path = st7789
-	url = git@github.com:russhughes/st7789_mpy.git
+	url = https://github.com/russhughes/st7789_mpy.git
 [submodule "micropython-lib"]
 	path = micropython-lib
-	url = git@github.com:micropython/micropython-lib.git
+	url = https://github.com/micropython/micropython-lib.git
+[submodule "micropython-micro-gui"]
+	path = micropython-micro-gui
+	url = https://github.com/peterhinch/micropython-micro-gui.git
+[submodule "lodepng"]
+	path = lodepng
+	url = https://github.com/lvandeve/lodepng

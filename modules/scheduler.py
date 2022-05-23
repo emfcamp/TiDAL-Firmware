@@ -58,8 +58,10 @@ class Scheduler:
             return
         #print(f"Switching app to {app.get_app_id()}")
 
-        if not app.supports_rotation() and tidal.get_display_rotation():
-            tidal.set_display_rotation(0)
+        if not app.supports_rotation():
+            current = tidal.get_display_rotation()
+            if current == 90 or current == 270:
+                tidal.set_display_rotation(0)
 
         if app.buttons:
             app.buttons.activate()
@@ -97,6 +99,9 @@ class Scheduler:
 
             if self._level < enter_level:
                 break
+
+            if cur := self._current_app:
+                cur.on_tick()
 
             # Work out when we need to sleep until
             now = time.ticks_ms()
