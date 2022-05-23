@@ -39,10 +39,10 @@ class Battery(TextApp):
     def __init__(self):
         super().__init__()
         self.pin = tidal.BUTTON_A
-        self.update_interval_ms = 10000 # Sample every 100ms
+        self.update_interval_ms = 60000 # Sample every
         self.average_discharge = 0
         self.sample_count = 0
-        self.max_time_seconds = 3600 # Maximum expected battery life in seconds
+        self.max_time_seconds = 3600 * 24 * 5 # Maximum expected battery life in seconds
         self.time_remaining_seconds = self.max_time_seconds
         self.adc = ADC(self.pin)
         self.adc.atten(ADC.ATTN_11DB)
@@ -77,7 +77,7 @@ class Battery(TextApp):
 
     def display_graph(self):
         totalTime = self.max_samples * self.update_interval_ms / (60*1000.0)
-        self.window.println(" {:0.0f} Minutes".format(totalTime), 10)
+        self.window.println("Last {:0.0f} Minutes".format(totalTime), 10)
 
         display = self.window.display
         fg = tidal.WHITE
@@ -98,8 +98,6 @@ class Battery(TextApp):
         if x < display.width():
             display.fill_rect(x, y, display.width()-x, height, bg)
 
-
-
     def update_screen(self):
         win = self.window
         win.set_next_line(0)
@@ -111,22 +109,31 @@ class Battery(TextApp):
             return
 
         if self.engineer_mode:
+            win.println("     {:0.2f} % ".format(reading[1]), 0)
             win.println("     Raw: {:0.3g}".format(reading[2]), 1)
             win.println(" Voltage: {:0.3g}".format(reading[0]), 2)
-            win.println("       %: {:0.2f}".format(reading[1]), 3)
         else:
-            win.println("", 1)
-            win.println("   %: {:0.0f}".format(reading[1]), 2)
-            win.println("", 3)
+            win.println("     {:0.0f} % ".format(reading[1]), 1)
         if tidal.CHARGE_DET.value() == 0:
-            win.println(" Charging: Yes", 4)
+            win.println(" Charging: Yes", 3)
             win.println(" ", 5)
             win.println(" ", 6)
         else:
-            win.println(" Charging: No", 4)
+            win.println(" Charging: No", 3)
             if self.sample_timer is not None:
                 win.println(" ", 5)
-                win.println("Remaining: {:0.0f}m".format(self.time_remaining_seconds/60.0), 6)
+                units = "m"
+                scale = 60.0
+                if self.time_remaining_seconds > 3600:
+                    if self.time_remaining_seconds > (3600*24):
+                        scale = 3600*24
+                        units = "d"
+                    else:
+                        scale = 3600.0
+                        units = "h"
+
+                win.println(" Est time: {:0.0f}{}".format(self.time_remaining_seconds/scale, units), 6)
+
             else:
                 win.println(" Press Joystick", 5)
                 win.println("  to monitor", 6)
@@ -158,15 +165,16 @@ class Battery(TextApp):
 
     def change_engineering_mode(self):
         self.engineer_mode = not self.engineer_mode
+        self.window.cls()
         self.update_screen()
 
     def change_monitor_mode(self):
         if self.sample_timer is not None:
             self.stop_monitoring()
-            self.window.cls()
-            self.update_screen()
         else:
             self.start_monitoring()
+        self.window.cls()
+        self.update_screen()
 
     def on_start(self):
         super().on_start()
@@ -189,7 +197,7 @@ class Battery(TextApp):
         self.pin.init(self.pin.IN, None)
         self.update_screen()
         if self.timer is None:
-            self.timer = self.periodic(1000, self.update_screen)
+            self.timer = self.periodic(5000, self.update_screen)
 
     def on_deactivate(self):
         super().on_deactivate()
