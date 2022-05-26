@@ -105,7 +105,7 @@ _LED_PWREN = Pin(_hw["LED_PWREN"], Pin.OUT, value=1)
 LED_DATA = Pin(_hw["LED_DATA"], Pin.OUT)
 
 _LCD_PWR_ALWAYS =  Pin(_hw["LCD_PWR"], Pin.OUT, value=0)
-_LCD_BLEN = Pin(_hw["LCD_BLEN"], Pin.OUT, value=1)
+_LCD_BLEN = Pin(_hw["LCD_BLEN"], Pin.OPEN_DRAIN, value=1)
 
 led=NeoPixel(LED_DATA, 1)
 
