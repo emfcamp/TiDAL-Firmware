@@ -115,31 +115,37 @@ def system_power_off():
     _UVLO_TRIG.on()
 
 def led_power_on(on=True):
-    if(on):
+    if on:
         _LED_PWREN.off()
     else:
         _LED_PWREN.on()
 
+_lcd_is_on = True
+
 def led_power_off():
     led_power_on(False)
 
-
 def lcd_power_on(on=True):
-    if(on):
+    global _lcd_is_on
+    if on:
         display.sleep_mode(0)
         lcd_backlight_on()
     else:
         lcd_backlight_off()
         display.sleep_mode(1)
+    _lcd_is_on = on
 
 def lcd_power_off():
     lcd_power_on(False)
 
+def lcd_is_on():
+    return _lcd_is_on
+
 def lcd_backlight_on(on=True):
-    if(on):
-        _LCD_BLEN.init(mode=Pin.OUT,value=0)
+    if on:
+        _LCD_BLEN.init(mode=Pin.OPEN_DRAIN, value=0)
     else:
-        _LCD_BLEN.init(mode=Pin.IN,pull=Pin.PULL_UP)
+        _LCD_BLEN.init(mode=Pin.IN, pull=Pin.PULL_UP)
         
 def lcd_backlight_off():
     lcd_backlight_on(False)
