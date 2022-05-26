@@ -86,6 +86,20 @@ def fmt_wifi_dbm(val):
 def no_fmt(val):
     return str(val)
 
+BACKLIGHT_CHOICES = (16300, 12288, 8192, 4096, None)
+
+def fmt_backlight(val):
+    if val is None or val < 4096:
+        return "Max"
+    elif val < 8192:
+        return "High"
+    elif val < 12288:
+        return "Medium"
+    elif val < 16300:
+        return "Low"
+    else:
+        return "Min"
+
 class SettingsApp(MenuApp):
 
     TITLE = "Settings"
@@ -117,6 +131,8 @@ class SettingsApp(MenuApp):
             # TODO refactor all default values into settings.py
             self.make_choice("Display sleep", None, "inactivity_time", get_scheduler().get_inactivity_time()//1000, fmt_time,
                 (5, 15, 30, 60, 5*60, 10*60, 30*60)),
+            self.make_choice("Backlight", None, "backlight_pwm", None, fmt_backlight,
+                BACKLIGHT_CHOICES, self.set_backlight),
             self.make_choice("WiFi TX power", None, "wifi_tx_power", wifi.DEFAULT_TX_POWER, fmt_wifi_dbm, (8, 20, 28, 34)),
             self.make_choice("WiFi con timeout", "WiFi connection\ntimeout", "wifi_connection_timeout",
                 wifi.DEFAULT_CONNECT_TIMEOUT, fmt_time, (10, 20, 30, 60, 120)),
@@ -126,7 +142,7 @@ class SettingsApp(MenuApp):
         )
         self.window.set_choices(choices)
 
-    def make_choice(self, title, long_title, name, default, fmt, choices):
+    def make_choice(self, title, long_title, name, default, fmt, choices, set_fn=None):
         text = f"{title}\n{fmt(settings.get(name, default))}"
         def fn():
             items = []
@@ -135,18 +151,26 @@ class SettingsApp(MenuApp):
             for i, val in enumerate(choices):
                 if val == current_val:
                     idx = i
-                items.append((fmt(val), self.make_setparam_fn(name, val)))
+                items.append((fmt(val), set_fn or self.make_setparam_fn(name, val)))
             menu = Menu(self.BG, self.FG, self.FOCUS_BG, self.FOCUS_FG, long_title or title, items, self.FONT, Buttons())
             menu.set_focus_idx(idx, redraw=False)
             menu.buttons.on_press(tidal.BUTTON_FRONT, lambda: self.pop_window(), autorepeat=False)
             self.push_window(menu)
         return (text, fn)
 
+    def set_param_and_dismiss(self, name, value):
+        settings.set(name, value)
+        settings.save()
+        self.pop_window()
+        self.refresh()
+
     def make_setparam_fn(self, name, value):
         # I hate Python variable capture rules so much...
         def fn():
-            settings.set(name, value)
-            settings.save()
-            self.pop_window()
-            self.refresh()
+            self.set_param_and_dismiss(name, value)
         return fn
+
+    def set_backlight(self):
+        self.set_param_and_dismiss("backlight_pwm", BACKLIGHT_CHOICES[self.window.focus_idx()])
+        # This has the side effect of reconfiguring the backlight
+        get_scheduler().reset_inactivity()

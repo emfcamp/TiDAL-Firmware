@@ -337,6 +337,10 @@ STATIC mp_obj_t tidal_set_backlight_pwm(mp_obj_t gpio_obj, mp_obj_t val_obj) {
         err = esp_sleep_pd_config(ESP_PD_DOMAIN_RTC8M, ESP_PD_OPTION_OFF);
         check_esp_err(err);
 
+        // I'm not sure why this is necessary, but it seems to be...
+        err = gpio_set_direction(gpio, GPIO_MODE_OUTPUT);
+        check_esp_err(err);
+
         return mp_const_none;
     }
 
