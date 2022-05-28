@@ -45,6 +45,7 @@ class Scheduler:
         self._timers = []
         self.no_sleep_before = time.ticks_ms() + (settings.get("boot_nosleep_time", 15) * 1000)
         self._wake_lcd_buttons = None
+        self._current_backlight_val = None
 
     def switch_app(self, app):
         """Asynchronously switch to the specified app."""
@@ -183,7 +184,17 @@ class Scheduler:
     def reset_inactivity(self):
         # print("Reset inactivity")
         self._last_activity_time = time.ticks_ms()
-        tidal.lcd_power_on()
+        backlight_val = settings.get("backlight_pwm")
+        if tidal.lcd_is_on():
+            # No need to reconfigure the pin, and don't reconfigure PWM unless
+            # necessary, as this restarts the PWM waveform causing a potential
+            # slight flicker.
+            if backlight_val != self._current_backlight_val:
+                self._current_backlight_val = backlight_val
+                tidal_helpers.set_backlight_pwm(tidal._LCD_BLEN, backlight_val)
+        else:
+            tidal.lcd_power_on()
+            tidal_helpers.set_backlight_pwm(tidal._LCD_BLEN, backlight_val)
 
     @property
     def wake_lcd_buttons(self):

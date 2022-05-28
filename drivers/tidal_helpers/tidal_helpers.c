@@ -12,8 +12,9 @@
 #include "esp32s2/rom/usb/chip_usb_dw_wrapper.h"
 #include "esp32s2/rom/usb/usb_persist.h"
 #include "esp_wpa2.h"
+#include "driver/ledc.h"
 
-static const char *TAG = "tidal_helpers";
+// static const char *TAG = "tidal_helpers";
 
 // Have to redefine this from machine_pin.c, unfortunately
 typedef struct _machine_pin_obj_t {
@@ -305,6 +306,75 @@ STATIC mp_obj_t tidal_esp_wifi_sta_wpa2_ent_set_password(mp_obj_t pass_obj) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(tidal_esp_wifi_sta_wpa2_ent_set_password_obj, tidal_esp_wifi_sta_wpa2_ent_set_password);
 
+// We're hard coding these, meaning there's a risk of overlap if anyone tries to
+// use the machine.PWM micropython class. But, the esp32s3 requirements on all
+// timers having to use the same clock source means any other users already have
+// to be aware of what we're doing here to not break things, so I don't feel too
+// bad about going behind micropython's back in this way. And the only reason
+// we're not using machine.PWM here is that the micropython API does't let us
+// configure the LEDC_USE_RTC8M_CLK clock which is essential to work in light
+// sleep.
+static const ledc_channel_t kBacklightChannel = LEDC_CHANNEL_7;
+static const ledc_timer_t kBacklightTimer = LEDC_TIMER_3;
+
+STATIC mp_obj_t tidal_set_backlight_pwm(mp_obj_t gpio_obj, mp_obj_t val_obj) {
+    gpio_num_t gpio = get_pin(gpio_obj);
+    esp_err_t err = 0;
+    if (val_obj == mp_const_none) {
+        // NOTE(tomsci): Just copying what machine_pwm.c does here...
+        err = ledc_timer_rst(LEDC_LOW_SPEED_MODE, kBacklightTimer);
+        if (err == ESP_ERR_INVALID_STATE) {
+            // Then it's never been set up, so nothing needed
+            return mp_const_none;
+        }
+        check_esp_err(err);
+        err = ledc_stop(LEDC_LOW_SPEED_MODE, kBacklightChannel, 0);
+        check_esp_err(err);
+        // Disable ledc signal for the pin
+        gpio_matrix_out(gpio, LEDC_LS_SIG_OUT0_IDX + kBacklightChannel, false, true);
+
+        // And finally, we can disable the RTC8 clock in lightsleep
+        err = esp_sleep_pd_config(ESP_PD_DOMAIN_RTC8M, ESP_PD_OPTION_OFF);
+        check_esp_err(err);
+
+        // I'm not sure why this is necessary, but it seems to be...
+        err = gpio_set_direction(gpio, GPIO_MODE_OUTPUT);
+        check_esp_err(err);
+
+        return mp_const_none;
+    }
+
+    ledc_channel_config_t channel_cfg = {
+        .gpio_num = gpio,
+        .speed_mode = LEDC_LOW_SPEED_MODE,
+        .channel = kBacklightChannel,
+        .intr_type = LEDC_INTR_DISABLE,
+        .timer_sel = kBacklightTimer,
+        .duty = mp_obj_get_int(val_obj),
+    };
+    err = ledc_channel_config(&channel_cfg);
+    check_esp_err(err);
+
+    ledc_timer_config_t timer_cfg = {
+        .speed_mode = LEDC_LOW_SPEED_MODE,
+        .duty_resolution = LEDC_TIMER_14_BIT,
+        .timer_num = kBacklightTimer,
+        .freq_hz = 100,
+        .clk_cfg = LEDC_USE_RTC8M_CLK, // This is the only clock that can run in lightsleep
+    };
+
+    err = ledc_timer_config(&timer_cfg);
+    check_esp_err(err);
+
+    // This is needed to keep the clock running in lightsleep
+    err = esp_sleep_pd_config(ESP_PD_DOMAIN_RTC8M, ESP_PD_OPTION_ON);
+    check_esp_err(err);
+
+    return mp_const_none;
+
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_2(tidal_set_backlight_pwm_obj, tidal_set_backlight_pwm);
+
 STATIC const mp_rom_map_elem_t tidal_helpers_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_ota) },
     { MP_ROM_QSTR(MP_QSTR_get_variant), MP_ROM_PTR(&tidal_helper_get_variant_obj) },
@@ -326,12 +396,13 @@ STATIC const mp_rom_map_elem_t tidal_helpers_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_esp_wifi_sta_wpa2_ent_set_identity), MP_ROM_PTR(&tidal_esp_wifi_sta_wpa2_ent_set_identity_obj) },
     { MP_ROM_QSTR(MP_QSTR_esp_wifi_sta_wpa2_ent_set_username), MP_ROM_PTR(&tidal_esp_wifi_sta_wpa2_ent_set_username_obj) },
     { MP_ROM_QSTR(MP_QSTR_esp_wifi_sta_wpa2_ent_set_password), MP_ROM_PTR(&tidal_esp_wifi_sta_wpa2_ent_set_password_obj) },
-
     { MP_ROM_QSTR(MP_QSTR_ESP_PD_DOMAIN_RTC_PERIPH), MP_ROM_INT(ESP_PD_DOMAIN_RTC_PERIPH) },
+    { MP_ROM_QSTR(MP_QSTR_ESP_PD_DOMAIN_RTC8M), MP_ROM_INT(ESP_PD_DOMAIN_RTC8M) },
     { MP_ROM_QSTR(MP_QSTR_ESP_PD_OPTION_OFF), MP_ROM_INT(ESP_PD_OPTION_OFF) },
     { MP_ROM_QSTR(MP_QSTR_ESP_PD_OPTION_ON), MP_ROM_INT(ESP_PD_OPTION_ON) },
     { MP_ROM_QSTR(MP_QSTR_ESP_PD_OPTION_AUTO), MP_ROM_INT(ESP_PD_OPTION_AUTO) },
     { MP_ROM_QSTR(MP_QSTR_reboot_bootloader), MP_ROM_PTR(&tidal_helper_reboot_bootloader_obj) },
+    { MP_ROM_QSTR(MP_QSTR_set_backlight_pwm), MP_ROM_PTR(&tidal_set_backlight_pwm_obj) },
 };
 STATIC MP_DEFINE_CONST_DICT(tidal_helpers_module_globals, tidal_helpers_module_globals_table);
 
