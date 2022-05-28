@@ -143,8 +143,12 @@ def lcd_is_on():
 
 def lcd_backlight_on(on=True):
     if on:
+        # print("lcd_backlight_on pin is OUT")
         _LCD_BLEN.init(mode=Pin.OUT, drive=Pin.DRIVE_0, value=0)
+        # This is overwritten somewhere along the line if we try and use BL as a button...
+        tidal_helpers.gpio_sleep_sel(_LCD_BLEN, False)
     else:
+        # print("lcd_backlight_off pin is IN")
         _LCD_BLEN.init(mode=Pin.IN, pull=Pin.PULL_UP)
         
 def lcd_backlight_off():
