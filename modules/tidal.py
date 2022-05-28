@@ -152,13 +152,13 @@ def lcd_backlight_off():
 
 CHARGE_DET = Pin(_hw["CHARGE_DET"], Pin.IN, Pin.PULL_UP)
 
-i2cs = SoftI2C(scl=Pin(_hw["SCL_S"]), sda=Pin(_hw["SDA_S"]))
+i2cs = SoftI2C(scl=Pin(_hw["SCL_S"]), sda=Pin(_hw["SDA_S"]), freq=100000)
 
 i2cp = None
 
 def enable_peripheral_I2C():
     global i2cp
-    i2cp=I2C(scl=Pin(_hw["SCL_P"]), sda=Pin(_hw["SDA_P"]))
+    i2cp=SoftI2C(scl=Pin(_hw["SCL_P"]), sda=Pin(_hw["SDA_P"]))
 
 i2c = i2cs
 
