@@ -17,6 +17,7 @@ else:
     from app_launcher import Launcher
     menu = Launcher()
 
+
 # If we've made it to here, any OTA update has _probably_ gone ok...
 Partition.mark_app_valid_cancel_rollback()
 

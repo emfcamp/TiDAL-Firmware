@@ -1,4 +1,3 @@
-import st7789
 import tidal
 from textwindow import TextWindow
 from buttons import Buttons
@@ -21,12 +20,23 @@ class Keyboard(TextWindow):
         " "
     )
 
+    MOD_KEYS = (
+        "¡€.....°..±≈",
+        "èéêëùúûüìíîï",
+        "àáâäåßòóôö«»",
+        "`ÅÄç..ñÑ≤≥¿\n",
+        " "
+    )
+
+    KEY_SETS = (KEYS, SHIFTED_KEYS, MOD_KEYS)
+
     ROW_OFFSETS = (1, 1, 1, 1, 34)
 
     def __init__(self, completion_callback, prompt=None, initial_value="", multiline_allowed=False):
         buttons = Buttons()
         super().__init__(tidal.BLACK, tidal.WHITE, None, None, buttons)
-        self.shifted = False
+        self.keyset = 0
+        self.last_keyset_used = 0
         self.x = 0
         self.y = 0
         self.completion_callback = completion_callback
@@ -35,7 +45,7 @@ class Keyboard(TextWindow):
         buttons.on_press(tidal.JOY_UP, lambda : self.set_xy(self.x, self.y - 1))
         buttons.on_press(tidal.JOY_DOWN, lambda : self.set_xy(self.x, self.y + 1))
         buttons.on_press(tidal.JOY_CENTRE, self.click, autorepeat=False)
-        buttons.on_press(tidal.BUTTON_A, self.toggle_shift, autorepeat=False)
+        buttons.on_press(tidal.BUTTON_A, self.switch_keyset, autorepeat=False)
         buttons.on_press(tidal.BUTTON_B, self.backspace)
         buttons.on_press(tidal.BUTTON_FRONT, self.back_button, autorepeat=False)
         self.multiline_allowed = multiline_allowed
@@ -52,19 +62,20 @@ class Keyboard(TextWindow):
 
     @property
     def keys(self):
-        return self.SHIFTED_KEYS if self.shifted else self.KEYS
+        return self.KEY_SETS[self.keyset]
     
     def height(self):
-        return self.line_offset + ((self.num_text_lines + 1) * (self.font.HEIGHT + 1)) + len(self.KEYS) * self.key_height + 1
+        return self.line_offset + ((self.num_text_lines + 2) * self.line_height()) + len(self.KEYS) * self.key_height + 1
 
     def draw_key(self, x, y, focussed):
+        w = self.width()
         key_width = self.key_width
+        xoff = (w - (12 * key_width)) // 2
         k = self.keys[y][x]
         if k == " ":
             key_width = 6 * key_width
         key_height = self.key_height
-        w = self.width()
-        xpos = self.ROW_OFFSETS[y] + x * key_width
+        xpos = xoff + self.ROW_OFFSETS[y] + x * key_width
         ypos = self.get_line_pos(self.num_text_lines + 1) + y * key_height
         if focussed:
             fg = self.bg
@@ -72,7 +83,7 @@ class Keyboard(TextWindow):
         else:
             fg = self.fg
             bg = self.bg
-        boxcol = st7789.color565(128, 128, 128)
+        boxcol = tidal.color565(128, 128, 128)
         self.display.rect(xpos, ypos, key_width + 1, key_height + 1, boxcol)
         if k == " ":
             # Space bar is bigger, draw it with a fill_rect instead
@@ -81,7 +92,7 @@ class Keyboard(TextWindow):
             # There's no glyph in the font we use for a enter key - instead use
             # left-pointing-arrow and draw an extra bit.
             self.display.rect(xpos + 1, ypos + 1, key_width - 1, key_height - 1, bg)
-            self.display.text(self.font, "\x1B", xpos + 2, ypos + 2, fg, bg)
+            self.display.text(self.font, self.LEFT_ARROW, xpos + 2, ypos + 2, fg, bg)
             self.display.vline(xpos + 8, ypos + 2, 4, fg)
         else:
             self.display.rect(xpos + 1, ypos + 1, key_width - 1, key_height - 1, bg)
@@ -94,17 +105,27 @@ class Keyboard(TextWindow):
             key_height -= 1
         if x == 0:
             # First key, fill preceding gap
-            if self.ROW_OFFSETS[y] > 0:
-                self.display.fill_rect(0, ypos, self.ROW_OFFSETS[y], key_height + 1, self.bg)
+            if xoff + self.ROW_OFFSETS[y] > 0:
+                self.display.fill_rect(0, ypos, xoff + self.ROW_OFFSETS[y], key_height + 1, self.bg)
         if x + 1 == len(self.keys[y]):
             # Last key, fill end gap
             xpos += key_width + 1
-            self.display.fill_rect(xpos, ypos, self.width() - xpos, key_height + 1, self.bg)
+            self.display.fill_rect(xpos, ypos, w - xpos, key_height + 1, self.bg)
 
     def redraw(self):
         self.draw_title()
         self.draw_textarea()
         self.draw_keys()
+
+        w = 12 * self.key_width
+        xoff = (self.width() - w) // 2
+        ypos = self.get_line_pos(self.num_text_lines + 1) + len(self.KEYS) * self.key_height + 1
+        col = tidal.color565(128, 128, 128)
+        self.display.fill_rect(0, ypos, self.width(), self.line_height(), self.bg)
+        self.display.text(self.font, b'B=\x1B A=shift', xoff, ypos + 1, col, self.bg)
+        # And show an "OK" with line pointing to BUTTON_FRONT, if in normal orientation
+        if tidal.get_display_rotation() == 0:
+            self.display.text(self.font, b'\xDAOK', xoff + w - (3 * self.font.WIDTH), ypos + 1, col, self.bg)
 
     def draw_textarea(self):
         lines = self.flow_lines(self.text)
@@ -123,12 +144,12 @@ class Keyboard(TextWindow):
             for x in range(len(row)):
                 self.draw_key(x, y, x == self.x and y == self.y)
 
-    def set_shift(self, flag):
-        self.shifted = flag
-        self.redraw()
-
-    def toggle_shift(self, _):
-        self.set_shift(not self.shifted)
+    def switch_keyset(self):
+        if self.keyset and self.last_keyset_used == self.keyset:
+            self.keyset = 0
+        else:
+            self.keyset = (self.keyset + 1) % len(self.KEY_SETS)
+        self.draw_keys()
 
     def set_xy(self, x, y):
         self.draw_key(self.x, self.y, False)
@@ -141,6 +162,7 @@ class Keyboard(TextWindow):
         if not self.multiline_allowed and k == "\n":
             self.completion_callback(self.text)
         else:
+            self.last_keyset_used = self.keyset
             self.set_text(self.text + k, redraw=True)
 
     def backspace(self):

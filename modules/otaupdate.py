@@ -12,18 +12,15 @@ import wifi
 # But it acts sufficiently like it does, to satisfy the app launcher
 class OtaUpdate:
     
-    title = "Firmware Update"
     buttons = None
     started = False
+    sync = False
     
-    BG = MAGENTA
-    FG = WHITE
-
-    confirmed = False
-
     def run_sync(self):
+        self.sync = True
         self.on_start()
         self.on_activate()
+        self.sync = False # Reset in case we're subsequently re-run from Launcher
 
     def get_app_id(self):
         return "otaupdate"
@@ -32,11 +29,24 @@ class OtaUpdate:
         # Only needed once the app returns to the scheduler having completed
         return False
 
+    def supports_rotation(self):
+        return False
+
     def on_start(self):
-        self.window = textwindow.TextWindow(self.BG, self.FG, self.title)
+        self.window = textwindow.TextWindow(MAGENTA, WHITE, "Firmware Update")
+
+    def wait_for_a(self):
+        while True:
+            if BUTTON_A.value() == 0:
+                return True
+            elif BUTTON_FRONT.value() == 0:
+                if not self.sync:
+                    import scheduler
+                    scheduler.get_scheduler().switch_app(None)
+                return False
+            time.sleep(0.1)
 
     def on_activate(self):
-        set_display_rotation(0)
         window = self.window
         window.cls()
 
@@ -59,42 +69,39 @@ class OtaUpdate:
         window.println("Press [A] to")
         window.println("check updates.")
 
-        while BUTTON_A.value() == 1:
-            time.sleep(0.2)
-
-        window.clear_from_line(line)
-        self.connect()
+        if self.wait_for_a():
+            window.clear_from_line(line)
+            self.connect()
 
     def connect(self):
         window = self.window
         line = window.get_next_line()
 
-        if not wifi.is_configured_sta():
+        ssid = wifi.get_ssid()
+        if not ssid:
             window.println("No WIFI config!")
             return
 
-        if not wifi.isconnected():
-            window.println("Connecting...", line)
+        if not wifi.status():
             wifi.connect()
-
             while True:
-                window.clear_from_line(line)
-                # Give WIFI chance to get IP address
-                for retry in range(0, 15):
-                    stat = wifi.status()
-                    if stat == network.STAT_CONNECTING:
-                        time.sleep(1.0)
-                    else:
-                        break
-
-                if wifi.status() == network.STAT_GOT_IP:
+                window.println("Connecting to", line)
+                window.println(f"{ssid}...", line + 1)
+                if wifi.wait():
+                    # Returning true means connected
                     break
+
+                window.println("WiFi timed out", line)
+                window.println("[A] to retry", line + 1)
+                if not self.wait_for_a():
+                    return
+
+                if wifi.get_sta_status() == network.STAT_CONNECTING:
+                    pass # go round loop and keep waiting
                 else:
-                    window.println("WiFi timed out", line)
-                    window.println("[A] to retry", line + 1)
-                    while BUTTON_A.value() == 1:
-                        time.sleep(0.2)
-                
+                    wifi.disconnect()
+                    wifi.connect()
+
         window.println("IP:")
         window.println(wifi.get_ip())
 
@@ -104,6 +111,7 @@ class OtaUpdate:
         window = self.window
         window.println()
         line = window.get_next_line()
+        self.confirmed = False
 
         retry = True
         while retry:
@@ -118,18 +126,19 @@ class OtaUpdate:
                 window.println("Update failed!")
                 window.println("Error {}".format(e.errno))
                 window.println("[A] to retry")
-                while BUTTON_A.value() == 1:
-                    time.sleep(0.2)
+                if not self.wait_for_a():
+                    result = None
+                    retry = False
 
         if result:
             window.println("Updated OK.")
             window.println("Press [A] to")
             window.println("reboot and")
             window.println("finish update.")
-            while BUTTON_A.value() == 1:
-                time.sleep(0.2)
+            self.wait_for_a()
             machine.reset()
-        # else update was cancelled
+        else:
+            print("Update cancelled")
 
     def progress(self, version, val):
         window = self.window
@@ -146,8 +155,10 @@ class OtaUpdate:
                 line = window.get_next_line()
                 window.println("Press [A] to")
                 window.println("confirm update.")
-                while BUTTON_A.value() == 1:
-                    time.sleep(0.2)
+                if not self.wait_for_a():
+                    print("Cancelling update")
+                    return False
+
                 # Clear confirmation text
                 window.set_next_line(line)
             self.confirmed = True
@@ -156,3 +167,6 @@ class OtaUpdate:
 
         window.progress_bar(window.get_next_line(), val)
         return True
+
+    def on_deactivate(self):
+        pass

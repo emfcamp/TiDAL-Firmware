@@ -17,5 +17,11 @@ target_sources(usermod_tidal_helpers INTERFACE
     ${CMAKE_CURRENT_LIST_DIR}/tidal_helpers.c
 )
 
+
+# I'm sure there's probably a better way to do this, but...
+target_include_directories(usermod_tidal_helpers INTERFACE
+    "$ENV{IDF_PATH}/components/wpa_supplicant/esp_supplicant/include"
+)
+
 # Link our INTERFACE library to the usermod target.
 target_link_libraries(usermod INTERFACE usermod_tidal_helpers)

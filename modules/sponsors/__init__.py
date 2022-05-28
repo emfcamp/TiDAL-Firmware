@@ -2,6 +2,7 @@ import tidal
 from textwindow import TextWindow
 from app import PagedApp
 from buttons import Buttons
+import lodepng
 from . import sponsor1_png
 from . import sponsor2_png
 from . import sponsor3_png
@@ -15,7 +16,10 @@ class ImageWindow(TextWindow):
 
     def redraw(self):
         self.cls()
-        self.display.bitmap(self.img, (self.width() - self.img.WIDTH) // 2, (self.height() - self.img.HEIGHT) // 2)
+        (w, h, buf) = lodepng.decode565(self.img.DATA)
+        x = (self.width() - w) // 2
+        y = (self.height() - h) // 2
+        self.display.blit_buffer(buf, 0, 0, w, h)
 
 class Sponsors(PagedApp):
 
@@ -31,8 +35,4 @@ class Sponsors(PagedApp):
         )
 
     def on_activate(self):
-        # ST7789 does _not_ like trying to render images larger than the screen
-        # in its current rotation... So for now given we have portrait
-        # placeholder data, force the rotation.
-        self.set_rotation(0, redraw=False)
         super().on_activate()

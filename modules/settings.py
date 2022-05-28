@@ -19,6 +19,7 @@ def get(k, default=None):
     return _settings.get(k, default)
 
 def set(k, v):
+    global _modified
     if _settings is None:
         load()
     _settings[k] = v

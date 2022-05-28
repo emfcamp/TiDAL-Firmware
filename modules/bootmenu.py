@@ -1,6 +1,16 @@
 from tidal import *
+
+import machine
 import textwindow
 import time
+
+def wait_for_a():
+    while True:
+        if BUTTON_A.value() == 0:
+            return True
+        elif BUTTON_FRONT.value() == 0:
+            return False
+        time.sleep(0.1)
 
 def run_applauncher():
     import app_launcher
@@ -17,6 +27,12 @@ def run_otaupdate():
     app = otaupdate.OtaUpdate()
     app.run_sync()
 
+def run_download_mode():
+    import downloadmode
+    app = downloadmode.DownloadMode()
+    app.run_sync()
+
+
 def erase_storage():
     from esp32 import Partition
     MP_BLOCKDEV_IOCTL_BLOCK_ERASE = 6
@@ -29,10 +45,8 @@ def erase_storage():
     window.println()
     window.println("BE VERY SURE")
     window.println("ABOUT THIS!")
-    while True:
-        if BUTTON_A.value() == 0:
-            break
-        time.sleep(0.2)
+    if not wait_for_a():
+        return
     window.clear_from_line(0)
     window.println()
 
@@ -55,29 +69,35 @@ def erase_storage():
         vfs_partition.ioctl(MP_BLOCKDEV_IOCTL_BLOCK_ERASE, i)
     window.clear_from_line(line - 1)
     window.println("Erase complete")
-
+    window.println("Press [A] to")
+    window.println("reboot.")
+    wait_for_a()
+    machine.reset()
 
 # Note, this is a minimal app definition that does not rely on IRQs, timers or uasyncio working
+# For consistency, it is structured to look similar to a MenuApp even though it doesn't actually
+# derive from it.
 class BootMenu:
 
-    title = "Recovery Menu"
+    TITLE = "Recovery Menu"
     BG = RED
     FG = WHITE
     FOCUS_FG = RED
     FOCUS_BG = WHITE
 
     # Note, the text for each choice needs to be <= 16 characters in order to fit on screen
-    choices = (
+    CHOICES = (
         ("App Launcher", run_applauncher),
         ("Nosleep Launcher", run_applauncher_nosleep),
         ("Firmware Update", run_otaupdate),
         ("Erase storage",  erase_storage),
         ("Power off (UVLO)", system_power_off),
+        ("USB flashing", run_download_mode),
     )
 
     def main(self):
         print("Showing Recovery Menu")
-        window = textwindow.Menu(self.BG, self.FG, self.FOCUS_BG, self.FOCUS_FG, self.title, self.choices)
+        window = textwindow.Menu(self.BG, self.FG, self.FOCUS_BG, self.FOCUS_FG, self.TITLE, self.CHOICES)
         window.redraw()
         while True:
             if JOY_DOWN.value() == 0:
@@ -85,6 +105,6 @@ class BootMenu:
             elif JOY_UP.value() == 0:
                 window.set_focus_idx(window.focus_idx() - 1)
             elif JOY_CENTRE.value() == 0:
-                self.choices[window.focus_idx()][1]()
-                break
+                window.choices[window.focus_idx()][1]()
+                window.redraw()
             time.sleep(0.2)

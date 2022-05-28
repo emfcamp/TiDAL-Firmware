@@ -1,97 +1,210 @@
-import network
+import network, time, machine
 import settings
-import time
+import tidal_helpers
 
-DEFAULT_RETRY = 5
+_STA_IF = network.WLAN(network.STA_IF)
+_AP_IF  = network.WLAN(network.AP_IF)
 
-interface = None
-_ssid = None
-_password = None
-_ap = None
+DEFAULT_CONNECT_TIMEOUT = 20
+DEFAULT_TX_POWER = 20
+DEFAULT_SSID = "emfcamp-legacy22"
+DEFAULT_USERNAME = "badge"
+DEFAULT_PASSWORD = "badge"
+
+WIFI_AUTH_OPEN = 0
+WIFI_AUTH_WEP = 1
+WIFI_AUTH_WPA_PSK = 2
+WIFI_AUTH_WPA2_PSK = 3
+WIFI_AUTH_WPA_WPA2_PSK = 4
+WIFI_AUTH_WPA2_ENTERPRISE = 5
+WIFI_AUTH_WPA3_PSK = 6
+WIFI_AUTH_WPA2_WPA3_PSK = 7
+WIFI_AUTH_WAPI_PSK = 8
+
+def get_default_ssid():
+    return settings.get("wifi_ssid", DEFAULT_SSID)
+
+def get_default_username():
+    val = settings.get("wifi_wpa2ent_username", None)
+    if val is None and get_default_ssid() == DEFAULT_SSID:
+        # In case of settings.json that doesn't specify wifi_wpa2ent_username
+        val = DEFAULT_USERNAME
+    return val
+
+def get_default_password():
+    return settings.get("wifi_password", DEFAULT_PASSWORD)
+
+def get_sta_status():
+    return _STA_IF.status()
 
 def get_ssid():
-    if _ssid:
-        return _ssid
+    if ssid := _STA_IF.config("essid"):
+        return ssid
     else:
-        return settings.get("wifi_ssid", "badge")
-
-def get_password():
-    if _password:
-        return _password
-    else:
-        return settings.get("wifi_password", "badge")
+        return get_default_ssid()
 
 def get_ip():
-    if isuporconnected():
-        return interface.ifconfig()[0]
+    if status():
+        return ifconfig()[0]
     else:
         return None
 
-def is_configured_sta():
-    return get_ssid() and not settings.get("wifi_ap")
-
-def is_ap():
-    if interface:
-        return not is_sta()
+def accesspoint_get_ip():
+    if accesspoint_status():
+        return accesspoint_ifconfig()[0]
     else:
-        return get_ssid() and settings.get("wifi_ap")
+        return None
 
-def is_sta():
-    # WLAN constructor always returns shared objects so this works
-    return interface == network.WLAN(network.STA_IF)
+def active():
+    return _STA_IF.active()
 
-def isuporconnected():
-    """Returns true if wifi is configured in AP mode, or if connected to a Wi-Fi base station"""
-    if is_sta():
-        return isconnected()
-    else:
-        return interface and interface.active()
+def get_connection_timeout():
+    return settings.get("wifi_connection_timeout", DEFAULT_CONNECT_TIMEOUT)
 
-def isconnected():
-    return interface is not None and interface.isconnected()
+def save_defaults(ssid, password, username):
+    settings.set("wifi_ssid", ssid)
+    settings.set("wifi_wpa2ent_username", username)
+    settings.set("wifi_password", password)
+    settings.save()
 
-def configure_interface():
-    global interface, _ap
-    if _ap is None:
-        _ap = settings.get("wifi_ap")
-    new_interface = network.WLAN(network.AP_IF if _ap else network.STA_IF)
-    if interface and new_interface != interface:
-        interface.active(False)
-    interface = new_interface
-    interface.active(True)
-    if _ap:
-        interface.config(essid=get_ssid(), password=get_password())
-    else:
-        # Unless you set this, connection attempts with bad password never fail
-        interface.config(reconnects=settings.get("wifi_reconnects", DEFAULT_RETRY))
+# Rest of file is adapted from https://github.com/badgeteam/ESP32-platform-firmware/blob/master/firmware/python_modules/shared/wifi.py
+# See license info https://github.com/badgeteam/ESP32-platform-firmware#license-and-information
+
+# STATION MODE
+# ------------
+
+def connect(ssid=None, password=None, username=None):
+    '''
+    Connect to a WiFi network
+    :param ssid: optional, ssid of network to connect to
+    :param password: optional, password of network to connect to
+    :param username: optional, WPA2-Enterprise username of network to connect to
+    '''
+    _STA_IF.active(True)
+    # 20 = 5 dBm according to https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-reference/network/esp_wifi.html?highlight=esp_wifi_set_max_tx_power#_CPPv425esp_wifi_set_max_tx_power6int8_t
+    # Anything above 8 dBm causes too much interference in the crystal circuit
+    # which basically breaks all ability to transmit
+    tidal_helpers.esp_wifi_set_max_tx_power(settings.get("wifi_tx_power", DEFAULT_TX_POWER))
+    if not ssid:
+        ssid = get_default_ssid()
+        username = get_default_username()
+        password = get_default_password()
+    if username:
+        tidal_helpers.esp_wifi_sta_wpa2_ent_set_identity(username)
+        tidal_helpers.esp_wifi_sta_wpa2_ent_set_username(username)
+        tidal_helpers.esp_wifi_sta_wpa2_ent_set_password(password)
+        password = None # Don't pass to WLAN.connect()
+
+    tidal_helpers.esp_wifi_sta_wpa2_ent_enable(username is not None)
+    _STA_IF.connect(ssid, password)
+
+def disconnect():
+    '''
+    Disconnect from the WiFi network
+    '''
+    if _STA_IF.status() != network.STAT_IDLE:
+        _STA_IF.disconnect()
+
+def stop():
+    '''
+    Disconnect from the WiFi network and disable the station interface
+    '''
+    disconnect()
+    _STA_IF.active(False)
 
 def status():
-    if interface:
-        return interface.status()
+    '''
+    Connection status of the station interface
+    :return: boolean, connected
+    '''
+    return _STA_IF.isconnected()
+
+def wait(duration=None):
+    '''
+    Wait until connection has been made to a network using the station interface
+    :return: boolean, connected
+    '''
+    if duration is None:
+        duration = get_connection_timeout()
+    t = duration
+    while not status():
+        if t <= 0:
+            break
+        t -= 1
+        time.sleep(1)
+    return status()
+
+def scan():
+    '''
+    Scan for WiFi networks
+    :return: list, wifi networks [SSID, BSSID, CHANNEL, RSSI, AUTHMODE1, AUTHMODE2, HIDDEN]
+    '''
+    _STA_IF.active(True)
+    return _STA_IF.scan()
+
+def ifconfig(newConfig=None):
+    '''
+    Get or set the interface configuration of the station interface
+    :return: tuple, (ip, subnet, gateway, dns)
+    '''
+    if newConfig:
+        return _STA_IF.ifconfig(newConfig)
     else:
-        return network.STAT_IDLE
+        return _STA_IF.ifconfig()
 
-def connect(ssid=None, password=None):
-    global interface, _ssid, _password, _ap
-    if is_ap() and not ssid:
-        # Asking to connect but not providing non-AP creds
-        print("Cannot call connect() with no SSID when stored creds are for AP mode")
-        return False
+# ACCESS POINT MODE
+# -----------------
 
-    _ap = False
-    if ssid:
-        _ssid = ssid
-        _password = password
+def accesspoint_start(ssid, password=None):
+    '''
+    Create a WiFi access point
+    :param ssid: SSID of the network
+    :param password: Password of the network (optional)
+    '''
+    if password and len(password) < 8:
+        raise Exception("Password too short: must be at least 8 characters long")
+    _AP_IF.active(True)
+    if password:
+        _AP_IF.config(essid=ssid, authmode=network.AUTH_WPA2_PSK, password=password)
+    else:
+        _AP_IF.config(essid=ssid, authmode=network.AUTH_OPEN)
 
-    configure_interface()
+def accesspoint_status():
+    '''
+    Accesspoint status
+    :return: boolean, active
+    '''
+    return _AP_IF.active()
 
-    interface.connect(get_ssid(), get_password())
-    # Note, you're not actually connected at this point. Caller has to wait
-    # until status() returns network.STAT_GOT_IP
-    return True
+def accesspoint_stop():
+    '''
+    Disable the accesspoint
+    '''
+    _AP_IF.active(False)
 
-def save_settings():
-    settings.set("wifi_ap", _ap)
-    settings.set("wifi_ssid", _ssid)
-    settings.set("wifi_password", _password)
-    settings.save()
+def accesspoint_ifconfig(newConfig=None):
+    '''
+    Get or set the interface configuration of the accesspoint interface
+    :return: tuple, (ip, subnet, gateway, dns)
+    '''
+    if newConfig:
+        return _AP_IF.ifconfig(newConfig)
+    else:
+        return _AP_IF.ifconfig()
+
+# EXTRAS
+# -----------------
+
+# NOTE(tomsci): RTC.ntp_sync() not a thing in our micropython version
+
+# def ntp(onlyIfNeeded=True, server='pool.ntp.org'):
+#     '''
+#     Synchronize the system clock with NTP
+#     :return: boolean, synchronized
+#     '''
+#     if onlyIfNeeded and time.time() > 1482192000:
+#         return True #RTC is already set, sync not needed
+#     rtc = machine.RTC()
+#     if not status():
+#         return False # Not connected to a WiFi network
+#     return rtc.ntp_sync(server)
