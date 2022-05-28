@@ -25,6 +25,7 @@ class Launcher(MenuApp):
             ("Wi-Fi Connect", lambda: self.launch("wifi_client", "WifiClient")),
             ("Sponsors", lambda: self.launch("sponsors", "Sponsors")),
             ("Battery", lambda: self.launch("battery", "Battery")),
+            ("Accelerometer", lambda: self.launch("accel_app", "Accel")),
             ("Settings", lambda: self.launch("settings_app", "SettingsApp")),
             # ("Swatch", lambda: self.launch("swatch", "Swatch")),
             ("uGUI Demo", lambda: self.launch("ugui_demo", "uGUIDemo"))

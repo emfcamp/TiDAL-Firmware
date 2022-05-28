@@ -1,5 +1,5 @@
 import machine
-from machine import I2C
+from machine import I2C, SoftI2C
 from machine import Pin
 from machine import SPI
 from neopixel import NeoPixel
@@ -152,7 +152,7 @@ def lcd_backlight_off():
 
 CHARGE_DET = Pin(_hw["CHARGE_DET"], Pin.IN, Pin.PULL_UP)
 
-i2cs = I2C(scl=Pin(_hw["SCL_S"]), sda=Pin(_hw["SDA_S"]))
+i2cs = SoftI2C(scl=Pin(_hw["SCL_S"]), sda=Pin(_hw["SDA_S"]))
 
 i2cp = None
 
