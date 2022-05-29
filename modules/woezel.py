@@ -9,7 +9,8 @@ import consts
 gc.collect()
 
 debug = False
-install_path = None
+# install_path = None
+install_path = "/apps" # TiDAL change
 cleanup_files = []
 gzdict_sz = 16 + 15
 

@@ -12,10 +12,17 @@ import functools
 
 SPLASHSCREEN_TIME = 300 # ms
 
+def path_isfile(path):
+    # Wow totally an elegant way to do os.path.isfile...
+    try:
+        return (os.stat(path)[0] & 0x8000) != 0
+    except:
+        return False
+
 class Launcher(MenuApp):
 
     APP_ID = "menu"
-    TITLE = "EMF 2022 - TiDAL\nBoot Menu"
+    TITLE = "EMF 2022 - TiDAL"
 
     def loadInfo(self, folder, name):
         try:
@@ -28,26 +35,28 @@ class Launcher(MenuApp):
 
     def list_user_apps(self):
         apps = []
-        for folder in sys.path:
-            try:
-                files = os.listdir(folder)
-            except OSError:
-                files = []
-            for name in files:
-                components = [part for part in folder.split("/") if part] + [name]
-                app = {
-                    "path": ".".join(components),
-                    "callable": "main",
-                    "name": name,
-                    "icon": None,
-                    "category": "unknown",
-                    "hidden": False,
-                }
-                metadata = self.loadInfo(folder, name)
-                if metadata:
-                    app.update(metadata)
-                    if not app["hidden"]:
-                        apps.append(app)
+        app_dir = "/apps"
+        try:
+            contents = os.listdir(app_dir)
+        except OSError:
+            # No apps dir full stop
+            return []
+
+        for name in contents:
+            if not path_isfile(f"{app_dir}/{name}/__init__.py"):
+                continue
+            app = {
+                "path": name,
+                "callable": "main",
+                "name": name,
+                "icon": None,
+                "category": "unknown",
+                "hidden": False,
+            }
+            metadata = self.loadInfo(app_dir, name)
+            app.update(metadata)
+            if not app["hidden"]:
+                apps.append(app)
         return apps
 
     def list_core_apps(self):
@@ -87,6 +96,7 @@ class Launcher(MenuApp):
 
     # Boot entry point
     def main(self):
+        sys.path[0:0] = ["/apps"]
         get_scheduler().main(self)
 
     def as_terminal_app(self):
@@ -107,7 +117,7 @@ class Launcher(MenuApp):
         super().on_start()
         self.window.set_choices(self.choices, redraw=False)
         self.buttons.on_up_down(tidal.CHARGE_DET, self.charge_state_changed)
-        self.buttons.on_press(tidal.BUTTON_FRONT, lambda: self.update_title(redraw=True))
+        self.buttons.on_press(tidal.BUTTON_FRONT, self.refresh)
 
         initial_item = 0
         try:
@@ -143,13 +153,14 @@ class Launcher(MenuApp):
         if title != self.window.title:
             self.window.set_title(title, redraw=redraw)
 
-    def launch(self, module_name, app_name):
-        app = self._apps.get(app_name)
+    def launch(self, module_name, fn):
+        app_id = f"{module_name}.{fn}"
+        app = self._apps.get(app_id)
         if app is None:
-            print(f"Creating app {app_name}...")
-            module = __import__(module_name)
-            app = getattr(module, app_name)()
-            self._apps[app_name] = app
+            print(f"Creating app {app_id}...")
+            module = __import__(module_name, None, None, (fn,))
+            app = getattr(module, fn)()
+            self._apps[app_id] = app
         with open("/lastapplaunch.txt", "w") as f:
             f.write(str(self.window.focus_idx()))
         get_scheduler().switch_app(app)
@@ -158,3 +169,8 @@ class Launcher(MenuApp):
         if not self.show_splash:
             self.update_title(redraw=True)
         get_scheduler().usb_plug_event(charging)
+
+    def refresh():
+        self.update_title(False)
+        self.window.set_choices(self.choices, False)
+        self.window.redraw()
