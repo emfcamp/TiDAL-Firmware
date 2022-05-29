@@ -57,9 +57,12 @@ class Launcher(MenuApp):
             ("Torch", "torch", "Torch"),
             ("Logo", "emflogo", "EMFLogo"),
             ("Update Firmware", "otaupdate", "OtaUpdate"),
-            ("Wi-Fi Config", "wifi_client", "WifiClient"),
+            ("Wi-Fi Connect", "wifi_client", "WifiClient"),
             ("Sponsors", "sponsors", "Sponsors"),
             ("Battery", "battery", "Battery"),
+            ("Accelerometer", "accel_app", "Accel"),
+            ("Settings", "settings_app", "SettingsApp"),
+            # ("Swatch", "swatch", "Swatch"),
             ("uGUI Demo", "ugui_demo", "uGUIDemo")
         ]
         core_apps = []

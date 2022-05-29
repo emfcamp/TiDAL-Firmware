@@ -74,6 +74,7 @@ class Buttons:
         elif self._is_registered(button):
             del self._callbacks[k]
             if self.is_active():
+                # print(f"Unregistering {button.pin}")
                 tidal_helpers.set_lightsleep_irq(button.pin, None, None)
 
     def _is_registered(self, button):
@@ -177,6 +178,7 @@ class Buttons:
         self._cancel_autorepeat()
 
         for button in self._callbacks.values():
+            # print(f"Unregistering {button.pin}")
             tidal_helpers.set_lightsleep_irq(button.pin, None, None)
             if button.updown and button.state == 0:
                 # Simulate a button up
