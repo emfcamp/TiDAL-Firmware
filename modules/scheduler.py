@@ -59,7 +59,7 @@ class Scheduler:
         if app == self._current_app:
             # Nothing to do
             return
-        print(f"Switching app to {app.get_app_id()}")
+        #print(f"Switching app to {app.get_app_id()}")
 
         if not app.supports_rotation():
             current = tidal.get_display_rotation()
