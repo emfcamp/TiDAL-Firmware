@@ -7,6 +7,7 @@ import sys
 import ujson
 import os
 import functools
+import settings
 
 def path_isfile(path):
     # Wow totally an elegant way to do os.path.isfile...
@@ -93,7 +94,20 @@ class Launcher(MenuApp):
     # Boot entry point
     def main(self):
         sys.path[0:0] = ["/apps"]
-        get_scheduler().main(self)
+
+        if settings.get("uart_menu_app", True):
+            # Then we run ourselves in a thread and let the terminal be the main thread
+            import _thread
+            import tidal
+            _thread.stack_size(16 * 1024)
+            menu_thread = _thread.start_new_thread(get_scheduler().main, (self,))
+
+            from term_menu import UartMenu
+            term_menu = UartMenu(gts=tidal.system_power_off, pm=None)
+            term_menu.main()
+        else:
+            # Run directly
+            get_scheduler().main(self)
 
     def as_terminal_app(self):
         while True:
@@ -124,6 +138,7 @@ class Launcher(MenuApp):
 
     def on_activate(self):
         self.update_title(redraw=False)
+        self.window.set_choices(self.choices, False)
         super().on_activate()
 
     def update_title(self, redraw):
@@ -154,6 +169,6 @@ class Launcher(MenuApp):
         get_scheduler().usb_plug_event(charging)
 
     def refresh():
-        self.update_title(False)
-        self.window.set_choices(self.choices, False)
+        self.update_title(redraw=False)
+        self.window.set_choices(self.choices, redraw=False)
         self.window.redraw()

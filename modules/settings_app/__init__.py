@@ -100,6 +100,9 @@ def fmt_backlight(val):
     else:
         return "Min"
 
+def fmt_on_off(val):
+    return "On" if val else "Off"
+
 class SettingsApp(MenuApp):
 
     TITLE = "Settings"
@@ -139,6 +142,7 @@ class SettingsApp(MenuApp):
             self.make_choice("Boot sleep delay", None, "boot_nosleep_time", 15, fmt_time,
                 (5, 15, 30, 60, 5*60, 10*60, 30*60, 60*60, 8*60*60)),
             self.make_choice("USB sleep delay", None, "usb_nosleep_time", 15, fmt_time, (15, 30, 60)),
+            self.make_choice("UART menu app", None, "uart_menu_app", True, fmt_on_off, (True, False)),
         )
         self.window.set_choices(choices)
 
