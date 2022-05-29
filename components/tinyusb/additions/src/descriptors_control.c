@@ -202,7 +202,7 @@ uint8_t const *tud_hid_descriptor_report_cb(uint8_t itf)
     }
     #endif
     #if CFG_TUD_U2FHID
-    if (itf == 1) {
+    if (itf == 0+(CFG_TUD_HID_KBD)) {
         return desc_hid_report_2;
     }
     #endif

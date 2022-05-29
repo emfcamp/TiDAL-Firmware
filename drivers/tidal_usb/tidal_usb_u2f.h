@@ -4,6 +4,55 @@
 
 #define TIDAL_CHANNEL 0x81811818 //1 - ask the bill payer's permission
 
+#define U2F_STATUS(s) (s)
+
+// U2F Raw support
+#define MAX_SHORT_RAW_DATA_LENGTH 255
+#define MAX_EXTENDED_RAW_DATA_LENGTH 65535
+typedef struct u2f_raw_request_msg {
+    uint8_t CLA;
+    uint8_t INS;
+    uint8_t P1;
+    uint8_t P2;
+    union {
+        struct {
+            uint8_t LC;
+            uint8_t data[MAX_SHORT_RAW_DATA_LENGTH];
+        } short_form;
+        struct {
+            uint8_t LCH;
+            uint8_t LCM;
+            uint8_t LCL;
+            uint8_t data[MAX_EXTENDED_RAW_DATA_LENGTH];
+        } extended_form;
+        struct {
+            
+        } no_body;
+    };
+} __packed u2f_raw_request_msg;
+
+typedef struct u2f_raw_register_request_body {
+    uint8_t challenge_param[32];
+    uint8_t application_param[32];
+} __packed u2f_raw_register_request_body;
+
+typedef struct u2f_raw_authenticate_request_body {
+    uint8_t challenge_param[32];
+    uint8_t application_param[32];
+    uint8_t key_handle_length;
+    uint8_t key_handle[];
+} __packed u2f_raw_authenticate_request_body;
+
+
+typedef struct arbitrary_size_container {
+    size_t size;
+    uint8_t *data;
+} arbitrary_size_container;
+
+// U2F HIF support
+
+#define REPORT_RING_SIZE 10
+
 typedef struct u2f_hid_msg {
     uint32_t CID;
     union {
@@ -43,3 +92,6 @@ void handle_u2f_init(u2fhid_init_request const* init_request);
 void handle_u2f_msg(uint8_t *buffer, uint16_t bufsize);
 void handle_u2f_wink();
 void u2f_report(u2f_hid_msg *cmd);
+
+void push_report(u2f_hid_msg *msg);
+void pop_and_send_report();
