@@ -4,8 +4,6 @@
 
 #define TIDAL_CHANNEL 0x81811818 //1 - ask the bill payer's permission
 
-#define U2F_STATUS(s) (s)
-
 // U2F Raw support
 #define MAX_SHORT_RAW_DATA_LENGTH 255
 #define MAX_EXTENDED_RAW_DATA_LENGTH 65535
@@ -43,11 +41,6 @@ typedef struct u2f_raw_authenticate_request_body {
     uint8_t key_handle[];
 } __packed u2f_raw_authenticate_request_body;
 
-
-typedef struct arbitrary_size_container {
-    size_t size;
-    uint8_t *data;
-} arbitrary_size_container;
 
 // U2F HIF support
 

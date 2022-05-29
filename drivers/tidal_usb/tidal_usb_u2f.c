@@ -3,6 +3,7 @@
 #include "u2f_hid.h"
 #include "u2f.h"
 #include "esp_log.h"
+#include "u2f_crypto.h"
 #include <unistd.h>
 
 #if CFG_TUD_U2FHID
@@ -169,36 +170,57 @@ void handle_u2f_init(u2fhid_init_request const* init_request) {
 arbitrary_size_container process_register_command(u2f_raw_register_request_body *register_params) {
     ESP_LOGI(TAG, "Allocating container");
     arbitrary_size_container response_data = {
-        .size=199,
-        .data=malloc(199)
+        .size=0,
+        .data=malloc(512)
     };
+    size_t write_head = 0;
+    uint8_t handle = allocate_handle();
+
     // Set reserved byte
     ESP_LOGI(TAG, "Setting header");
-    response_data.data[0] = 0x05;
+    response_data.data[write_head++] = 0x05;
+
     // The next 65 bytes are the pubkey
     ESP_LOGI(TAG, "Setting pubkey");
-    memset(response_data.data + 1, 0xC0, 65);
+    set_pubkey(handle, response_data.data + write_head);
+    write_head += 65;
+
     // Then handle length followed by handle
     ESP_LOGI(TAG, "Setting handle");
-    response_data.data[65] = 0x02;
-    response_data.data[66] = 'H';
-    response_data.data[67] = 'H';
+    response_data.data[write_head++] = 0x01;
+    response_data.data[write_head++] = handle;
+
     // Attestation certificate
     ESP_LOGI(TAG, "Setting cert");
-    char cert[] = "-----BEGIN CERTIFICATE-----\
-BLAH\
------END CERTIFICATE-----";
-    memcpy(response_data.data + 68, cert, strlen(cert));
-    // Now we send the signature
+    // Get the certificate from the secure elefment
+    arbitrary_size_container cert = get_der_certificate(1);
+    // Copy it into the current data stream
+    memcpy(response_data.data + write_head, cert.data, cert.size);
+    write_head += cert.size;
+    // Free the intermediate copy
+    free(cert.data);
+
+    // Create the signature out of 0x00, the register request, key handle and pubkey
     ESP_LOGI(TAG, "Setting signature");
-    memset(response_data.data + 126, 0xE1, 71);
-    
+    uint8_t signature_input[131] = { 0 };
+    signature_input[0] = 0x00;
+    memcpy(signature_input + 1, register_params, 65);
+    signature_input[66] = handle;
+    memcpy(signature_input + 67, response_data.data + 1, 64);
+    arbitrary_size_container signature = get_signature(signature_input);
+    memcpy(response_data.data + write_head, signature.data, signature.size);
+    write_head += signature.size;
+    // Free the intermediate copy
+    free(signature.data);
+
     // Set the status epilogue
-    response_data.data[197] = U2F_SW_NO_ERROR >> 8;
-    response_data.data[198] = U2F_SW_NO_ERROR &  0xFF;
-    ESP_LOGI(TAG, "Done");
+    response_data.data[write_head++] = U2F_SW_NO_ERROR >> 8;
+    response_data.data[write_head++] = U2F_SW_NO_ERROR &  0xFF;
+    ESP_LOGI(TAG, "Built %d byte register response", write_head);
+    response_data.size = write_head;
+    realloc(response_data.data, write_head);
     
-    /*printf("RAW data:");
+    printf("RAW data:");
     for (int i=0;i<response_data.size;i++) {
         if (i%8 == 0) {
             printf("\n");
@@ -207,7 +229,7 @@ BLAH\
         printf("%02x ", response_data.data[i]);
     }
     printf("\n");
-    */
+    /**/
     return response_data;
 }
 
@@ -228,25 +250,39 @@ arbitrary_size_container process_authenticate_command(uint8_t control, u2f_raw_a
 
     ESP_LOGI(TAG, "Allocating container");
     arbitrary_size_container response_data = {
-        .size=79,
-        .data=malloc(79)
+        .size=85,
+        .data=malloc(85)
     };
+    size_t write_head = 0;
+    
     // Set reserved byte
     ESP_LOGI(TAG, "Setting presence bit");
-    response_data.data[0] = 0x01;
+    response_data.data[write_head++] = 0x01;
     // The next 4 bytes are a counter
-    response_data.data[0] = 0x00;
-    response_data.data[0] = 0x00;
-    response_data.data[0] = 0x00;
-    response_data.data[0] = 0x01;
-    // Now we send the signature
-    ESP_LOGI(TAG, "Setting signature");
-    memset(response_data.data + 5, 0xE1, 71);
+    response_data.data[write_head++] = 0x00;
+    response_data.data[write_head++] = 0x00;
+    response_data.data[write_head++] = 0x00;
+    response_data.data[write_head++] = 0x01;
     
+    // Create the signature out of the application parameter, the user presence byte, the counter then the challenge param
+    ESP_LOGI(TAG, "Setting signature");
+    uint8_t signature_input[69] = { 0 };
+    memcpy(signature_input +  0, authenticate_params->application_param, 32);
+    memcpy(signature_input + 32, response_data.data, 5);
+    memcpy(signature_input + 37, authenticate_params->challenge_param, 32);
+    arbitrary_size_container signature = get_signature(signature_input);
+    memcpy(response_data.data + write_head, signature.data, signature.size);
+    write_head += signature.size;
+    // Free the intermediate copy
+    free(signature.data);
+
     // Set the status epilogue
-    response_data.data[77] = U2F_SW_NO_ERROR >> 8;
-    response_data.data[78] = U2F_SW_NO_ERROR &  0xFF;
-    ESP_LOGI(TAG, "Done");
+    response_data.data[write_head++] = U2F_SW_NO_ERROR >> 8;
+    response_data.data[write_head++] = U2F_SW_NO_ERROR &  0xFF;
+    ESP_LOGI(TAG, "Built %d byte authenticate response", write_head);
+    response_data.size = write_head;
+    realloc(response_data.data, write_head);
+
     
     /*printf("RAW data:");
     for (int i=0;i<response_data.size;i++) {
