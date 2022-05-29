@@ -5,7 +5,8 @@ import tidal
 def showMessage(message):
     window = TextWindow(bg=tidal.RED)
     window.cls()
-    window.flow_lines(message)
+    for line in window.flow_lines(message):
+        window.println(line)
 
 def serialWarning():
 	showMessage("This app can only be controlled using the USB serial port!")
