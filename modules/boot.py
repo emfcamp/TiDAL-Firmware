@@ -15,6 +15,11 @@ if tidal.BUTTON_FRONT.value() == 0:
     menu = BootMenu()
     menu.main()
 else:
+    import emf_png
+    import lodepng
+    (w, h, buf) = lodepng.decode565(emf_png.DATA)
+    tidal.display.blit_buffer(buf, 0, 0, w, h)
+
     from app_launcher import Launcher
     menu = Launcher()
 

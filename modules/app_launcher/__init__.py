@@ -2,15 +2,11 @@ import tidal
 import tidal_helpers
 from app import MenuApp
 from scheduler import get_scheduler
-import lodepng
-import emf_png
 import term
 import sys
 import ujson
 import os
 import functools
-
-SPLASHSCREEN_TIME = 300 # ms
 
 def path_isfile(path):
     # Wow totally an elegant way to do os.path.isfile...
@@ -111,7 +107,6 @@ class Launcher(MenuApp):
     def __init__(self):
         super().__init__()
         self._apps = {}
-        self.show_splash = True
 
     def on_start(self):
         super().on_start()
@@ -128,19 +123,8 @@ class Launcher(MenuApp):
         self.window.set_focus_idx(initial_item, redraw=False)
 
     def on_activate(self):
-        if self.show_splash and SPLASHSCREEN_TIME:
-            # Don't call super, we don't want MenuApp to call cls yet
-            self.buttons.deactivate() # Don't respond to buttons until after splashscreen dismissed
-            (w, h, buf) = lodepng.decode565(emf_png.DATA)
-            tidal.display.blit_buffer(buf, 0, 0, w, h)
-            self.after(SPLASHSCREEN_TIME, lambda: self.dismiss_splash())
-        else:
-            self.update_title(redraw=False)
-            super().on_activate()
-
-    def dismiss_splash(self):
-        self.show_splash = False
-        self.on_activate()
+        self.update_title(redraw=False)
+        super().on_activate()
 
     def update_title(self, redraw):
         title = self.TITLE
@@ -166,8 +150,7 @@ class Launcher(MenuApp):
         get_scheduler().switch_app(app)
 
     def charge_state_changed(self, charging):
-        if not self.show_splash:
-            self.update_title(redraw=True)
+        self.update_title(redraw=True)
         get_scheduler().usb_plug_event(charging)
 
     def refresh():
