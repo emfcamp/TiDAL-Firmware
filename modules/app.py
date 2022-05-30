@@ -215,12 +215,18 @@ class PagedApp(App):
         display = tidal.display
         y = display.height() - self.PAGE_FOOTER + 3
         n = len(self.pages)
-        x = (display.width() - ((n - 1) * self.DOTS_SEP)) // 2
+        w = display.width()
+        sep = self.DOTS_SEP
+        if (n - 1) * sep > w:
+            # Tighten dots as much as is feasible
+            sep = max(4, w // (n - 1))
+
+        x = (w - ((n - 1) * sep)) // 2
         for i in range(n):
             if i == self._page:
-                display.fill_circle(x + (self.DOTS_SEP * i), y, 3, self.pages[i].fg)
+                display.fill_circle(x + (sep * i), y, 3, self.pages[i].fg)
             else:
-                display.fill_circle(x + (self.DOTS_SEP * i), y, 1, self.pages[i].fg)
+                display.fill_circle(x + (sep * i), y, 1, self.pages[i].fg)
 
     def on_start(self):
         super().on_start()
@@ -240,10 +246,14 @@ class PagedApp(App):
     def page(self):
         return self._page
 
-    def set_page(self, val):
+    def set_page(self, val, redraw=True):
         self._page = val % len(self.pages)
-        self.set_window(self.pages[self.page])
-        self.draw_dots()
+        if redraw:
+            self.set_window(self.pages[self.page])
+            self.draw_dots()
+        else:
+            self.set_window(self.pages[self.page], activate=False)
+            self.window.buttons.activate()
 
     def on_activate(self):
         super().on_activate()

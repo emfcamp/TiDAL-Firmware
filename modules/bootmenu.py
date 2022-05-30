@@ -74,6 +74,15 @@ def erase_storage():
     wait_for_a()
     machine.reset()
 
+def reset_firstrun():
+    import settings
+    settings.set("first_run_done", False)
+    settings.save()
+    win = textwindow.TextWindow(RED, WHITE)
+    win.println("First run reset.")
+    win.clear_from_line()
+    wait_for_a()
+
 # Note, this is a minimal app definition that does not rely on IRQs, timers or uasyncio working
 # For consistency, it is structured to look similar to a MenuApp even though it doesn't actually
 # derive from it.
@@ -93,6 +102,7 @@ class BootMenu:
         ("Erase storage",  erase_storage),
         ("Power off (UVLO)", system_power_off),
         ("USB flashing", run_download_mode),
+        ("Reset first run", reset_firstrun),
     )
 
     def main(self):

@@ -121,11 +121,11 @@ class Launcher(MenuApp):
     def __init__(self):
         super().__init__()
         self._apps = {}
+        self.first_run_first_activate = not settings.get("first_run_done", False)
 
     def on_start(self):
         super().on_start()
         self.window.set_choices(self.choices, redraw=False)
-        self.buttons.on_up_down(tidal.CHARGE_DET, self.charge_state_changed)
         self.buttons.on_press(tidal.BUTTON_FRONT, self.refresh)
 
         initial_item = 0
@@ -137,6 +137,16 @@ class Launcher(MenuApp):
         self.window.set_focus_idx(initial_item, redraw=False)
 
     def on_activate(self):
+        if self.first_run_first_activate:
+            self.first_run_first_activate = False
+            import sponsors
+            get_scheduler().switch_app(sponsors.Sponsors())
+            return
+
+        # Don't set this until here, it can result in spurious redraws if setup
+        # in on_start or prior to the first_run_first_activate check
+        self.buttons.on_up_down(tidal.CHARGE_DET, self.charge_state_changed)
+
         self.update_title(redraw=False)
         self.window.set_choices(self.choices, False)
         super().on_activate()
@@ -168,7 +178,7 @@ class Launcher(MenuApp):
         self.update_title(redraw=True)
         get_scheduler().usb_plug_event(charging)
 
-    def refresh():
+    def refresh(self):
         self.update_title(redraw=False)
         self.window.set_choices(self.choices, redraw=False)
         self.window.redraw()
