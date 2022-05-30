@@ -116,7 +116,7 @@ class Sponsors(PagedApp):
             self.window.display.fill_rect(x + 4, y, 2, 7, tidal.BLACK)
         else:
             self.window.draw_text("\x10", x, y, tidal.BLACK, tidal.WHITE) # Play triangle
-            self.timer = self.periodic(SLIDESHOW_INTERVAL, self.next_page)
+            self.timer = self.periodic(SLIDESHOW_INTERVAL, lambda: self.set_page(self.page + 1))
 
     def navigate_back_if_not_firstrun(self):
         if not self.is_firstrun():
