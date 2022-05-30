@@ -8,7 +8,7 @@ class TextWindow:
     RIGHT_ARROW = '\x1A'
     LEFT_ARROW = '\x1B'
 
-    DEFAULT_BG = tidal.color565(0, 0, 0x60)
+    DEFAULT_BG = tidal.BRAND_NAVY
     DEFAULT_FG = tidal.WHITE
 
     def __init__(self, bg=None, fg=None, title=None, font=None, buttons=None):
@@ -163,7 +163,7 @@ class TextWindow:
 class Menu(TextWindow):
 
     DEFAULT_FOCUS_FG = tidal.BLACK
-    DEFAULT_FOCUS_BG = tidal.CYAN
+    DEFAULT_FOCUS_BG = tidal.BRAND_CYAN
 
     def __init__(self, bg, fg, focus_bg, focus_fg, title, choices, font=None, buttons=None):
         super().__init__(bg, fg, title, font, buttons)

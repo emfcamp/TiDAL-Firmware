@@ -3,12 +3,30 @@ from machine import I2C, SoftI2C
 from machine import Pin
 from machine import SPI
 from neopixel import NeoPixel
+from colorsys import hsv_to_rgb, rgb_to_hsv
 import st7789
 from st7789 import BLACK, BLUE, RED, GREEN, CYAN, MAGENTA, YELLOW, WHITE, color565
 
 import _tidal_usb as usb
 import tidal_helpers
 
+# Boost the saturation massively to match better on the LCD
+def perceptual_adjust(r, g, b):
+    h, s, v = rgb_to_hsv(r, g, b)
+    s *= 1.6
+    s = min(s, 1.0)
+    r, g, b = hsv_to_rgb(h, s, v)
+    return color565(r, g, b)
+
+BRAND_NAVY = perceptual_adjust(21, 23, 53)
+BRAND_MID_BLUE = perceptual_adjust(18, 63, 139)
+BRAND_CYAN = perceptual_adjust(144, 204, 214)
+BRAND_YELLOW = perceptual_adjust(242, 222, 27)
+BRAND_ORANGE = perceptual_adjust(246, 163, 24)
+BRAND_PINK = perceptual_adjust(228, 20, 126)
+ADDITIONAL_PURPLE = perceptual_adjust(118, 34, 114)
+ADDITIONAL_RED = perceptual_adjust(230, 43, 39)
+ADDITIONAL_DEEP_ORANGE = perceptual_adjust(235, 107, 16)
 
 """
 NOTE: If you are using the automatic lightsleep (on by default) you should never
