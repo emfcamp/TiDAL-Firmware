@@ -69,7 +69,7 @@ class Launcher(MenuApp):
             ("Accelerometer", "accel_app", "Accel"),
             ("Settings", "settings_app", "SettingsApp"),
             # ("Swatch", "swatch", "Swatch"),
-            ("uGUI Demo", "ugui_demo", "uGUIDemo")
+            # ("uGUI Demo", "ugui_demo", "uGUIDemo")
         ]
         core_apps = []
         for core_app in core_app_info:
