@@ -93,6 +93,8 @@ class Sponsors(PagedApp):
         return not settings.get("first_run_done", False)
 
     def set_page(self, val, redraw=True):
+        # Since this is called from a timer, make sure the screen doesn't sleep while we're slideshowing!
+        get_scheduler().reset_inactivity()
         if val % len(self.pages) == 0 and self.is_firstrun():
             settings.set("first_run_done", True)
             settings.save()
