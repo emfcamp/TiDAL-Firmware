@@ -95,7 +95,7 @@ class TextWindow:
         w = self.width()
         if centre:
             xpos = (w - text_width) // 2
-        else if hasattr(self.font, "WIDTH"):
+        elif hasattr(self.font, "WIDTH"):
             xpos = (w - self.width_chars() * self.font.WIDTH) // 2
         else:
             xpos = 0
