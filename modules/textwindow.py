@@ -8,7 +8,7 @@ class TextWindow:
     RIGHT_ARROW = '\x1A'
     LEFT_ARROW = '\x1B'
 
-    DEFAULT_BG = tidal.color565(0, 0, 0x60)
+    DEFAULT_BG = tidal.BRAND_NAVY
     DEFAULT_FG = tidal.WHITE
 
     def __init__(self, bg=None, fg=None, title=None, font=None, buttons=None):
@@ -35,7 +35,14 @@ class TextWindow:
         return self.display.height()
 
     def width_chars(self, font=None):
-        return self.display.width() // (font or self.font).WIDTH
+        font = font or self.font
+        if hasattr(font, "WIDTH"):
+            # Fixed-width fonts have an inherent width
+            font_width = font.WIDTH
+        else:
+            # 1em is a decent approximation for variable
+            font_width = self.display.write_len(font, "m")
+        return self.display.width() // font_width
 
     def height_chars(self, font=None):
         return self.display.height() // (font or self.font).HEIGHT
@@ -81,18 +88,29 @@ class TextWindow:
         self.draw_line(text, ypos, fg, bg, centre)
 
     def draw_line(self, text, ypos, fg, bg, centre):
-        text_width = len(text) * self.font.WIDTH
+        if hasattr(self.font, "WIDTH"):
+            text_width = len(text) * self.font.WIDTH
+        else:
+            text_width = self.display.write_len(self.font, text)
         w = self.width()
         if centre:
             xpos = (w - text_width) // 2
-        else:
+        elif hasattr(self.font, "WIDTH"):
             xpos = (w - self.width_chars() * self.font.WIDTH) // 2
+        else:
+            xpos = 0
         self.display.fill_rect(0, ypos, w, self.line_height(), bg)
         self.draw_text(text, xpos, ypos, fg, bg)
 
     def draw_text(self, text, xpos, ypos, fg, bg, font=None):
-        btext = to_cp437(text)
-        self.display.text(font or self.font, btext, xpos, ypos, fg, bg)
+        font = font or self.font
+        if hasattr(font, "WIDTH"):
+            # This is a monospace font
+            btext = to_cp437(text)
+            self.display.text(font or self.font, btext, xpos, ypos, fg, bg)
+        else:
+            # Proportional
+            self.display.write(font or self.font, text, xpos, ypos, fg, bg)
 
     def draw_title(self):
         if self.title:
@@ -163,7 +181,7 @@ class TextWindow:
 class Menu(TextWindow):
 
     DEFAULT_FOCUS_FG = tidal.BLACK
-    DEFAULT_FOCUS_BG = tidal.CYAN
+    DEFAULT_FOCUS_BG = tidal.BRAND_CYAN
 
     def __init__(self, bg, fg, focus_bg, focus_fg, title, choices, font=None, buttons=None):
         super().__init__(bg, fg, title, font, buttons)
