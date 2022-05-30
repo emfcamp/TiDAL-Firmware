@@ -27,6 +27,11 @@ def run_otaupdate():
     app = otaupdate.OtaUpdate()
     app.run_sync()
 
+def run_post():
+    import post
+    app = post.PowerOnSelfTest()
+    app.run_sync()
+
 def run_download_mode():
     import downloadmode
     app = downloadmode.DownloadMode()
@@ -87,6 +92,7 @@ class BootMenu:
 
     # Note, the text for each choice needs to be <= 16 characters in order to fit on screen
     CHOICES = (
+        ("Self test", run_post),
         ("App Launcher", run_applauncher),
         ("Nosleep Launcher", run_applauncher_nosleep),
         ("Firmware Update", run_otaupdate),
