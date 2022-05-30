@@ -231,6 +231,8 @@ class PagedApp(App):
             # Add our navigation buttons to whatever the page windows may have defined
             page.buttons.on_press(tidal.JOY_LEFT, lambda: self.set_page(self.page - 1))
             page.buttons.on_press(tidal.JOY_RIGHT, lambda: self.set_page(self.page + 1))
+            page.buttons.on_press(tidal.JOY_UP, lambda: None)
+            page.buttons.on_press(tidal.JOY_DOWN, lambda: None)
             page.buttons.on_press(tidal.BUTTON_FRONT, self.navigate_back, autorepeat=False)
         self.push_window(self.pages[self.page], activate=False)
 
