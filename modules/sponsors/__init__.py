@@ -4,6 +4,7 @@ from app import PagedApp
 from buttons import Buttons
 import lodepng
 
+from . import sponsored_by_png
 from . import aiven_png
 from . import ardc_png
 from . import codethink_png
@@ -80,7 +81,7 @@ class Sponsors(PagedApp):
         # buttons, sharing a common Buttons instance avoids that.
         shared_buttons = Buttons()
         shared_buttons.on_press(tidal.BUTTON_B, self.flip)
-        pages = []
+        pages = [sponsored_by_png]
         for img in SPONSORS:
             pages.append(ImageWindow(img, shared_buttons))
         self.pages = pages
