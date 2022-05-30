@@ -58,7 +58,7 @@ class UartMenu():
         
     def menu_settings(self):
         items = ["Change nickname", "WiFi configuration", "Update firmware", "< Return to main menu"]
-        callbacks = [self.opt_change_nickname, self.opt_configure_wifi, self.opt_ota, self.menu_main, self.menu_main]
+        callbacks = [self.opt_change_nickname, self.opt_configure_wifi, self.opt_ota_check, self.menu_main, self.menu_main]
         cb = term.menu("Settings", items)
         self.menu = callbacks[cb]
     

@@ -85,7 +85,11 @@ def load():
         categories = json.loads(f.read())
         f.close()
         gc.collect()
-        if (lastUpdate + 900) < int(time.time()):
+        if (lastUpdate + 900) < time.time() or time.time() < 900 or time.time() < lastUpdate:
+            # Refresh the cash if it's been at least 15 minutes since the last refresh
+            # or if we're in the first 15 minutes of all time ;)
+            # or if the last update is in the future
+            # - We don't have RTC set up so the clock resets on each boot
             print("Current repository cache is too old!", lastUpdate + 900, "<", int(time.time()))
             #time.sleep(2)
             return False
