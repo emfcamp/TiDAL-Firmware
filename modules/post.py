@@ -30,7 +30,7 @@ class PowerOnSelfTest:
         self.window = textwindow.TextWindow(self.BG, self.FG, self.title)
         self.timer = 10
         self.window.cls()
-        self.i2c_addresses = []#tidal.i2cs.scan()
+        self.i2c_addresses = tidal.i2cs.scan()
         self.connecting = False
         self.adc = ADC(tidal.BUTTON_A)
         self.adc.atten(ADC.ATTN_11DB)
