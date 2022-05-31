@@ -104,7 +104,10 @@ class PowerOnSelfTest:
             window.println(f"Wifi: {wifi.get_sta_status()}")
             window.println(f"IP: {wifi.get_ip()}")
         try:
-            pos = accelerometer.get_xyz()
+            x,y,z = accelerometer.get_xyz()
         except OSError:
-            pos = None
-        window.println(f"Accel: {pos}")
+            x = y = z = None
+        window.println("Accel")
+        window.println(f"X: {x}")
+        window.println(f"Y: {y}")
+        window.println(f"Z: {z}")
