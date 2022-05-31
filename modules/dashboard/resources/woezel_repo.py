@@ -26,7 +26,7 @@ def setPath(newPath="/cache/woezel"):
     except:
         pass
 
-def _showProgress(msg, error=False, icon_wifi=False):
+def showProgress(msg, error=False, icon_wifi=False):
     term.header(True, "Installer")
     print(msg)
     icon = "/media/busy.png"
@@ -36,7 +36,7 @@ def _showProgress(msg, error=False, icon_wifi=False):
         icon = "/media/wifi.png"
     #easydraw.messageCentered(msg, False, icon)
 
-def update():
+def update(_showProgress=showProgress):
     global path, categories, lastUpdate
     if not wifi.status():
         _showProgress("Connecting to WiFi...", False, True)
