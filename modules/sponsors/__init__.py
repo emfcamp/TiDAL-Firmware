@@ -9,6 +9,7 @@ from scheduler import get_scheduler
 SPONSORS = (
     "syndicate_systems_png",
     "pcbgogo_png",
+    "espressif_png",
     "google_png",
     "lucid_png",
     "twilio_png",
