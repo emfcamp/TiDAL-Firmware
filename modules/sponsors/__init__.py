@@ -68,6 +68,7 @@ class Sponsors(PagedApp):
             pages.append(ImageWindow(img, shared_buttons))
         self.pages = pages
         self.timer = None
+        self.entry_orientation = None
 
     def supports_rotation(self):
         return True
@@ -79,6 +80,7 @@ class Sponsors(PagedApp):
     def on_activate(self):
         r = self.get_rotation()
         if r != 90 and r != 270:
+            self.entry_orientation = r
             self.set_rotation(270, redraw=False)
         super().on_activate()
 
@@ -88,6 +90,9 @@ class Sponsors(PagedApp):
         if self.timer:
             self.timer.cancel()
             self.timer = None
+        if self.entry_orientation is not None:
+            self.set_rotation(self.entry_orientation, redraw=False)
+            self.entry_orientation = None
         super().on_deactivate()
 
     def is_firstrun(self):
@@ -99,7 +104,6 @@ class Sponsors(PagedApp):
         if val % len(self.pages) == 0 and self.is_firstrun():
             settings.set("first_run_done", True)
             settings.save()
-            self.set_rotation(0, redraw=False)
             super().set_page(0, redraw=False)
             self.pages[0].cls()
             get_scheduler().switch_app(None)
