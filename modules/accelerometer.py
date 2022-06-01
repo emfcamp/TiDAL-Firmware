@@ -35,7 +35,7 @@ def write(reg, val):
     i2c.writeto_mem(DEVICE_ADDR, reg, bytes((val,)))
 
 def init():
-    global _inited
+    global _inited, _active
     write(REG_RESET, 0xB6)
     time.sleep(0.2)
     write(REG_RESET, 0)
@@ -53,6 +53,7 @@ def init():
     # write(REG_STEP_CONF_4, 0) # STEP_START_CNT, STEP_COUNT_PEAK, STEP_COUNT_P2P
 
     _inited = True
+    _active = True
 
 def sleep():
     global _active
