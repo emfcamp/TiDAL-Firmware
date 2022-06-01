@@ -94,9 +94,9 @@ def reset_firstrun():
 class BootMenu:
 
     TITLE = "Recovery Menu"
-    BG = RED
+    BG = BRAND_ORANGE
     FG = WHITE
-    FOCUS_FG = RED
+    FOCUS_FG = ADDITIONAL_DEEP_ORANGE
     FOCUS_BG = WHITE
 
     # Note, the text for each choice needs to be <= 16 characters in order to fit on screen
