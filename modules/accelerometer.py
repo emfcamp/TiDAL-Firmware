@@ -3,6 +3,7 @@ import time
 import ustruct
 
 _inited = False
+_active = False
 
 # See https://github.com/emfcamp/TiDAL-Hardware/blob/main/datasheets/2004281102_QST-QMA7981_C457290.pdf
 
@@ -45,18 +46,31 @@ def init():
     write(REG_BW, 0xE0 | DIV_1935)
 
     # None of these actually seem to work...
-    write(REG_STEP_CONF_0, 0x82) # STEP_SAMPLE_CNT=?
-    write(REG_STEP_CONF_1, 0x80) # STEP_PRECISION=?
-    write(REG_STEP_CONF_2, 1) # STEP_TIME_LOW=?
-    write(REG_STEP_CONF_3, 0xFF) # STEP_TIME_UP=?
-    write(REG_STEP_CONF_4, 0) # STEP_START_CNT, STEP_COUNT_PEAK, STEP_COUNT_P2P
+    # write(REG_STEP_CONF_0, 0x82) # STEP_SAMPLE_CNT=?
+    # write(REG_STEP_CONF_1, 0x80) # STEP_PRECISION=?
+    # write(REG_STEP_CONF_2, 1) # STEP_TIME_LOW=?
+    # write(REG_STEP_CONF_3, 0xFF) # STEP_TIME_UP=?
+    # write(REG_STEP_CONF_4, 0) # STEP_START_CNT, STEP_COUNT_PEAK, STEP_COUNT_P2P
 
     _inited = True
 
-def get_step_count():
+def sleep():
+    global _active
+    if _inited and _active:
+        print("Accelerometer sleep")
+        write(REG_PM, MCLK_50KHZ)
+        _active = False
+
+def check_active():
+    global _active
     if not _inited:
         init()
+    if not _active:
+        write(REG_PM, 0xC0 | MCLK_50KHZ)
+        _active = True
 
+def get_step_count():
+    check_active()
     data = i2c.readfrom_mem(DEVICE_ADDR, REG_STEP_CNT_0, 2)
     data2 = i2c.readfrom_mem(DEVICE_ADDR, REG_STEP_CNT_2, 1)
     return data[0] + (data[1] << 8) + (data2[0] << 16)
@@ -69,8 +83,7 @@ def _read_val(bytes):
     return (raw * _scale)/ (1 << 13);
 
 def get_xyz():
-    if not _inited:
-        init()
+    check_active()
 
     rawdata = i2c.readfrom_mem(DEVICE_ADDR, REG_DXL, 6)
     x = _read_val(rawdata[0:2])

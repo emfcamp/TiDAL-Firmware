@@ -90,7 +90,8 @@ class Scheduler:
         self.reset_inactivity()
         self.enter()
 
-    def enter(self): 
+    def enter(self):
+        import accelerometer
         first_time = True
         self._level += 1
         enter_level = self._level
@@ -148,6 +149,9 @@ class Scheduler:
                     # wakes the screen, even ones the app hasn't registered an
                     # interrupt for.
                     self.wake_lcd_buttons.activate()
+
+                    # Other power management actions we want to do before display off
+                    accelerometer.sleep()
 
                 # Make sure any debug prints show up on the UART
                 tidal_helpers.uart_tx_flush(0)
