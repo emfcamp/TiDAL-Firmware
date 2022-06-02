@@ -187,11 +187,11 @@ i2c = i2cs
 _LCD_CS = Pin(_hw["LCD_CS"], Pin.OUT)
 _LCD_CLK = Pin(_hw["LCD_CLK"])
 _LCD_DIN = Pin(_hw["LCD_DIN"])
-_LCD_SPI = SPI(2, baudrate=40000000, polarity=1, sck=_LCD_CLK, mosi=_LCD_DIN)
+_LCD_SPI = SPI(2, baudrate=40000000, polarity=0, sck=_LCD_CLK, mosi=_LCD_DIN)
 
 _LCD_DC = Pin(_hw["LCD_DC"], Pin.OUT)
 
-display = st7789.ST7789(_LCD_SPI, 135, 240, reset=_LCD_RESET, dc=_LCD_DC, rotation=2)
+display = st7789.ST7789(_LCD_SPI, 135, 240, cs=_LCD_CS, reset=_LCD_RESET, dc=_LCD_DC, rotation=2)
 
 def init_lcd():
     _LCD_PWR_ALWAYS.off() # this is mandatory even if LCD is disabled using lcd_power_off() - having this pin high significantly increases power consumption
