@@ -1,5 +1,5 @@
 diff --git a/st7789/st7789.c b/st7789/st7789.c
-index 98ab4c8..3c50343 100644
+index 98ab4c8..506bd3e 100644
 --- a/st7789/st7789.c
 +++ b/st7789/st7789.c
 @@ -146,6 +146,11 @@ STATIC void write_cmd(st7789_ST7789_obj_t *self, uint8_t cmd, const uint8_t *dat
@@ -14,17 +14,36 @@ index 98ab4c8..3c50343 100644
  STATIC void set_window(st7789_ST7789_obj_t *self, uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
  {
  	if (x0 > x1 || x1 >= self->width) {
-@@ -1139,13 +1144,51 @@ STATIC mp_obj_t st7789_ST7789_init(mp_obj_t self_in)
+@@ -284,14 +289,14 @@ STATIC mp_obj_t st7789_ST7789_hard_reset(mp_obj_t self_in)
+ {
+ 	st7789_ST7789_obj_t *self = MP_OBJ_TO_PTR(self_in);
+ 
+-	CS_LOW();
++	// CS_LOW();
+ 	RESET_HIGH();
+ 	mp_hal_delay_ms(50);
+ 	RESET_LOW();
+ 	mp_hal_delay_ms(50);
+ 	RESET_HIGH();
+ 	mp_hal_delay_ms(150);
+-	CS_HIGH();
++	// CS_HIGH();
+ 	return mp_const_none;
+ }
+ STATIC MP_DEFINE_CONST_FUN_OBJ_1(st7789_ST7789_hard_reset_obj, st7789_ST7789_hard_reset);
+@@ -1138,14 +1143,52 @@ STATIC mp_obj_t st7789_ST7789_init(mp_obj_t self_in)
+ {
  	st7789_ST7789_obj_t *self = MP_OBJ_TO_PTR(self_in);
  	st7789_ST7789_hard_reset(self_in);
- 	st7789_ST7789_soft_reset(self_in);
+-	st7789_ST7789_soft_reset(self_in);
++	// st7789_ST7789_soft_reset(self_in);
 +
  	write_cmd(self, ST7789_SLPOUT, NULL, 0);
  
 +	mp_hal_delay_ms(120);
 +
-+	// write_cmd_1(self, ST7789_MADCTL, madctl_value, 0);
-+	set_rotation(self);
++	write_cmd_1(self, ST7789_MADCTL, 0);
++	// set_rotation(self);
 +
  	const uint8_t color_mode[] = {COLOR_MODE_65K | COLOR_MODE_16BIT};
  	write_cmd(self, ST7789_COLMOD, color_mode, 1);
@@ -68,7 +87,7 @@ index 98ab4c8..3c50343 100644
  
  	if (self->inversion) {
  		write_cmd(self, ST7789_INVON, NULL, 0);
-@@ -1153,9 +1196,19 @@ STATIC mp_obj_t st7789_ST7789_init(mp_obj_t self_in)
+@@ -1153,9 +1196,26 @@ STATIC mp_obj_t st7789_ST7789_init(mp_obj_t self_in)
  		write_cmd(self, ST7789_INVOFF, NULL, 0);
  	}
  
@@ -78,6 +97,13 @@ index 98ab4c8..3c50343 100644
 +	write_cmd(self, ST7789_DISPON, NULL, 0);
 +
 +	// Skipping column/row address set
++	const uint8_t coldata[] = { 0x00, 0x34, 0x00, 0xBA };
++	write_cmd(self, 0x2A, coldata, 4);
++
++	const uint8_t rowdata[] = { 0x00, 0x28, 0x01, 0x17 };
++	write_cmd(self, 0x2B, rowdata, 4);
++
++	write_cmd(self, 0x2C, NULL, 0);
 +
 +	write_cmd(self, 0xD0, data_d0, sizeof(data_d0));
 +	write_cmd(self, 0xD0, data_d0_2, sizeof(data_d0_2));
@@ -91,7 +117,14 @@ index 98ab4c8..3c50343 100644
  
  	const mp_obj_t args[] = {
  		self_in,
-@@ -1169,8 +1222,8 @@ STATIC mp_obj_t st7789_ST7789_init(mp_obj_t self_in)
+@@ -1163,14 +1223,16 @@ STATIC mp_obj_t st7789_ST7789_init(mp_obj_t self_in)
+ 		mp_obj_new_int(0),
+ 		mp_obj_new_int(self->width),
+ 		mp_obj_new_int(self->height),
+-		mp_obj_new_int(BLACK)};
++		mp_obj_new_int(BLUE)};
+ 	st7789_ST7789_fill_rect(6, args);
+ 
  	if (self->backlight)
  		mp_hal_pin_write(self->backlight, 1);
  
@@ -99,6 +132,8 @@ index 98ab4c8..3c50343 100644
 -	mp_hal_delay_ms(150);
 +	// write_cmd(self, ST7789_DISPON, NULL, 0);
 +	// mp_hal_delay_ms(150);
++
++	mp_hal_delay_ms(2000);
  
  	return mp_const_none;
  }
