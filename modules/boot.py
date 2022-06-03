@@ -1,3 +1,5 @@
+import os
+
 import tidal
 import tidal_helpers
 from esp32 import Partition
@@ -21,6 +23,11 @@ else:
 
     from app_launcher import Launcher
     menu = Launcher()
+
+try:
+    os.mkdir("/apps")
+except OSError:
+    pass
 
 # If we've made it to here, any OTA update has _probably_ gone ok...
 Partition.mark_app_valid_cancel_rollback()
