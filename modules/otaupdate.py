@@ -33,7 +33,7 @@ class OtaUpdate:
         return False
 
     def on_start(self):
-        self.window = textwindow.TextWindow(MAGENTA, WHITE, "Firmware Update")
+        self.window = textwindow.TextWindow(BRAND_PINK, WHITE, "Firmware Update")
 
     def wait_for_a(self):
         while True:
@@ -60,10 +60,17 @@ class OtaUpdate:
             window.println("USB flash needed")
             return
 
+        lines = window.flow_lines("OTA requires a  charged battery.USB power is    insufficient.")
+        for line in lines:
+            window.println(line)
+        window.println("")
+
+        version = ota.get_version()
+        if version == "HEAD-HASH-NOTFOUND":
+            version = "Custom"
         window.println("Boot: " + current.info()[4])
         window.println("Next: " + nxt.info()[4])
-        window.println("Version:")
-        window.println(ota.get_version())
+        window.println("Version: " + version)
         window.println()
         line = window.get_next_line()
         window.println("Press [A] to")
