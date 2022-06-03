@@ -8,6 +8,7 @@ import upip_utarfile as tarfile
 import consts
 gc.collect()
 
+print_progress = print
 debug = False
 # install_path = None
 install_path = "/apps" # TiDAL change
@@ -173,25 +174,27 @@ def search_pkg_list(query):
         f.close()
 
 def fatal(msg, exc=None):
-    print("Error:", msg)
+    print_progress("Error:", msg)
     if exc and debug:
         raise exc
-    sys.exit(1)
+    else:
+        raise ValueError(msg)
+    #sys.exit(1)
 
-def install_pkg(pkg_spec, install_path, force_reinstall):
+def install_pkg(pkg_spec, install_path, force_reinstall, progress=print):
     data = get_pkg_metadata(pkg_spec)
     already_installed = False
     try:
         os.stat("%s%s/" % (install_path, pkg_spec))
     except OSError as e:
         if e.args[0] == errno.EINVAL:
-            print("Package %s already installed" % (pkg_spec))
+            progress("Package %s already installed" % (pkg_spec))
             already_installed = True
         else:
-            print("Package %s not yet installed" % (pkg_spec))
+            progress("Package %s not yet installed" % (pkg_spec))
     else:
         # fallback for unix version
-        print("Package %s already installed" % (pkg_spec))
+        progress("Package %s already installed" % (pkg_spec))
         already_installed = True
     latest_ver = data["info"]["version"]
     verf = "%s%s/version" % (install_path, pkg_spec)
@@ -200,13 +203,13 @@ def install_pkg(pkg_spec, install_path, force_reinstall):
             with open(verf, "r") as fver:
                 old_ver = fver.read()
         except:
-            print("No version file found")
+            progress("No version file found")
         else:
             if old_ver == latest_ver:
                 if not force_reinstall:
                     raise LatestInstalledError("Latest version installed")
             else:
-                print("Removing previous rev. %s" % old_ver)
+                progress("Removing previous rev. %s" % old_ver)
                 for rm_file in os.listdir("%s%s" % (install_path, pkg_spec)):
                     os.remove("%s%s/%s" % (install_path, pkg_spec, rm_file))
     packages = data["releases"][latest_ver]
@@ -231,9 +234,11 @@ def install_pkg(pkg_spec, install_path, force_reinstall):
     gc.collect()
     return meta
 
-def install(to_install, install_path=None, force_reinstall=False):
+def install(to_install, install_path=None, force_reinstall=False, progress=print):
     # Calculate gzip dictionary size to use
     global gzdict_sz
+    global print_progress
+    print_progress = progress
     sz = gc.mem_free() + gc.mem_alloc()
     if sz <= 65536:
         # this will probably give errors with some packages, but we
@@ -246,17 +251,17 @@ def install(to_install, install_path=None, force_reinstall=False):
         install_path += "/"
     if not isinstance(to_install, list):
         to_install = [to_install]
-    print("Installing to: " + install_path)
+    progress("Installing to: " + install_path)
     # sets would be perfect here, but don't depend on them
     installed = []
     try:
         while to_install:
             if debug:
-                print("Queue:", to_install)
+                progress("Queue:", to_install)
             pkg_spec = to_install.pop(0)
             if pkg_spec in installed:
                 continue
-            meta = install_pkg(pkg_spec, install_path, force_reinstall)
+            meta = install_pkg(pkg_spec, install_path, force_reinstall, progress=progress)
             installed.append(pkg_spec)
             if debug:
                 print(meta)
@@ -265,7 +270,7 @@ def install(to_install, install_path=None, force_reinstall=False):
                 deps = deps.decode("utf-8").split("\n")
                 to_install.extend(deps)
     except Exception as e:
-        print("Error installing '{}': {}, packages may be partially installed".format(
+        progress("Error installing '{}': {}, packages may be partially installed".format(
                 pkg_spec, e),
             file=sys.stderr)
         raise e

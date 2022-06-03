@@ -26,7 +26,7 @@ class UpdateProgress(TextWindow):
                 woezel_repo.update(_showProgress=self.progress)
             except OSError:
                 pass
-            time.sleep(0.5)
+            time.sleep(3)
         self.return_back()
 
 class InstallProgress(TextWindow):
@@ -34,7 +34,11 @@ class InstallProgress(TextWindow):
     def redraw(self):
         self.cls()
         self.println("Installing...")
-        
+    
+    def progress(self, text, *args, **kwargs):
+        for line in self.flow_lines(text):
+            self.println(line)
+        self.println("")
 
 class AppList(Menu):
     
@@ -56,7 +60,11 @@ class AppList(Menu):
             progress.bg = self.bg
             progress.fg = self.fg
             self.push_window(progress)
-            woezel.install(slug)
+            try:
+                woezel.install(slug, progress=progress.progress)
+            except:
+                pass
+            time.sleep(3)
             self.pop_window()
         return do_install    
     
