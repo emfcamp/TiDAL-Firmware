@@ -234,19 +234,25 @@ class Keyboard(TextWindow):
         elif redraw:
             self.draw_textarea()
 
-    def draw_cursor(self):
-        lines = self.flow_lines(self.text)
+    def get_cursor_xy(self):
+        hard_wrapped_lines = self.text.split("\n")
         x = 0
         y = 0
         chars_walked = 0
-        while chars_walked < self.cursor_pos:
-            line_len = len(lines[y])
-            if chars_walked + line_len >= self.cursor_pos:
-                x = self.cursor_pos - chars_walked
-                break
-            chars_walked += line_len
-            y = y + 1
+        for text in hard_wrapped_lines:
+            for line in self.flow_lines(text):
+                line_len = len(line)
+                if chars_walked + line_len >= self.cursor_pos:
+                    x = self.cursor_pos - chars_walked
+                    return (x, y)
+                chars_walked += line_len
+                y = y + 1
+            chars_walked += 1 # For the newline char
 
+        return (x, y)
+
+    def draw_cursor(self):
+        (x, y) = self.get_cursor_xy()
         self.display.fill_rect(x * self.font.WIDTH + 1, self.get_line_pos(y) - 2,
             2, self.font.HEIGHT + 4, self.CURSOR_COLOUR)
 

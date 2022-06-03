@@ -167,6 +167,9 @@ class TextWindow:
         max_len = self.width_chars(font)
         for line in lines:
             line_len = len(line)
+            if line_len == 0:
+                result.append(line)
+                continue
             i = 0
             while i < line_len:
                 n = min(line_len - i, max_len)
