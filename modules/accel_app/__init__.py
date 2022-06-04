@@ -2,7 +2,7 @@ from app import TextApp
 import tidal
 import accelerometer
 
-class Accel(app.TextApp):
+class Accel(TextApp):
     TITLE = "Accelerometer"
     timer = None
 
