@@ -67,6 +67,7 @@ class Launcher(MenuApp):
             ("Sponsors", "sponsors", "Sponsors"),
             ("Battery", "battery", "Battery"),
             ("Accelerometer", "accel_app", "Accel"),
+            ("Magnetometer", "magnet_app", "Magnetometer"),
             ("Settings", "settings_app", "SettingsApp"),
             # ("Swatch", "swatch", "Swatch"),
             # ("uGUI Demo", "ugui_demo", "uGUIDemo")

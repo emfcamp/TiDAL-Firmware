@@ -1,9 +1,8 @@
 from app import TextApp
-import tidal
-import accelerometer
+import magnetometer
 
-class Accel(app.TextApp):
-    TITLE = "Accelerometer"
+class Magnetometer(TextApp):
+    TITLE = "Magnetometer"
     timer = None
 
     def on_start(self):
@@ -23,10 +22,8 @@ class Accel(app.TextApp):
         win.set_next_line(0)
         win.println()
 
-        (x, y, z) = accelerometer.get_xyz()
-        steps = accelerometer.get_step_count()
+        (x, y, z) = magnetometer.get_xyz()
 
         win.println(f"X: {x:0.3g}")
         win.println(f"Y: {y:0.3g}")
         win.println(f"Z: {z:0.3g}")
-        win.println(f"Steps: {steps}")
