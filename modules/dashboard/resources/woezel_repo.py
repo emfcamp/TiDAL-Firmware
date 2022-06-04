@@ -5,6 +5,7 @@ import time, machine, gc, term, uos, json, urequests, gc, sys, wifi, consts, uss
 path = "/cache/woezel"
 categories = []
 lastUpdate = 0
+updatedThisBoot = False
 
 try:
     uos.mkdir("/cache")
@@ -37,7 +38,7 @@ def showProgress(msg, error=False, icon_wifi=False):
     #easydraw.messageCentered(msg, False, icon)
 
 def update(_showProgress=showProgress):
-    global path, categories, lastUpdate
+    global path, categories, lastUpdate, updatedThisBoot
     if not wifi.status():
         _showProgress("Connecting to WiFi...", False, True)
         wifi.connect()
@@ -66,6 +67,7 @@ def update(_showProgress=showProgress):
         f.write(str(lastUpdate))
         f.close()
         _showProgress("Done!")
+        updatedThisBoot = True
         gc.collect()
         return True
     except BaseException as e:
@@ -85,18 +87,16 @@ def load():
         categories = json.loads(f.read())
         f.close()
         gc.collect()
-        if (lastUpdate + 900) < time.time() or time.time() < 900 or time.time() < lastUpdate:
+        if (lastUpdate + 900) < time.time() or not updatedThisBoot:
             # Refresh the cash if it's been at least 15 minutes since the last refresh
             # or if we're in the first 15 minutes of all time ;)
             # or if the last update is in the future
             # - We don't have RTC set up so the clock resets on each boot
             print("Current repository cache is too old!", lastUpdate + 900, "<", int(time.time()))
-            #time.sleep(2)
             return False
         return True
     except BaseException as e:
         sys.print_exception(e)
-        time.sleep(2)
         return False
 
 def getCategory(slug):

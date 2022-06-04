@@ -24,8 +24,8 @@ class UpdateProgress(TextWindow):
         if not woezel_repo.load():
             try:
                 woezel_repo.update(_showProgress=self.progress)
-            except OSError:
-                pass
+            except:
+                time.sleep(2)
             time.sleep(3)
         self.return_back()
 
@@ -33,7 +33,7 @@ class InstallProgress(TextWindow):
 
     def redraw(self):
         self.cls()
-        self.println("Installing...")
+        self.println("Checking...")
     
     def progress(self, text, *args, **kwargs):
         for line in self.flow_lines(text):
@@ -56,7 +56,8 @@ class AppList(Menu):
         print(f"Install option for {slug}")
         def do_install():
             print(f"installing {slug}")
-            progress = InstallProgress(self.return_back)
+            sub_buttons = Buttons()
+            progress = InstallProgress(self.return_back, buttons=sub_buttons)
             progress.bg = self.bg
             progress.fg = self.fg
             self.push_window(progress)
@@ -64,9 +65,10 @@ class AppList(Menu):
                 woezel.install(slug, progress=progress.progress)
             except:
                 pass
-            time.sleep(3)
-            self.pop_window()
-        return do_install    
+            sub_buttons.on_press(tidal.BUTTON_FRONT, self.pop_window, autorepeat=False)
+            sub_buttons.on_press(tidal.BUTTON_A, self.pop_window, autorepeat=False)
+            progress.progress("Press [A] to return to menu")
+        return do_install
     
     def make_choice(self, item):
         return item['name'], self.installer(item['slug'])
@@ -76,7 +78,7 @@ class AppList(Menu):
         return [
             self.make_choice(application)
             for application in woezel_repo.getCategory(self.category)
-        ]
+        ] + [("Back...", self.pop_window)]
 
 class Store(MenuApp):
     APP_ID = "store"
@@ -86,6 +88,7 @@ class Store(MenuApp):
     def choices(self):
         # Note, the text for each choice needs to be <= 16 characters in order to fit on screen
         choices = [self.make_choice(choice) for choice in woezel_repo.categories]
+        choices = choices + [("Refresh...", self.trigger_update)]
         return choices
 
     def make_choice(self, choice):
@@ -113,6 +116,11 @@ class Store(MenuApp):
 
     def on_activate(self):
         super().on_activate()
+        self.trigger_update(force=False)
+    
+    def trigger_update(self, force=True):
+        if force:
+            woezel_repo.updatedThisBoot = False
         update = UpdateProgress(buttons=Buttons())
         update.buttons.on_press(tidal.BUTTON_FRONT, self.pop_window, autorepeat=False)
         update.return_back = self.return_back

@@ -191,7 +191,7 @@ def install_pkg(pkg_spec, install_path, force_reinstall, progress=print):
             progress("Package %s already installed" % (pkg_spec))
             already_installed = True
         else:
-            progress("Package %s not yet installed" % (pkg_spec))
+            progress("Installing %s..." % (pkg_spec))
     else:
         # fallback for unix version
         progress("Package %s already installed" % (pkg_spec))
@@ -251,7 +251,7 @@ def install(to_install, install_path=None, force_reinstall=False, progress=print
         install_path += "/"
     if not isinstance(to_install, list):
         to_install = [to_install]
-    progress("Installing to: " + install_path)
+    progress("Installation root: " + install_path)
     # sets would be perfect here, but don't depend on them
     installed = []
     try:
@@ -270,10 +270,11 @@ def install(to_install, install_path=None, force_reinstall=False, progress=print
                 deps = deps.decode("utf-8").split("\n")
                 to_install.extend(deps)
     except Exception as e:
-        progress("Error installing '{}': {}, packages may be partially installed".format(
+        progress("'{}' not installed: {}".format(
                 pkg_spec, e),
             file=sys.stderr)
         raise e
+    progress(f"Installed: {"\n  ".join(installed)}")
 
 def display_pkg(packages):
     for package in packages:
