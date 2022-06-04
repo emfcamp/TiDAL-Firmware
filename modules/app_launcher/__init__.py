@@ -156,7 +156,7 @@ class Launcher(MenuApp):
         if not get_scheduler().is_sleep_enabled():
             title += "\nSLEEP DISABLED"
         pwr = tidal.CHARGE_DET.value() == 0 and 1 or 0
-        conn = tidal_helpers.usb_connected() and 1 or 0
+        conn = (tidal_helpers.usb_connected() and not tidal_helpers.usb_suspended()) and 1 or 0
         if pwr or conn:
             title += f"\nUSB pwr={pwr} conn={conn}"
         if title != self.window.title:

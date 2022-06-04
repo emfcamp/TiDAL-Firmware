@@ -70,6 +70,16 @@ STATIC mp_obj_t tidal_helper_usb_connected() {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(tidal_helper_usb_connected_obj, tidal_helper_usb_connected);
 
+STATIC mp_obj_t tidal_helper_usb_suspended() {
+    return tud_suspended() ? mp_const_true : mp_const_false;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(tidal_helper_usb_suspended_obj, tidal_helper_usb_suspended);
+
+STATIC mp_obj_t tidal_helper_usb_mounted() {
+    return tud_mounted() ? mp_const_true : mp_const_false;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(tidal_helper_usb_mounted_obj, tidal_helper_usb_mounted);
+
 STATIC mp_obj_t tidal_esp_sleep_pd_config(mp_obj_t domain_obj, mp_obj_t option_obj) {
     esp_sleep_pd_domain_t domain = (esp_sleep_pd_domain_t)mp_obj_get_int(domain_obj);
     esp_sleep_pd_option_t option = (esp_sleep_pd_option_t)mp_obj_get_int(option_obj);
@@ -379,6 +389,8 @@ STATIC const mp_rom_map_elem_t tidal_helpers_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_ota) },
     { MP_ROM_QSTR(MP_QSTR_get_variant), MP_ROM_PTR(&tidal_helper_get_variant_obj) },
     { MP_ROM_QSTR(MP_QSTR_usb_connected), MP_ROM_PTR(&tidal_helper_usb_connected_obj) },
+    { MP_ROM_QSTR(MP_QSTR_usb_suspended), MP_ROM_PTR(&tidal_helper_usb_suspended_obj) },
+    { MP_ROM_QSTR(MP_QSTR_usb_mounted), MP_ROM_PTR(&tidal_helper_usb_mounted_obj) },
     { MP_ROM_QSTR(MP_QSTR_esp_sleep_enable_gpio_wakeup), MP_ROM_PTR(&tidal_esp_sleep_enable_gpio_wakeup_obj) },
     { MP_ROM_QSTR(MP_QSTR_esp_sleep_pd_config), MP_ROM_PTR(&tidal_esp_sleep_pd_config_obj) },
     { MP_ROM_QSTR(MP_QSTR_gpio_wakeup), MP_ROM_PTR(&tidal_gpio_wakeup_obj) },
