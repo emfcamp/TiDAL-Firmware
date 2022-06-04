@@ -1,9 +1,11 @@
 #include "py/runtime.h"
 #include "py/mphal.h"
 #include "tinyusb.h"
-#include "tusb_cdc_acm.h"
 #include "tusb_console.h"
 #include "tidal_usb_console.h"
+
+#if CONFIG_USB_CDC_ENABLED
+#include "tusb_cdc_acm.h"
 
 // USB serial read callbacks from mp
 static uint8_t usb_rx_buf[CONFIG_TINYUSB_CDC_RX_BUFSIZE];
@@ -35,7 +37,7 @@ void usb_callback_line_state_changed(int itf, cdcacm_event_t *event) {
     
     // If dtr && rts are both true, the CDC is connected to a HOST.
     usb_cdc_connected = dtr && rts;
-    
+
     // TODO: identify pattern change that esp-idf uses to signal bootloader reset
 }
 
@@ -63,13 +65,20 @@ void tidal_configure_usb_console() {
     };
     tusb_cdc_acm_init(&amc_cfg);    
 }
+#else
+void tidal_configure_usb_console() { }
+void usb_tx_strn(const char *str, size_t len) { }
+#endif
+
 
 
 // Expose connected state in Python
 STATIC mp_obj_t tidal_cdc_connected() {
+    #if CONFIG_USB_CDC_ENABLED
     if (usb_cdc_connected)
         return mp_const_true;
     else
+    #endif
         return mp_const_false;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(tidal_cdc_connected_obj, tidal_cdc_connected);
