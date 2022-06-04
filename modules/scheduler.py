@@ -178,10 +178,11 @@ class Scheduler:
         return self.sleep_enabled
 
     def can_sleep(self):
+        usb_connected = tidal_helpers.usb_connected() and not tidal_helpers.usb_suspended()
         return (
             self.sleep_enabled and
             tidal_helpers.get_variant() != "devboard" and
-            not tidal_helpers.usb_connected() and
+            not usb_connected and
             not wifi.active() and
             time.ticks_ms() >= self.no_sleep_before
         )
