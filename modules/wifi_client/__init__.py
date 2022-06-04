@@ -7,7 +7,7 @@ from app import MenuApp
 
 class WifiClient(MenuApp):
     
-    TITLE = "Wi-Fi Connnect"
+    TITLE = "Wi-Fi Connect"
 
     def make_join_fn(self, idx):
         # I will never get on with how Python does variable capture...
