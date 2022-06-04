@@ -58,6 +58,7 @@ class Launcher(MenuApp):
 
     def list_core_apps(self):
         core_app_info = [
+            ("App store", "app_store", "Store"),
             ("USB Keyboard", "hid", "USBKeyboard"),
             ("Name Badge", "hello", "Hello"),
             ("Torch", "torch", "Torch"),
