@@ -56,3 +56,106 @@ index 5a613d244..b1047c230 100644
  static uint8_t usb_cdc_connected;
  
  static void usb_callback_rx(int itf, cdcacm_event_t *event) {
+diff --git a/extmod/modwebrepl.c b/extmod/modwebrepl.c
+index a8430bafb..d5115052b 100644
+--- a/extmod/modwebrepl.c
++++ b/extmod/modwebrepl.c
+@@ -67,6 +67,8 @@ typedef struct _mp_obj_webrepl_t {
+     mp_obj_t cur_file;
+ } mp_obj_webrepl_t;
+ 
++mp_obj_t mp_last_webrepl = NULL;
++
+ STATIC const char passwd_prompt[] = "Password: ";
+ STATIC const char connected_prompt[] = "\r\nWebREPL connected\r\n>>> ";
+ STATIC const char denied_prompt[] = "\r\nAccess denied\r\n";
+@@ -104,7 +106,7 @@ STATIC mp_obj_t webrepl_make_new(const mp_obj_type_t *type, size_t n_args, size_
+     o->data_to_recv = 0;
+     o->state = STATE_PASSWD;
+     write_webrepl_str(args[0], SSTR(passwd_prompt));
+-    return MP_OBJ_FROM_PTR(o);
++    return mp_last_webrepl = MP_OBJ_FROM_PTR(o);
+ }
+ 
+ STATIC void check_file_op_finished(mp_obj_webrepl_t *self) {
+@@ -293,7 +295,7 @@ STATIC mp_uint_t _webrepl_read(mp_obj_t self_in, void *buf, mp_uint_t size, int
+     return -2;
+ }
+ 
+-STATIC mp_uint_t webrepl_write(mp_obj_t self_in, const void *buf, mp_uint_t size, int *errcode) {
++mp_uint_t webrepl_write(mp_obj_t self_in, const void *buf, mp_uint_t size, int *errcode) {
+     mp_obj_webrepl_t *self = MP_OBJ_TO_PTR(self_in);
+     if (self->state == STATE_PASSWD) {
+         // Don't forward output until passwd is entered
+@@ -309,6 +311,7 @@ STATIC mp_uint_t webrepl_ioctl(mp_obj_t o_in, mp_uint_t request, uintptr_t arg,
+     switch (request) {
+         case MP_STREAM_CLOSE:
+             // TODO: This is a place to do cleanup
++            if (o_in == mp_last_webrepl) mp_last_webrepl = NULL;
+             mp_stream_close(self->sock);
+             return 0;
+ 
+diff --git a/ports/esp32/CMakeLists.txt b/ports/esp32/CMakeLists.txt
+index 8b2f09a72..bc4af823a 100644
+--- a/ports/esp32/CMakeLists.txt
++++ b/ports/esp32/CMakeLists.txt
+@@ -18,6 +18,10 @@ if(NOT EXISTS ${MICROPY_BOARD_DIR}/mpconfigboard.cmake)
+     message(FATAL_ERROR "Invalid MICROPY_BOARD specified: ${MICROPY_BOARD}")
+ endif()
+ 
++
++set(IDF_TARGET esp32s3)
++include($ENV{IOT_SOLUTION_PATH}/component.cmake)
++
+ # Include main IDF cmake file.
+ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+ 
+diff --git a/ports/esp32/main.c b/ports/esp32/main.c
+index a1c27c0a2..56b145478 100644
+--- a/ports/esp32/main.c
++++ b/ports/esp32/main.c
+@@ -95,6 +95,7 @@ void mp_task(void *pvParameter) {
+     #else
+     uart_stdout_init();
+     #endif
++
+     machine_init();
+ 
+     size_t mp_task_heap_size;
+diff --git a/ports/esp32/mphalport.c b/ports/esp32/mphalport.c
+index 41e6e6ec0..5e4756532 100644
+--- a/ports/esp32/mphalport.c
++++ b/ports/esp32/mphalport.c
+@@ -107,12 +107,14 @@ void mp_hal_stdout_tx_strn(const char *str, size_t len) {
+     if (release_gil) {
+         MP_THREAD_GIL_EXIT();
+     }
+-    #if CONFIG_USB_ENABLED
+     usb_tx_strn(str, len);
+-    #elif CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG
+-    usb_serial_jtag_tx_strn(str, len);
+-    #else
+-    uart_stdout_tx_strn(str, len);
++    #if MICROPY_PY_WEBREPL
++    extern mp_obj_t mp_last_webrepl;
++    extern mp_uint_t webrepl_write(mp_obj_t, const void *, mp_uint_t, int *);
++    if (mp_last_webrepl) {
++         int err = 0;
++         webrepl_write(mp_last_webrepl, str, len, &err);
++    }
+     #endif
+     if (release_gil) {
+         MP_THREAD_GIL_ENTER();
+diff --git a/ports/esp32/usb.c b/ports/esp32/usb.c
+index 5a613d244..b1047c230 100644
+--- a/ports/esp32/usb.c
++++ b/ports/esp32/usb.c
+@@ -35,7 +35,7 @@
+ 
+ #define CDC_ITF TINYUSB_CDC_ACM_0
+ 
+-static uint8_t usb_rx_buf[CONFIG_USB_CDC_RX_BUFSIZE];
++static uint8_t usb_rx_buf[CONFIG_TINYUSB_CDC_RX_BUFSIZE];
+ static uint8_t usb_cdc_connected;
+ 
+ static void usb_callback_rx(int itf, cdcacm_event_t *event) {
