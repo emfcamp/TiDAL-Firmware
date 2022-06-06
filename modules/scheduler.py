@@ -92,6 +92,7 @@ class Scheduler:
 
     def enter(self):
         import accelerometer
+        import magnetometer
         first_time = True
         self._level += 1
         enter_level = self._level
@@ -152,6 +153,7 @@ class Scheduler:
 
                     # Other power management actions we want to do before display off
                     accelerometer.sleep()
+                    magnetometer.sleep()
 
                 # Make sure any debug prints show up on the UART
                 tidal_helpers.uart_tx_flush(0)
@@ -178,10 +180,11 @@ class Scheduler:
         return self.sleep_enabled
 
     def can_sleep(self):
+        usb_connected = tidal_helpers.usb_connected() and not tidal_helpers.usb_suspended()
         return (
             self.sleep_enabled and
             tidal_helpers.get_variant() != "devboard" and
-            not tidal_helpers.usb_connected() and
+            not usb_connected and
             not wifi.active() and
             time.ticks_ms() >= self.no_sleep_before
         )

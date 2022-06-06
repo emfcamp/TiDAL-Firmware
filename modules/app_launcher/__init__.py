@@ -58,6 +58,7 @@ class Launcher(MenuApp):
 
     def list_core_apps(self):
         core_app_info = [
+            ("App store", "app_store", "Store"),
             ("USB Keyboard", "hid", "USBKeyboard"),
             ("Name Badge", "hello", "Hello"),
             ("Torch", "torch", "Torch"),
@@ -67,6 +68,7 @@ class Launcher(MenuApp):
             ("Sponsors", "sponsors", "Sponsors"),
             ("Battery", "battery", "Battery"),
             ("Accelerometer", "accel_app", "Accel"),
+            ("Magnetometer", "magnet_app", "Magnetometer"),
             ("Settings", "settings_app", "SettingsApp"),
             # ("Swatch", "swatch", "Swatch"),
             # ("uGUI Demo", "ugui_demo", "uGUIDemo")
@@ -156,7 +158,7 @@ class Launcher(MenuApp):
         if not get_scheduler().is_sleep_enabled():
             title += "\nSLEEP DISABLED"
         pwr = tidal.CHARGE_DET.value() == 0 and 1 or 0
-        conn = tidal_helpers.usb_connected() and 1 or 0
+        conn = (tidal_helpers.usb_connected() and not tidal_helpers.usb_suspended()) and 1 or 0
         if pwr or conn:
             title += f"\nUSB pwr={pwr} conn={conn}"
         if title != self.window.title:
