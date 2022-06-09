@@ -1,7 +1,7 @@
 import tidal
 from buttons import Buttons
 from scheduler import get_scheduler
-from textwindow import TextWindow, Menu
+from textwindow import TextWindow, Menu, DialogWindow
 from keyboard import Keyboard
 
 class App:
@@ -119,6 +119,26 @@ class App:
             self.finish_presenting()
         keyboard = Keyboard(completion, prompt, initial_value, multiline_allowed)
         self.present_window(keyboard) # Doesn't return until all finished
+        return result[0]
+
+    def yes_no_prompt(self, title, yes_prompt=None, no_prompt=None):
+        """Returns True or False, or None if the user dismissed the dialog with the back button"""
+        win = self.window
+        result = [None]
+        def yes():
+            result[0] = True
+            self.finish_presenting()
+        def no():
+            result[0] = False
+            self.finish_presenting()
+        buttons = Buttons()
+        buttons.on_press(tidal.BUTTON_FRONT, self.finish_presenting, autorepeat=False)
+        choices = (
+            (yes_prompt or "Yes", yes),
+            (no_prompt or "No", no),
+        )
+        menu = DialogWindow(win.fg, win.bg, None, None, title, choices, None, buttons)
+        self.present_window(menu)
         return result[0]
 
     def set_window(self, new_window, activate=True):

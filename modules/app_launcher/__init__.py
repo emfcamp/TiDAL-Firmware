@@ -1,7 +1,10 @@
 import tidal
 import tidal_helpers
 from app import MenuApp
+from buttons import Buttons
+from textwindow import Menu
 from scheduler import get_scheduler
+import time
 import term
 import sys
 import ujson
@@ -15,6 +18,22 @@ def path_isfile(path):
         return (os.stat(path)[0] & 0x8000) != 0
     except:
         return False
+
+def path_isdir(path):
+    try:
+        return (os.stat(path)[0] & 0x4000) != 0
+    except:
+        return False
+
+def recursive_delete(path):
+    contents = os.listdir(path)
+    for name in contents:
+        entry_path = f"{path}/{name}"
+        if path_isdir(entry_path):
+            recursive_delete(entry_path)
+        else:
+            os.remove(entry_path)
+    os.rmdir(path)
 
 class Launcher(MenuApp):
 
@@ -31,6 +50,7 @@ class Launcher(MenuApp):
             return {}
 
     def list_user_apps(self):
+        ticks = time.ticks_ms()
         apps = []
         app_dir = "/apps"
         try:
@@ -54,6 +74,8 @@ class Launcher(MenuApp):
             app.update(metadata)
             if not app["hidden"]:
                 apps.append(app)
+        elapsed = (time.ticks_ms() - ticks) / 1000
+        print(f"list_user_apps took {elapsed:0.1f}s")
         return apps
 
     def list_core_apps(self):
@@ -87,10 +109,13 @@ class Launcher(MenuApp):
     @property
     def choices(self):
         # Note, the text for each choice needs to be <= 16 characters in order to fit on screen
-        apps = self.list_core_apps() + self.list_user_apps()
+        user_apps = self.list_user_apps()
+        apps = self.list_core_apps() + user_apps
         choices = []
         for app in apps:
             choices.append((app['name'], functools.partial(self.launch, app['path'], app['callable'])))
+        if len(user_apps) > 0:
+            choices.append(("Uninstall...", self.show_uninstall))
         return choices
 
     # Boot entry point
@@ -184,3 +209,37 @@ class Launcher(MenuApp):
         self.update_title(redraw=False)
         self.window.set_choices(self.choices, redraw=False)
         self.window.redraw()
+
+    def show_uninstall(self):
+        menu = UninstallMenu(self)
+        self.push_window(menu)
+
+
+class UninstallMenu(Menu):
+    def __init__(self, launcher):
+        buttons = Buttons()
+        buttons.on_press(tidal.BUTTON_FRONT, self.pop, autorepeat=False)
+        root = launcher.window
+        super().__init__(root.bg, root.fg, root.focus_bg, root.focus_fg, "Select an app to\nuninstall", [], None, buttons)
+        self.launcher = launcher
+
+    def pop(self):
+        self.launcher.pop_window()
+        self.launcher.refresh()
+
+    def redraw(self):
+        choices = []
+        user_apps = self.launcher.list_user_apps()
+        for app in user_apps:
+            choices.append((app["name"], functools.partial(self.uninstall, app)))
+        if len(user_apps) == 0:
+            choices.append(("<No more apps>", lambda: 0))
+        self.set_choices(choices, redraw=False)
+        super().redraw()
+
+    def uninstall(self, app):
+        ret = self.launcher.yes_no_prompt("Really\nuninstall?")
+        if ret:
+            print(f"Uninstalling {app['name']}")
+            recursive_delete(f"/apps/{app['path']}")
+            self.redraw()

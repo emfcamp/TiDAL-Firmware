@@ -281,6 +281,20 @@ class Menu(TextWindow):
         self.set_choices(choices, redraw)
 
 
+class DialogWindow(Menu):
+
+    def __init__(self, bg, fg, focus_bg, focus_fg, title, choices, font=None, buttons=None):
+        super().__init__(bg, fg, focus_bg, focus_fg, title, choices, font, buttons)
+        self.pos_y = (self.display.height() - self.height()) // 2
+
+    def height(self):
+        return self.line_offset + len(self.choices) * self.line_height()
+
+    def redraw(self):
+        self.display.fill_rect(0, self.pos_y - 2, self.width(), 2, self.bg)
+        self.display.fill_rect(0, self.pos_y + self.height(), self.width(), 2, self.bg)
+        super().redraw()
+
 _cp437 = {
     "Ç": b'\x80',
     "ü": b'\x81',
