@@ -271,7 +271,7 @@ class Menu(TextWindow):
         if choices is None:
             choices = ()
         self.choices = choices
-        self._focus_idx = min(self._focus_idx, len(choices)) # Probably no point trying to preserve this?
+        self._focus_idx = max(0, min(self._focus_idx, len(choices) - 1)) # Probably no point trying to preserve this?
         self.check_focus_visible()
         if redraw:
             self.draw_items()
