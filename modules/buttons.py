@@ -180,10 +180,6 @@ class Buttons:
         for button in self._callbacks.values():
             # print(f"Unregistering {button.pin}")
             tidal_helpers.set_lightsleep_irq(button.pin, None, None)
-            if button.updown and button.state == 0:
-                # Simulate a button up
-                button.state = 1
-                self._send_callback_for_button(button.pin_number, False)
 
         _current = None
 
