@@ -5,6 +5,7 @@ from scheduler import get_scheduler
 import settings
 from textwindow import Menu
 import wifi
+import esp32
 
 class SettingsMenu(Menu):
     """Like Menu but supporting 2 lines per item with the 2nd right-aligned"""
@@ -103,6 +104,13 @@ def fmt_backlight(val):
 def fmt_on_off(val):
     return "On" if val else "Off"
 
+def get_nvs_default(nvs, name, default):
+    try:
+        val = nvs.get_i32(name)
+    except OSError:
+        val = default
+    return val
+
 class SettingsApp(MenuApp):
 
     TITLE = "Settings"
@@ -143,6 +151,8 @@ class SettingsApp(MenuApp):
                 (5, 15, 30, 60, 5*60, 10*60, 30*60, 60*60, 8*60*60)),
             self.make_choice("USB sleep delay", None, "usb_nosleep_time", 15, fmt_time, (15, 30, 60)),
             self.make_choice("UART menu app", None, "uart_menu_app", True, fmt_on_off, (True, False)),
+            self.make_nvs_choice("REPL on SDA/SCL", None, "uart_sdascl", 0, fmt_on_off, (1, 0)),
+
         )
         self.window.set_choices(choices)
 
@@ -162,6 +172,25 @@ class SettingsApp(MenuApp):
             self.push_window(menu)
         return (text, fn)
 
+    # Like make_choice but for settings stored in NVS 'tidal' namespace rather than in settings.json
+    def make_nvs_choice(self, title, long_title, name, default, fmt, choices, set_fn=None):
+        nvs = esp32.NVS("tidal")
+        val = get_nvs_default(nvs, name, default)
+        text = f"{title}\n{fmt(val)}"
+        def fn():
+            items = []
+            idx = 0
+            current_val = get_nvs_default(nvs, name, default)
+            for i, val in enumerate(choices):
+                if val == current_val:
+                    idx = i
+                items.append((fmt(val), set_fn or self.make_set_nvs_fn(name, val)))
+            menu = Menu(self.BG, self.FG, self.FOCUS_BG, self.FOCUS_FG, long_title or title, items, self.FONT, Buttons())
+            menu.set_focus_idx(idx, redraw=False)
+            menu.buttons.on_press(tidal.BUTTON_FRONT, lambda: self.pop_window(), autorepeat=False)
+            self.push_window(menu)
+        return (text, fn)
+
     def set_param_and_dismiss(self, name, value):
         settings.set(name, value)
         settings.save()
@@ -172,6 +201,15 @@ class SettingsApp(MenuApp):
         # I hate Python variable capture rules so much...
         def fn():
             self.set_param_and_dismiss(name, value)
+        return fn
+
+    def make_set_nvs_fn(self, name, value):
+        def fn():
+            nvs = esp32.NVS("tidal")
+            nvs.set_i32(name, value)
+            nvs.commit()
+            self.pop_window()
+            self.refresh()
         return fn
 
     def set_backlight(self):
