@@ -38,6 +38,8 @@ However, if you have the device plugged into the machine running the docker cont
 
     docker run -it --device /dev/ttyUSB0 -v "$(pwd)"/:/firmware matthewwilkes/esp_idf:4.4 IOT_SOLUTION_PATH=/firmware/esp-iot-solution TARGET=esp32s3 deploy
 
+(Note: flashing from within Docker won't work on a Mac because of a [known issue](https://github.com/docker/for-mac/issues/900) - use `esptool` outside Docker to execute the flashing command printed at the end of the build
+
 ### Prototypes
 
 If you have one of the prototypes, you need to add an additional variable to the build command to ensure the right pin assignments are used. For the DEVKIT and PicoLCD breadboard prototype, wire up the Pico using the same pin assignments were possible and set:
