@@ -1,6 +1,9 @@
 import ecc108a
 
+lock_state = {0x55: 'unlocked', 0: 'locked'}
+
 def run():
+    ecc108a.init()
     config = ecc108a.read_config()
 
     serial_number = config[0:4] + config[8:13]
@@ -24,9 +27,8 @@ def run():
 
     print(f"UserExtra: {hex(config[84])}")
     print(f"Selector: {hex(config[85])}")
-    lock_state = {0x55: 'unlocked', 0: 'locked'}
-    print(f"LockValue: {hex(config[86])} ({lock_state[config[86]]})")
-    print(f"LockConfig: {hex(config[87])} ({lock_state[config[87]]})")
+    print(f"LockValue: {hex(config[86])} ({lock_state.get(config[86])})")
+    print(f"LockConfig: {hex(config[87])} ({lock_state.get(config[87])})")
 
     slotlocked = int.from_bytes(config[88:90], 'little')
 

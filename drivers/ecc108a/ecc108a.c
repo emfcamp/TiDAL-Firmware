@@ -17,22 +17,25 @@ ATCAIfaceCfg cfg_atecc108a_i2c_default = {
     .rx_retries                 = 2
 };
 
+void assert_ATCA_SUCCESS(ATCA_STATUS status) {
+    if (status != ATCA_SUCCESS) {
+        mp_raise_OSError(status);
+    }
+}
+
+
+STATIC mp_obj_t ecc108a_init() {
+    assert_ATCA_SUCCESS(atcab_init(&cfg_atecc108a_i2c_default));
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(ecc108a_init_obj, ecc108a_init);
+
+
 STATIC mp_obj_t ecc108a_read_config() {
-
-    ATCA_STATUS status = atcab_init(&cfg_atecc108a_i2c_default);
-    if (status != ATCA_SUCCESS) {
-        mp_raise_OSError(status);
-    }
-    status = atcab_wakeup();
-    if (status != ATCA_SUCCESS) {
-        mp_raise_OSError(status);
-    }
-
+    assert_ATCA_SUCCESS(atcab_wakeup());
     uint8_t buf[128] = {0};
-    for (int i = 0; i < sizeof(buf); i += 32) {
-        status = atcab_read_zone(ATCA_ZONE_CONFIG, 0, 0, i, &buf[i], 32);
-    }
-    return mp_obj_new_bytearray_by_ref(sizeof(buf), buf);
+    assert_ATCA_SUCCESS(atcab_read_config_zone(&buf));
+    return mp_obj_new_bytearray(sizeof(buf), buf);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(ecc108a_read_config_obj, ecc108a_read_config);
 
@@ -40,10 +43,9 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_0(ecc108a_read_config_obj, ecc108a_read_config);
 STATIC mp_obj_t ecc108a_get_serial_number() {
     uint8_t serial[9] = { 0 };
     char serial_str[27] = "";
-    ATCA_STATUS status = atcab_read_serial_number(&serial);
-    if (status != ATCA_SUCCESS) {
-        mp_raise_OSError(status);
-    }
+
+    assert_ATCA_SUCCESS(atcab_wakeup());
+    assert_ATCA_SUCCESS(atcab_read_serial_number(&serial));
 
     sprintf(&serial_str, "%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x",
         serial[0], serial[1], serial[2],
@@ -56,11 +58,31 @@ STATIC mp_obj_t ecc108a_get_serial_number() {
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(ecc108a_get_serial_number_obj, ecc108a_get_serial_number);
 
 
+STATIC mp_obj_t ecc108a_genkey() {
+    uint8_t pubkey[64] = { 0 };
+
+    assert_ATCA_SUCCESS(atcab_wakeup());
+    assert_ATCA_SUCCESS(atcab_genkey(ATCA_TEMPKEY_KEYID, &pubkey));
+
+    for (int i=0;i<64;i++) {
+        if (i%8 == 0) {
+            printf("\n");
+        }
+        printf("%02x ", pubkey[i]);
+    }
+    printf("\n");
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(ecc108a_genkey_obj, ecc108a_genkey);
+
+
 
 STATIC const mp_rom_map_elem_t ecc108a_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_ecc108a) },
+    { MP_ROM_QSTR(MP_QSTR_init), MP_ROM_PTR(&ecc108a_init_obj) },
     { MP_ROM_QSTR(MP_QSTR_read_config), MP_ROM_PTR(&ecc108a_read_config_obj) },
     { MP_ROM_QSTR(MP_QSTR_get_serial_number), MP_ROM_PTR(&ecc108a_get_serial_number_obj) },
+    { MP_ROM_QSTR(MP_QSTR_genkey), MP_ROM_PTR(&ecc108a_genkey_obj) },
 };
 STATIC MP_DEFINE_CONST_DICT(ecc108a_module_globals, ecc108a_module_globals_table);
 
