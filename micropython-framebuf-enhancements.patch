@@ -1,0 +1,237 @@
+commit 6553808340308d165248d859ae862ab6aef74c60
+Author: Mat Booth <mat.booth@gmail.com>
+Date:   Wed Jul 13 21:09:51 2022 +0100
+
+    extmod/framebuf: Add polygon drawing methods.
+    
+    Add methods for drawing filled, and non-filled, polygons.
+    
+    polygon(coords, x, y, col)
+    * Uses the existing line-drawing code to render arbitrary polygons using
+      the given coords list, at the given x,y position, in the given colour
+    
+    fill_polygon(coords, x, y, col)
+    * Render filled arbitrary, closed, polygons using a fast point-in-polygon
+      algorithm to determine where the edges of the polygon lie on each
+      pixel row
+    
+    Tests and documentation updates are also included.
+    
+    Signed-off-by: Mat Booth <mat.booth@gmail.com>
+
+diff --git a/extmod/modframebuf.c b/extmod/modframebuf.c
+index 5b6575d5a..aab704d5c 100644
+--- a/extmod/modframebuf.c
++++ b/extmod/modframebuf.c
+@@ -404,16 +404,7 @@ STATIC mp_obj_t framebuf_rect(size_t n_args, const mp_obj_t *args) {
+ }
+ STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(framebuf_rect_obj, 6, 6, framebuf_rect);
+ 
+-STATIC mp_obj_t framebuf_line(size_t n_args, const mp_obj_t *args) {
+-    (void)n_args;
+-
+-    mp_obj_framebuf_t *self = MP_OBJ_TO_PTR(args[0]);
+-    mp_int_t x1 = mp_obj_get_int(args[1]);
+-    mp_int_t y1 = mp_obj_get_int(args[2]);
+-    mp_int_t x2 = mp_obj_get_int(args[3]);
+-    mp_int_t y2 = mp_obj_get_int(args[4]);
+-    mp_int_t col = mp_obj_get_int(args[5]);
+-
++STATIC void line(const mp_obj_framebuf_t *fb, mp_int_t x1, mp_int_t y1, mp_int_t x2, mp_int_t y2, mp_int_t col) {
+     mp_int_t dx = x2 - x1;
+     mp_int_t sx;
+     if (dx > 0) {
+@@ -452,12 +443,12 @@ STATIC mp_obj_t framebuf_line(size_t n_args, const mp_obj_t *args) {
+     mp_int_t e = 2 * dy - dx;
+     for (mp_int_t i = 0; i < dx; ++i) {
+         if (steep) {
+-            if (0 <= y1 && y1 < self->width && 0 <= x1 && x1 < self->height) {
+-                setpixel(self, y1, x1, col);
++            if (0 <= y1 && y1 < fb->width && 0 <= x1 && x1 < fb->height) {
++                setpixel(fb, y1, x1, col);
+             }
+         } else {
+-            if (0 <= x1 && x1 < self->width && 0 <= y1 && y1 < self->height) {
+-                setpixel(self, x1, y1, col);
++            if (0 <= x1 && x1 < fb->width && 0 <= y1 && y1 < fb->height) {
++                setpixel(fb, x1, y1, col);
+             }
+         }
+         while (e >= 0) {
+@@ -468,14 +459,165 @@ STATIC mp_obj_t framebuf_line(size_t n_args, const mp_obj_t *args) {
+         e += 2 * dy;
+     }
+ 
+-    if (0 <= x2 && x2 < self->width && 0 <= y2 && y2 < self->height) {
+-        setpixel(self, x2, y2, col);
++    if (0 <= x2 && x2 < fb->width && 0 <= y2 && y2 < fb->height) {
++        setpixel(fb, x2, y2, col);
+     }
++}
++
++STATIC mp_obj_t framebuf_line(size_t n_args, const mp_obj_t *args) {
++    (void)n_args;
++
++    mp_obj_framebuf_t *self = MP_OBJ_TO_PTR(args[0]);
++    mp_int_t x1 = mp_obj_get_int(args[1]);
++    mp_int_t y1 = mp_obj_get_int(args[2]);
++    mp_int_t x2 = mp_obj_get_int(args[3]);
++    mp_int_t y2 = mp_obj_get_int(args[4]);
++    mp_int_t col = mp_obj_get_int(args[5]);
++
++    line(self, x1, y1, x2, y2, col);
+ 
+     return mp_const_none;
+ }
+ STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(framebuf_line_obj, 6, 6, framebuf_line);
+ 
++STATIC mp_obj_t framebuf_polygon(size_t n_args, const mp_obj_t *args) {
++    (void)n_args;
++
++    mp_obj_framebuf_t *self = MP_OBJ_TO_PTR(args[0]);
++
++    size_t poly_len;
++    mp_obj_t *polygon;
++    mp_obj_get_array(args[1], &poly_len, &polygon);
++
++    if (poly_len == 0) {
++        return mp_const_none;
++    }
++
++    mp_int_t x = mp_obj_get_int(args[2]);
++    mp_int_t y = mp_obj_get_int(args[3]);
++    mp_int_t col = mp_obj_get_int(args[4]);
++
++    size_t point_len;
++    mp_obj_t *point;
++
++    mp_obj_get_array(polygon[poly_len - 1], &point_len, &point);
++    if (point_len < 2) {
++        mp_raise_ValueError(MP_ERROR_TEXT("invalid polygon data"));
++    }
++    mp_int_t px1 = mp_obj_get_int(point[0]) + x;
++    mp_int_t py1 = mp_obj_get_int(point[1]) + y;
++
++    for (size_t i = 0; i < poly_len; i++) {
++        mp_obj_get_array(polygon[i], &point_len, &point);
++        if (point_len < 2) {
++            mp_raise_ValueError(MP_ERROR_TEXT("invalid polygon data"));
++        }
++        mp_int_t px2 = mp_obj_get_int(point[0]) + x;
++        mp_int_t py2 = mp_obj_get_int(point[1]) + y;
++        line(self, px1, py1, px2, py2, col);
++        px1 = px2;
++        py1 = py2;
++    }
++    return mp_const_none;
++}
++STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(framebuf_polygon_obj, 5, 5, framebuf_polygon);
++
++STATIC mp_obj_t framebuf_fill_polygon(size_t n_args, const mp_obj_t *args) {
++    (void)n_args;
++
++    mp_obj_framebuf_t *self = MP_OBJ_TO_PTR(args[0]);
++
++    size_t poly_len;
++    mp_obj_t *polygon;
++    mp_obj_get_array(args[1], &poly_len, &polygon);
++
++    if (poly_len == 0) {
++        return mp_const_none;
++    }
++
++    mp_int_t x = mp_obj_get_int(args[2]);
++    mp_int_t y = mp_obj_get_int(args[3]);
++    mp_int_t col = mp_obj_get_int(args[4]);
++
++    mp_int_t y_min = INT_MAX, y_max = INT_MIN;
++
++    mp_int_t *points = m_malloc(poly_len * 2 * sizeof(mp_int_t));
++    size_t point_len;
++    mp_obj_t *point;
++    for (size_t i = 0; i < poly_len; i++) {
++        mp_obj_get_array(polygon[i], &point_len, &point);
++        if (point_len < 2) {
++            mp_raise_ValueError(MP_ERROR_TEXT("invalid polygon data"));
++        }
++        mp_int_t px = mp_obj_get_int(point[0]) + x;
++        mp_int_t py = mp_obj_get_int(point[1]) + y;
++        points[i * 2] = px;
++        points[i * 2 + 1] = py;
++        if (py < y_min) {
++            y_min = py;
++        }
++        if (py > y_max) {
++            y_max = py;
++        }
++    }
++
++    mp_int_t nodes[poly_len];
++    for (mp_int_t row = y_min; row <= y_max; row++) {
++        size_t node_count = 0;
++        mp_int_t px1 = points[(poly_len - 1) * 2];
++        mp_int_t py1 = points[(poly_len - 1) * 2 + 1];
++        for (size_t i = 0; i < poly_len; i++) {
++            mp_int_t px2 = points[i * 2];
++            mp_int_t py2 = points[i * 2 + 1];
++
++            // Find the x-coord of where the polygon side intersects the current row
++            if (py1 != py2
++                && ((py1 > row && py2 <= row) || (py1 <= row && py2 > row))) {
++                float node = px1
++                    + (float)(row - py1) / (float)(py2 - py1)
++                    * (px2 - px1);
++                if (node - (mp_int_t)node <= 0.5f) {
++                    nodes[node_count++] = (mp_int_t)(node);
++                } else {
++                    nodes[node_count++] = (mp_int_t)(node + 1);
++                }
++            }
++
++            px1 = px2;
++            py1 = py2;
++        }
++
++        size_t idx = 0;
++        if (node_count > 0) {
++            while (idx < node_count - 1) {
++                if (nodes[idx] > nodes[idx + 1]) {
++                    mp_int_t swap = nodes[idx];
++                    nodes[idx] = nodes[idx + 1];
++                    nodes[idx + 1] = swap;
++                    if (idx) {
++                        idx--;
++                    }
++                } else {
++                    idx++;
++                }
++            }
++        }
++
++        for (size_t i = 0; i < node_count; i += 2) {
++            fill_rect(self, nodes[i], row, (nodes[i + 1] - nodes[i]) + 1, 1, col);
++        }
++    }
++
++    m_free(points
++        #if MICROPY_MALLOC_USES_ALLOCATED_SIZE
++        , poly_len * 2 * sizeof(mp_int_t)
++        #endif
++        );
++
++    return mp_const_none;
++}
++STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(framebuf_fill_polygon_obj, 5, 5, framebuf_fill_polygon);
++
+ STATIC mp_obj_t framebuf_blit(size_t n_args, const mp_obj_t *args) {
+     mp_obj_framebuf_t *self = MP_OBJ_TO_PTR(args[0]);
+     mp_obj_t source_in = mp_obj_cast_to_native_base(args[1], MP_OBJ_FROM_PTR(&mp_type_framebuf));
+@@ -610,6 +752,8 @@ STATIC const mp_rom_map_elem_t framebuf_locals_dict_table[] = {
+     { MP_ROM_QSTR(MP_QSTR_vline), MP_ROM_PTR(&framebuf_vline_obj) },
+     { MP_ROM_QSTR(MP_QSTR_rect), MP_ROM_PTR(&framebuf_rect_obj) },
+     { MP_ROM_QSTR(MP_QSTR_line), MP_ROM_PTR(&framebuf_line_obj) },
++    { MP_ROM_QSTR(MP_QSTR_polygon), MP_ROM_PTR(&framebuf_polygon_obj) },
++    { MP_ROM_QSTR(MP_QSTR_fill_polygon), MP_ROM_PTR(&framebuf_fill_polygon_obj) },
+     { MP_ROM_QSTR(MP_QSTR_blit), MP_ROM_PTR(&framebuf_blit_obj) },
+     { MP_ROM_QSTR(MP_QSTR_scroll), MP_ROM_PTR(&framebuf_scroll_obj) },
+     { MP_ROM_QSTR(MP_QSTR_text), MP_ROM_PTR(&framebuf_text_obj) },
