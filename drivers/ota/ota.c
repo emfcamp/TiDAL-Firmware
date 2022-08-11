@@ -110,4 +110,4 @@ const mp_obj_module_t ota_user_cmodule = {
     .globals = (mp_obj_dict_t *)&ota_module_globals,
 };
 
-MP_REGISTER_MODULE(MP_QSTR_ota, ota_user_cmodule, 1);
+MP_REGISTER_MODULE(MP_QSTR_ota, ota_user_cmodule);
