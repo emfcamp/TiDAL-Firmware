@@ -45,6 +45,8 @@ def run():
 
         slotconfig = int.from_bytes(config[key * 2:][20:22], 'little')
         keyconfig = int.from_bytes(config[key * 2:][96:98], 'little')
+        print(f"  SlotConfig: {slotconfig:04x}")
+        print(f"  KeyConfig: {keyconfig:04x}")
 
         if key < 8:
             print(f"  UseFlag: {hex(config[52 + key * 2])}")

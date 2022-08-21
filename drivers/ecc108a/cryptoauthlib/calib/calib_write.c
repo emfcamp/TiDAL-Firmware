@@ -187,6 +187,8 @@ ATCA_STATUS calib_write_enc(ATCADevice device, uint16_t key_id, uint8_t block, c
 ATCA_STATUS calib_write_enc(ATCADevice device, uint16_t key_id, uint8_t block, const uint8_t *data, const uint8_t* enc_key, const uint16_t enc_key_id, const uint8_t num_in[NONCE_NUMIN_SIZE])
 {
 #endif
+    return ATCA_EXECUTION_ERROR;
+    /*
     ATCA_STATUS status = ATCA_GEN_FAIL;
     uint8_t zone = ATCA_ZONE_DATA | ATCA_ZONE_READWRITE_32;
     atca_nonce_in_out_t nonce_params;
@@ -299,7 +301,7 @@ ATCA_STATUS calib_write_enc(ATCADevice device, uint16_t key_id, uint8_t block, c
     }
     while (0);
 
-    return status;
+    return status;*/
 }
 
 /** \brief Executes the Write command, which writes the configuration zone.

@@ -17,7 +17,7 @@ target_sources(usermod_ecc108a INTERFACE
 #    ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/calib/calib_secureboot.c
 #    ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/calib/calib_mac.c
 #    ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/calib/calib_nonce.c
-#    ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/calib/calib_updateextra.c
+    ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/calib/calib_updateextra.c
     ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/calib/calib_write.c
     ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/calib/calib_read.c
 #    ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/calib/calib_aes_gcm.c
