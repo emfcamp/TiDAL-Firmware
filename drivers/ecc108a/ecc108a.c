@@ -1,29 +1,8 @@
 #include "py/runtime.h"
 #include "atca_iface.h"
 #include "atca_basic.h"
-
-struct SlotConfig {
-    uint16_t ReadKey            : 4;
-    uint16_t NoMac              : 1;
-    uint16_t LimitedUse         : 1;
-    uint16_t EncryptRead        : 1;
-    uint16_t IsSecret           : 1;
-    uint16_t WriteKey           : 4;
-    uint16_t WriteConfig        : 4;
-} __attribute__((packed));
-
-struct KeyConfig {
-    uint16_t Private            : 1;
-    uint16_t PubInfo            : 1;
-    uint16_t KeyType            : 3;
-    uint16_t Lockable           : 1;
-    uint16_t ReqRandom          : 1;
-    uint16_t ReqAuth            : 1;
-    uint16_t AuthKey            : 4;
-    uint16_t IntrusionDisable   : 1;
-    uint16_t RFU                : 1;
-    uint16_t X509Id             : 2;
-} __attribute__((packed));
+#include "py/objstr.h"
+#include <endian.h>
 
 
 bool inited = false;
@@ -39,41 +18,6 @@ ATCAIfaceCfg cfg_atecc108a_i2c_default = {
     .wake_delay                 = 1500,
     .rx_retries                 = 2
 };
-
-
-void pack_slot_config(struct SlotConfig config, uint8_t *config_zone) {
-    // Is this right?
-    config_zone[0] = (
-        config.ReadKey << 4 |
-        config.NoMac << 3 |
-        config.LimitedUse << 2 |
-        config.EncryptRead << 1 |
-        config.IsSecret << 0
-    );
-    config_zone[1] = (
-        config.WriteKey << 4 |
-        config.WriteConfig << 0
-    );
-}
-
-
-void pack_key_config(struct KeyConfig config, uint8_t *config_zone) {
-    // Is this right?
-    config_zone[0] = (
-        config.Private << 7 |
-        config.PubInfo << 6 |
-        config.KeyType << 3 |
-        config.Lockable << 2 |
-        config.ReqRandom << 1 |
-        config.ReqAuth << 0
-    );
-    config_zone[1] = (
-        config.AuthKey << 4 |
-        config.IntrusionDisable << 2 |
-        config.RFU << 1 |
-        config.X509Id << 0
-    );
-}
 
 
 void assert_ATCA_SUCCESS(ATCA_STATUS status) {
@@ -118,39 +62,31 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_0(ecc108a_get_serial_number_obj, ecc108a_get_seri
 
 
 STATIC mp_obj_t ecc108a_provision_slot() {
+    // Retrieve the current configuration zone
     uint8_t buf[128] = {0};
-    
     assert_ATCA_SUCCESS(atcab_read_config_zone(&buf));
-    struct SlotConfig slot_config = {
-        .ReadKey = 0b1100,      // Bit 0 - sign arbitrary messages
-                                // Bit 1 - sign internal messages
-        .NoMac = 0,             // Bit 4 - Do not disable HMAC
-        .LimitedUse = 0,        // Bit 5 - No usage limitations
-        .EncryptRead = 0,       // Bit 6 - Cleartext read okay
-        .IsSecret = 1,          // Bit 7 - Contents are secret
-        .WriteKey = 0b0000,     // Bits 9-11 - Write using key 0
-        .WriteConfig = 0b1110   // Bit 12 - Source key, parent
-                                // Bit 13 - Clear text write off
-                                // Bit 14 - Encryption on
-                                // Bit 15 - Unset No authorising MAC needed
-    };
-    struct KeyConfig key_config = {
-        .Private = 1,           // Bit 0 - Contains private key
-        .PubInfo = 1,           // Bit 1 - Allow public key access
-        .KeyType = 4,           // Bits 2 to 4 - P256 key
-        .Lockable = 1,          // Bit 5 - Individual lockable
-        .ReqRandom = 0,         // Bit 6 - No random nonce needed
-        .ReqAuth = 0,           // Bit 7 - No prior auth needed
-        .AuthKey = 0,           // Bits 8 to 11 - Use key 0 for auth
-        .IntrusionDisable = 0,  // Bit 12 - Ignore intrusion latch
-        .RFU = 0,               // Bit 13 - Fixed value
-        .X509Id = 0             // Bits 14 and 15 - 0 as not a public key
-    };
+
+    uint16_t slot_config = 
+        ATCA_SLOT_CONFIG_EXT_SIG_MASK |
+        ATCA_SLOT_CONFIG_INT_SIG_MASK |
+        ATCA_SLOT_CONFIG_IS_SECRET_MASK |
+        ATCA_SLOT_CONFIG_WRITE_KEY(0) |
+        ATCA_SLOT_CONFIG_WRITE_CONFIG(0b0110)
+    ;
+    uint16_t key_config = 
+        ATCA_KEY_CONFIG_PRIVATE_MASK |
+        ATCA_KEY_CONFIG_PUB_INFO_MASK |
+        ATCA_KEY_CONFIG_KEY_TYPE(4) |
+        ATCA_KEY_CONFIG_LOCKABLE_MASK
+    ;
     
     // Patch this config into each of the 16 slots
     for (uint8_t i = 0; i < 16 ; i++) {
-        pack_slot_config(slot_config, &buf[20 + 2*i]);
-        pack_key_config(key_config, &buf[96 + 2*i]);
+        uint16_t *target_slot_config = &buf[20 + 2*i];
+        *target_slot_config = slot_config;
+        
+        uint16_t *target_key_config = &buf[96 + 2*i];
+        *target_key_config = key_config;
     }
 
     assert_ATCA_SUCCESS(atcab_write_config_zone(&buf));
@@ -188,16 +124,54 @@ STATIC mp_obj_t ecc108a_genkey(mp_obj_t slot_id) {
     //assert_ATCA_SUCCESS(atcab_wakeup());
     assert_ATCA_SUCCESS(atcab_genkey(slot, &pubkey));
 
-    for (int i=0;i<64;i++) {
-        if (i%8 == 0) {
-            printf("\n");
-        }
-        printf("%02x ", pubkey[i]);
-    }
-    printf("\n");
-    return mp_const_none;
+    // Return X, Y tuple
+    mp_obj_t tuple[2];
+    uint32_t x = (pubkey[0] << 0*8) | (pubkey[1] << 1*8) | (pubkey[2] << 2*8) | (pubkey[3] << 3*8);
+    uint32_t y = (pubkey[4] << 0*8) | (pubkey[5] << 1*8) | (pubkey[6] << 2*8) | (pubkey[7] << 3*8);
+    tuple[0] = mp_obj_new_int_from_ull(x);
+    tuple[1] = mp_obj_new_int_from_ull(y);
+    return mp_obj_new_tuple(2, tuple);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(ecc108a_genkey_obj, ecc108a_genkey);
+
+
+STATIC mp_obj_t ecc108a_get_pubkey(mp_obj_t slot_id) {
+    uint8_t pubkey[64] = { 0 };
+    uint8_t slot = mp_obj_get_int(slot_id);
+
+    //assert_ATCA_SUCCESS(atcab_wakeup());
+    assert_ATCA_SUCCESS(atcab_get_pubkey(slot, &pubkey));
+
+    // Return X, Y tuple
+    mp_obj_t tuple[2];
+    uint32_t x = (pubkey[0] << 0*8) | (pubkey[1] << 1*8) | (pubkey[2] << 2*8) | (pubkey[3] << 3*8);
+    uint32_t y = (pubkey[4] << 0*8) | (pubkey[5] << 1*8) | (pubkey[6] << 2*8) | (pubkey[7] << 3*8);
+    tuple[0] = mp_obj_new_int_from_ull(x);
+    tuple[1] = mp_obj_new_int_from_ull(y);
+    return mp_obj_new_tuple(2, tuple);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(ecc108a_get_pubkey_obj, ecc108a_get_pubkey);
+
+
+STATIC mp_obj_t ecc108a_sign(mp_obj_t slot_id, mp_obj_t message) {
+    uint8_t signature[64] = { 0 };
+    uint8_t slot = mp_obj_get_int(slot_id);
+    
+    mp_check_self(mp_obj_is_str_or_bytes(message));
+    GET_STR_DATA_LEN(message, msg, str_len);
+    
+    //assert_ATCA_SUCCESS(atcab_wakeup());
+    assert_ATCA_SUCCESS(atcab_sign(slot, &msg, &signature));
+
+    // Return R, S tuple
+    mp_obj_t tuple[2];
+    uint32_t r = (signature[0] << 0*8) | (signature[1] << 1*8) | (signature[2] << 2*8) | (signature[3] << 3*8);
+    uint32_t s = (signature[4] << 0*8) | (signature[5] << 1*8) | (signature[6] << 2*8) | (signature[7] << 3*8);
+    tuple[0] = mp_obj_new_int_from_ull(r);
+    tuple[1] = mp_obj_new_int_from_ull(s);
+    return mp_obj_new_tuple(2, tuple);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_2(ecc108a_sign_obj, ecc108a_sign);
 
 
 
@@ -211,6 +185,8 @@ STATIC const mp_rom_map_elem_t ecc108a_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_lock_slot), MP_ROM_PTR(&ecc108a_lock_slot_obj) },
     { MP_ROM_QSTR(MP_QSTR_get_serial_number), MP_ROM_PTR(&ecc108a_get_serial_number_obj) },
     { MP_ROM_QSTR(MP_QSTR_genkey), MP_ROM_PTR(&ecc108a_genkey_obj) },
+    { MP_ROM_QSTR(MP_QSTR_get_pubkey), MP_ROM_PTR(&ecc108a_get_pubkey_obj) },
+    { MP_ROM_QSTR(MP_QSTR_ecc108a_sign), MP_ROM_PTR(&ecc108a_sign_obj) },
 };
 STATIC MP_DEFINE_CONST_DICT(ecc108a_module_globals, ecc108a_module_globals_table);
 
