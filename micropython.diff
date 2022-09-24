@@ -17,7 +17,7 @@ diff --git a/ports/esp32/mphalport.c b/ports/esp32/mphalport.c
 index 41e6e6ec0..761e93c01 100644
 --- a/ports/esp32/mphalport.c
 +++ b/ports/esp32/mphalport.c
-@@ -107,13 +107,8 @@ void mp_hal_stdout_tx_strn(const char *str, size_t len) {
+@@ -107,14 +107,8 @@ void mp_hal_stdout_tx_strn(const char *str, size_t len) {
      if (release_gil) {
          MP_THREAD_GIL_EXIT();
      }
@@ -25,7 +25,8 @@ index 41e6e6ec0..761e93c01 100644
      usb_tx_strn(str, len);
 -    #elif CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG
 -    usb_serial_jtag_tx_strn(str, len);
--    #else
+-    #endif
+-    #if MICROPY_HW_ENABLE_UART_REPL
      uart_stdout_tx_strn(str, len);
 -    #endif
      if (release_gil) {

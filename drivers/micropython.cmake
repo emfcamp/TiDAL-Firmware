@@ -22,3 +22,5 @@ include(${CMAKE_CURRENT_LIST_DIR}/ota/micropython.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/tidal_helpers/micropython.cmake)
 
 include(${CMAKE_CURRENT_LIST_DIR}/lodepng/micropython.cmake)
+
+include(${CMAKE_CURRENT_LIST_DIR}/../tidal3d/module/micropython.cmake)
