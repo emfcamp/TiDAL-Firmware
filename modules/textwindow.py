@@ -161,20 +161,26 @@ class TextWindow:
         self.display.rect(x, y, 100, self.font.HEIGHT, fg)
 
     def flow_lines(self, text, font=None):
-        # Don't word wrap, just chop off
-        lines = text.split("\n")
         result = []
         max_len = self.width_chars(font)
-        for line in lines:
-            line_len = len(line)
-            if line_len == 0:
-                result.append(line)
-                continue
-            i = 0
-            while i < line_len:
-                n = min(line_len - i, max_len)
-                result.append(line[i:i+n])
-                i = i + n
+
+        while text:
+            if len(text) <= max_len:
+                result.append(text)
+                break
+        
+            end = max_len
+            for index in range(max_len, max_len - 10, -1):
+                character = text[index]
+                if character == " ":
+                    end = index
+                    break
+                elif character == "-":
+                    end = index + 1
+                    break
+
+            result.append(text[:end])
+            text = text[index + 1:]
 
         if len(result) == 0:
             # Have to return at least one line
