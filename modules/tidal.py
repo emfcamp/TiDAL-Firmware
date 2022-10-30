@@ -1,14 +1,32 @@
 import machine
-from machine import I2C
+from machine import I2C, SoftI2C
 from machine import Pin
 from machine import SPI
 from neopixel import NeoPixel
+from colorsys import hsv_to_rgb, rgb_to_hsv
 import st7789
 from st7789 import BLACK, BLUE, RED, GREEN, CYAN, MAGENTA, YELLOW, WHITE, color565
 
 import _tidal_usb as usb
 import tidal_helpers
 
+# Boost the saturation massively to match better on the LCD
+def perceptual_adjust(r, g, b):
+    h, s, v = rgb_to_hsv(r, g, b)
+    s *= 1.6
+    s = min(s, 1.0)
+    r, g, b = hsv_to_rgb(h, s, v)
+    return color565(r, g, b)
+
+BRAND_NAVY = perceptual_adjust(21, 23, 53)
+BRAND_MID_BLUE = perceptual_adjust(18, 63, 139)
+BRAND_CYAN = perceptual_adjust(144, 204, 214)
+BRAND_YELLOW = perceptual_adjust(242, 222, 27)
+BRAND_ORANGE = perceptual_adjust(246, 163, 24)
+BRAND_PINK = perceptual_adjust(228, 20, 126)
+ADDITIONAL_PURPLE = perceptual_adjust(118, 34, 114)
+ADDITIONAL_RED = perceptual_adjust(230, 43, 39)
+ADDITIONAL_DEEP_ORANGE = perceptual_adjust(235, 107, 16)
 
 """
 NOTE: If you are using the automatic lightsleep (on by default) you should never
@@ -105,7 +123,7 @@ _LED_PWREN = Pin(_hw["LED_PWREN"], Pin.OUT, value=1)
 LED_DATA = Pin(_hw["LED_DATA"], Pin.OUT)
 
 _LCD_PWR_ALWAYS =  Pin(_hw["LCD_PWR"], Pin.OUT, value=0)
-_LCD_BLEN = Pin(_hw["LCD_BLEN"], Pin.OUT, value=1)
+_LCD_BLEN = Pin(_hw["LCD_BLEN"], Pin.OUT, drive=Pin.DRIVE_0, value=0)
 
 led=NeoPixel(LED_DATA, 1)
 
@@ -115,55 +133,65 @@ def system_power_off():
     _UVLO_TRIG.on()
 
 def led_power_on(on=True):
-    if(on):
+    if on:
         _LED_PWREN.off()
     else:
         _LED_PWREN.on()
 
+_lcd_is_on = True
+
 def led_power_off():
     led_power_on(False)
 
-
 def lcd_power_on(on=True):
-    if(on):
+    global _lcd_is_on
+    if on:
         display.sleep_mode(0)
         lcd_backlight_on()
     else:
         lcd_backlight_off()
         display.sleep_mode(1)
+    _lcd_is_on = on
 
 def lcd_power_off():
     lcd_power_on(False)
 
+def lcd_is_on():
+    return _lcd_is_on
+
 def lcd_backlight_on(on=True):
-    if(on):
-        _LCD_BLEN.init(mode=Pin.OUT,value=0)
+    if on:
+        # print("lcd_backlight_on pin is OUT")
+        _LCD_BLEN.init(mode=Pin.OUT, drive=Pin.DRIVE_0, value=0)
+        # This is overwritten somewhere along the line if we try and use BL as a button...
+        tidal_helpers.gpio_sleep_sel(_LCD_BLEN, False)
     else:
-        _LCD_BLEN.init(mode=Pin.IN,pull=Pin.PULL_UP)
+        # print("lcd_backlight_off pin is IN")
+        _LCD_BLEN.init(mode=Pin.IN, pull=Pin.PULL_UP)
         
 def lcd_backlight_off():
     lcd_backlight_on(False)
 
 CHARGE_DET = Pin(_hw["CHARGE_DET"], Pin.IN, Pin.PULL_UP)
 
-i2cs = I2C(scl=Pin(_hw["SCL_S"]), sda=Pin(_hw["SDA_S"]))
+i2cs = SoftI2C(scl=Pin(_hw["SCL_S"]), sda=Pin(_hw["SDA_S"]), freq=100000)
 
 i2cp = None
 
 def enable_peripheral_I2C():
     global i2cp
-    i2cp=I2C(scl=Pin(_hw["SCL_P"]), sda=Pin(_hw["SDA_P"]))
+    i2cp=SoftI2C(scl=Pin(_hw["SCL_P"]), sda=Pin(_hw["SDA_P"]))
 
 i2c = i2cs
 
 _LCD_CS = Pin(_hw["LCD_CS"], Pin.OUT)
 _LCD_CLK = Pin(_hw["LCD_CLK"])
 _LCD_DIN = Pin(_hw["LCD_DIN"])
-_LCD_SPI = SPI(2, baudrate=40000000, polarity=1, sck=_LCD_CLK, mosi=_LCD_DIN)
+_LCD_SPI = SPI(2, baudrate=40000000, polarity=0, sck=_LCD_CLK, mosi=_LCD_DIN)
 
 _LCD_DC = Pin(_hw["LCD_DC"], Pin.OUT)
 
-display = st7789.ST7789(_LCD_SPI, 135, 240, reset=_LCD_RESET, dc=_LCD_DC, rotation=2)
+display = st7789.ST7789(_LCD_SPI, 135, 240, cs=_LCD_CS, reset=_LCD_RESET, dc=_LCD_DC, rotation=2)
 
 def init_lcd():
     _LCD_PWR_ALWAYS.off() # this is mandatory even if LCD is disabled using lcd_power_off() - having this pin high significantly increases power consumption

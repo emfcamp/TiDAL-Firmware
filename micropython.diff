@@ -44,6 +44,56 @@ index 41e6e6ec0..761e93c01 100644
      if (release_gil) {
          MP_THREAD_GIL_ENTER();
      }
+diff --git a/ports/esp32/uart.c b/ports/esp32/uart.c
+index f6493dc79..9d393a2fc 100644
+--- a/ports/esp32/uart.c
++++ b/ports/esp32/uart.c
+@@ -34,10 +34,31 @@
+ #include "py/runtime.h"
+ #include "py/mphal.h"
+ #include "uart.h"
++#include "nvs.h"
+ 
+ STATIC void uart_irq_handler(void *arg);
+ 
++static bool uart_inited = false;
++static void uart_stdout_do_init();
++
++static const char *TAG = "uart";
++
+ void uart_stdout_init(void) {
++    nvs_handle_t h = 0;
++    esp_err_t err = nvs_open("tidal", NVS_READONLY, &h);
++    if (err == ESP_OK) {
++        int32_t val = 0;
++        err = nvs_get_i32(h, "uart_sdascl", &val);
++        if (err == ESP_OK && val > 0) {
++            uart_stdout_do_init();
++        } else {
++        }
++        nvs_close(h);
++    } else {
++    }
++}
++
++static void uart_stdout_do_init() {
+     uart_config_t uartcfg = {
+         .baud_rate = MICROPY_HW_UART_REPL_BAUD,
+         .data_bits = UART_DATA_8_BITS,
+@@ -57,9 +78,13 @@ void uart_stdout_init(void) {
+     uart_isr_free(MICROPY_HW_UART_REPL);
+     uart_isr_register(MICROPY_HW_UART_REPL, uart_irq_handler, NULL, ESP_INTR_FLAG_LOWMED | ESP_INTR_FLAG_IRAM, &handle);
+     uart_enable_rx_intr(MICROPY_HW_UART_REPL);
++    uart_inited = true;
+ }
+ 
+ int uart_stdout_tx_strn(const char *str, size_t len) {
++    if (!uart_inited) {
++        return len;
++    }
+     size_t remaining = len;
+     // TODO add a timeout
+     for (;;) {
 diff --git a/ports/esp32/usb.c b/ports/esp32/usb.c
 index 5a613d244..b1047c230 100644
 --- a/ports/esp32/usb.c

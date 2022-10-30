@@ -45,6 +45,9 @@ class Scheduler:
         self._timers = []
         self.no_sleep_before = time.ticks_ms() + (settings.get("boot_nosleep_time", 15) * 1000)
         self._wake_lcd_buttons = None
+        self._current_backlight_val = None
+        self._temp_wake_lcd = False
+        self._deactivated_app = None
 
     def switch_app(self, app):
         """Asynchronously switch to the specified app."""
@@ -56,7 +59,7 @@ class Scheduler:
         if app == self._current_app:
             # Nothing to do
             return
-        print(f"Switching app to {app.get_app_id()}")
+        # print(f"Switching app to {app.get_app_id()}")
 
         if not app.supports_rotation():
             current = tidal.get_display_rotation()
@@ -87,7 +90,9 @@ class Scheduler:
         self.reset_inactivity()
         self.enter()
 
-    def enter(self): 
+    def enter(self):
+        import accelerometer
+        import magnetometer
         first_time = True
         self._level += 1
         enter_level = self._level
@@ -106,7 +111,7 @@ class Scheduler:
             # Work out when we need to sleep until
             now = time.ticks_ms()
             lcd_sleep_time = self._last_activity_time + self.get_inactivity_time()
-            should_sleep_lcd = lcd_sleep_time <= now
+            should_sleep_lcd = (lcd_sleep_time <= now) and not self._temp_wake_lcd
             can_sleep = self.can_sleep()
             if can_sleep and should_sleep_lcd:
                 # Then we have to notify the app that we're going to switch off
@@ -115,6 +120,7 @@ class Scheduler:
                 # this before calling peek_timer()
                 deactivated_app = self._current_app
                 if deactivated_app:
+                    self._deactivated_app = deactivated_app
                     deactivated_app.on_deactivate()
 
             if next_timer_task := self.peek_timer():
@@ -135,10 +141,9 @@ class Scheduler:
                 t = next_time - now
 
             if can_sleep:
-                # print(f"Sleepy time {t}")
-                # Make sure any debug prints show up on the USB UART
-                tidal_helpers.uart_tx_flush(0)
+                # print(f"Sleepy time {t} should_sleep_lcd={should_sleep_lcd}")
                 if should_sleep_lcd:
+                    self.set_backlight_value(None)
                     tidal.lcd_power_off()
                     # Switch buttons so that (a) a press while the screen is off
                     # doesn't get passed to the app, and (b) so that any button
@@ -146,14 +151,17 @@ class Scheduler:
                     # interrupt for.
                     self.wake_lcd_buttons.activate()
 
+                    # Other power management actions we want to do before display off
+                    accelerometer.sleep()
+                    magnetometer.sleep()
+
+                # Make sure any debug prints show up on the UART
+                tidal_helpers.uart_tx_flush(0)
+
                 wakeup_cause = tidal_helpers.lightsleep(t)
                 # print(f"Returned from lightsleep reason={wakeup_cause}")
 
-                if deactivated_app:
-                    # This will also reactivate its buttons
-                    deactivated_app.on_activate()
-                    deactivated_app = None
-
+                # deactivated_app's buttons will be reactivated from reset_inactivity
             else:
                 if t == 0:
                     # Add a bit of a sleep (which uses less power than straight-up looping)
@@ -172,18 +180,48 @@ class Scheduler:
         return self.sleep_enabled
 
     def can_sleep(self):
+        usb_connected = tidal_helpers.usb_connected() and not tidal_helpers.usb_suspended()
         return (
             self.sleep_enabled and
             tidal_helpers.get_variant() != "devboard" and
-            not tidal_helpers.usb_connected() and
+            not usb_connected and
             not wifi.active() and
             time.ticks_ms() >= self.no_sleep_before
         )
 
     def reset_inactivity(self):
         # print("Reset inactivity")
+        if self._temp_wake_lcd:
+            if tidal._LCD_BLEN.value() == 0:
+                # print("Ignoring reset inactivity while backlight button is down")
+                pass
+            else:
+                # print("Unsetting _temp_wake_lcd")
+                self._temp_wake_lcd = False
+            return
+
+        if self.wake_lcd_buttons.is_active():
+            # Make sure we stop anything involving the backlight pin prior to potentially reconfiguring it
+            self.wake_lcd_buttons.deactivate()
+
+        if self._deactivated_app:
+            # This will also reactivate its buttons
+            # print("Reactivating previous app")
+            self._deactivated_app.on_activate()
+            self._deactivated_app = None
+
         self._last_activity_time = time.ticks_ms()
-        tidal.lcd_power_on()
+        if not tidal.lcd_is_on():
+            tidal.lcd_power_on()
+        # Restore backlight setting if necessary
+        self.set_backlight_value(settings.get("backlight_pwm"))
+
+    def set_backlight_value(self, backlight_val):
+        # don't reconfigure PWM unless necessary, as this restarts the PWM
+        # waveform causing a potential slight flicker.
+        if backlight_val != self._current_backlight_val:
+            self._current_backlight_val = backlight_val
+            tidal_helpers.set_backlight_pwm(tidal._LCD_BLEN, backlight_val)
 
     @property
     def wake_lcd_buttons(self):
@@ -193,13 +231,25 @@ class Scheduler:
             for button in tidal.ALL_BUTTONS:
                 # We don't need these button presses to do anything, they just have to exist
                 self._wake_lcd_buttons.on_press(button, lambda: 0)
+            self._wake_lcd_buttons.on_up_down(tidal._LCD_BLEN, self.backlight_button_pressed)
         return self._wake_lcd_buttons
 
     def usb_plug_event(self, charging):
-        print(f"CHARGE_DET charging={charging}")
+        # print(f"CHARGE_DET charging={charging}")
         if charging:
             # Prevent sleep again to give USB chance to enumerate
             self.no_sleep_before = time.ticks_ms() + (settings.get("usb_nosleep_time", 15) * 1000)
+
+    def backlight_button_pressed(self, pressed):
+        if pressed:
+            self._temp_wake_lcd = True
+            # print("LCD temp wake")
+            tidal.display.sleep_mode(0)
+        else:
+            # Don't clear _temp_wake_lcd here, it has to be done after the reset_inactivity from
+            # Buttons.check_buttons(). Yes this has become uglier than I'd like...
+            # print("LCD resleep")
+            tidal.display.sleep_mode(1)
 
     def get_inactivity_time(self):
         return settings.get("inactivity_time", 30) * 1000

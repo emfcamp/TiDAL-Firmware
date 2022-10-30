@@ -7,7 +7,7 @@ _AP_IF  = network.WLAN(network.AP_IF)
 
 DEFAULT_CONNECT_TIMEOUT = 20
 DEFAULT_TX_POWER = 20
-DEFAULT_SSID = "emfcamp-legacy22"
+DEFAULT_SSID = "emfcamp"
 DEFAULT_USERNAME = "badge"
 DEFAULT_PASSWORD = "badge"
 

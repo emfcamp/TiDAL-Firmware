@@ -1,3 +1,5 @@
+import os
+
 import tidal
 import tidal_helpers
 from esp32 import Partition
@@ -14,9 +16,18 @@ if tidal.BUTTON_FRONT.value() == 0:
     from bootmenu import BootMenu
     menu = BootMenu()
 else:
+    import emf_png
+    import lodepng
+    (w, h, buf) = lodepng.decode565(emf_png.DATA)
+    tidal.display.blit_buffer(buf, 0, 0, w, h)
+
     from app_launcher import Launcher
     menu = Launcher()
 
+try:
+    os.mkdir("/apps")
+except OSError:
+    pass
 
 # If we've made it to here, any OTA update has _probably_ gone ok...
 Partition.mark_app_valid_cancel_rollback()

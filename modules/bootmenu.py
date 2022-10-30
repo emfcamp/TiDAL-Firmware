@@ -27,6 +27,11 @@ def run_otaupdate():
     app = otaupdate.OtaUpdate()
     app.run_sync()
 
+def run_post():
+    import post
+    app = post.PowerOnSelfTest()
+    app.run_sync()
+
 def run_download_mode():
     import downloadmode
     app = downloadmode.DownloadMode()
@@ -74,25 +79,36 @@ def erase_storage():
     wait_for_a()
     machine.reset()
 
+def reset_firstrun():
+    import settings
+    settings.set("first_run_done", False)
+    settings.save()
+    win = textwindow.TextWindow(RED, WHITE)
+    win.println("First run reset.")
+    win.clear_from_line()
+    wait_for_a()
+
 # Note, this is a minimal app definition that does not rely on IRQs, timers or uasyncio working
 # For consistency, it is structured to look similar to a MenuApp even though it doesn't actually
 # derive from it.
 class BootMenu:
 
     TITLE = "Recovery Menu"
-    BG = RED
+    BG = BRAND_ORANGE
     FG = WHITE
-    FOCUS_FG = RED
+    FOCUS_FG = ADDITIONAL_DEEP_ORANGE
     FOCUS_BG = WHITE
 
     # Note, the text for each choice needs to be <= 16 characters in order to fit on screen
     CHOICES = (
+        ("Self test", run_post),
         ("App Launcher", run_applauncher),
         ("Nosleep Launcher", run_applauncher_nosleep),
         ("Firmware Update", run_otaupdate),
         ("Erase storage",  erase_storage),
         ("Power off (UVLO)", system_power_off),
         ("USB flashing", run_download_mode),
+        ("Reset first run", reset_firstrun),
     )
 
     def main(self):

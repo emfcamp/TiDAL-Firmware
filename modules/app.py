@@ -1,7 +1,7 @@
 import tidal
 from buttons import Buttons
 from scheduler import get_scheduler
-from textwindow import TextWindow, Menu
+from textwindow import TextWindow, Menu, DialogWindow
 from keyboard import Keyboard
 
 class App:
@@ -46,6 +46,8 @@ class App:
 
     def on_deactivate(self):
         self._is_active = False
+        if buttons := self.buttons:
+            buttons.deactivate()
 
     def on_tick(self):
         # Only for things that need scheduler hooks, like UguiApp
@@ -117,6 +119,26 @@ class App:
             self.finish_presenting()
         keyboard = Keyboard(completion, prompt, initial_value, multiline_allowed)
         self.present_window(keyboard) # Doesn't return until all finished
+        return result[0]
+
+    def yes_no_prompt(self, title, yes_prompt=None, no_prompt=None):
+        """Returns True or False, or None if the user dismissed the dialog with the back button"""
+        win = self.window
+        result = [None]
+        def yes():
+            result[0] = True
+            self.finish_presenting()
+        def no():
+            result[0] = False
+            self.finish_presenting()
+        buttons = Buttons()
+        buttons.on_press(tidal.BUTTON_FRONT, self.finish_presenting, autorepeat=False)
+        choices = (
+            (yes_prompt or "Yes", yes),
+            (no_prompt or "No", no),
+        )
+        menu = DialogWindow(win.fg, win.bg, None, None, title, choices, None, buttons)
+        self.present_window(menu)
         return result[0]
 
     def set_window(self, new_window, activate=True):
@@ -213,12 +235,18 @@ class PagedApp(App):
         display = tidal.display
         y = display.height() - self.PAGE_FOOTER + 3
         n = len(self.pages)
-        x = (display.width() - ((n - 1) * self.DOTS_SEP)) // 2
+        w = display.width()
+        sep = self.DOTS_SEP
+        if (n - 1) * sep > w:
+            # Tighten dots as much as is feasible
+            sep = max(4, w // (n - 1))
+
+        x = (w - ((n - 1) * sep)) // 2
         for i in range(n):
             if i == self._page:
-                display.fill_circle(x + (self.DOTS_SEP * i), y, 3, self.pages[i].fg)
+                display.fill_circle(x + (sep * i), y, 3, self.pages[i].fg)
             else:
-                display.fill_circle(x + (self.DOTS_SEP * i), y, 1, self.pages[i].fg)
+                display.fill_circle(x + (sep * i), y, 1, self.pages[i].fg)
 
     def on_start(self):
         super().on_start()
@@ -229,6 +257,8 @@ class PagedApp(App):
             # Add our navigation buttons to whatever the page windows may have defined
             page.buttons.on_press(tidal.JOY_LEFT, lambda: self.set_page(self.page - 1))
             page.buttons.on_press(tidal.JOY_RIGHT, lambda: self.set_page(self.page + 1))
+            page.buttons.on_press(tidal.JOY_UP, lambda: None)
+            page.buttons.on_press(tidal.JOY_DOWN, lambda: None)
             page.buttons.on_press(tidal.BUTTON_FRONT, self.navigate_back, autorepeat=False)
         self.push_window(self.pages[self.page], activate=False)
 
@@ -236,10 +266,14 @@ class PagedApp(App):
     def page(self):
         return self._page
 
-    def set_page(self, val):
+    def set_page(self, val, redraw=True):
         self._page = val % len(self.pages)
-        self.set_window(self.pages[self.page])
-        self.draw_dots()
+        if redraw:
+            self.set_window(self.pages[self.page])
+            self.draw_dots()
+        else:
+            self.set_window(self.pages[self.page], activate=False)
+            self.window.buttons.activate()
 
     def on_activate(self):
         super().on_activate()
