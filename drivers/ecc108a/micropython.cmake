@@ -12,6 +12,7 @@ target_sources(usermod_ecc108a INTERFACE
     ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/atca_iface.c
     ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/atca_utils_sizes.c
     ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/cryptoauthlib.h
+    ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/host/atca_host.c
 #    ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/calib/calib_hmac.c
     ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/calib/calib_lock.c
 #    ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/calib/calib_secureboot.c
@@ -26,7 +27,7 @@ target_sources(usermod_ecc108a INTERFACE
     ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/calib/calib_derivekey.c
     ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/calib/calib_genkey.c
     ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/calib/calib_execution.c
-#    ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/calib/calib_verify.c
+    ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/calib/calib_verify.c
     ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/calib/calib_sign.c
     ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/calib/calib_helpers.c
 #    ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/calib/calib_counter.c
@@ -34,7 +35,7 @@ target_sources(usermod_ecc108a INTERFACE
     ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/calib/calib_basic.c
     ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/calib/calib_random.c
     ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/calib/calib_command.c
-#    ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/calib/calib_sha.c
+    ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/calib/calib_sha.c
     ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/calib/calib_privwrite.c
 #    ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/calib/calib_kdf.c
 #    ${CMAKE_CURRENT_LIST_DIR}/cryptoauthlib/calib/calib_aes.c

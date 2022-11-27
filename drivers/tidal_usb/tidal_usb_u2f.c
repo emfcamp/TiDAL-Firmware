@@ -6,7 +6,7 @@
 #include "u2f_crypto.h"
 #include <unistd.h>
 
-#if CFG_TUD_U2FHID
+#if CONFIG_TINYUSB_U2FHID_ENABLED
 static const char *TAG = "tidalU2F";
 
 
@@ -171,10 +171,13 @@ arbitrary_size_container process_register_command(u2f_raw_register_request_body 
     ESP_LOGI(TAG, "Allocating container");
     arbitrary_size_container response_data = {
         .size=0,
-        .data=malloc(512)
+        .data=malloc(1024)
     };
+    memset(response_data.data, 0x00, 1024);
     size_t write_head = 0;
     uint8_t handle = allocate_handle();
+    uint8_t signature_input[131] = { 0 };
+
 
     // Set reserved byte
     ESP_LOGI(TAG, "Setting header");
@@ -190,10 +193,11 @@ arbitrary_size_container process_register_command(u2f_raw_register_request_body 
     response_data.data[write_head++] = 0x01;
     response_data.data[write_head++] = handle;
 
+    
     // Attestation certificate
     ESP_LOGI(TAG, "Setting cert");
     // Get the certificate from the secure elefment
-    arbitrary_size_container cert = get_der_certificate(1);
+    arbitrary_size_container cert = get_attestation_certificate();
     // Copy it into the current data stream
     memcpy(response_data.data + write_head, cert.data, cert.size);
     write_head += cert.size;
@@ -202,12 +206,11 @@ arbitrary_size_container process_register_command(u2f_raw_register_request_body 
 
     // Create the signature out of 0x00, the register request, key handle and pubkey
     ESP_LOGI(TAG, "Setting signature");
-    uint8_t signature_input[131] = { 0 };
     signature_input[0] = 0x00;
     memcpy(signature_input + 1, register_params, 65);
     signature_input[66] = handle;
     memcpy(signature_input + 67, response_data.data + 1, 64);
-    arbitrary_size_container signature = get_signature(signature_input);
+    arbitrary_size_container signature = get_signature(1, signature_input);
     memcpy(response_data.data + write_head, signature.data, signature.size);
     write_head += signature.size;
     // Free the intermediate copy
@@ -218,7 +221,7 @@ arbitrary_size_container process_register_command(u2f_raw_register_request_body 
     response_data.data[write_head++] = U2F_SW_NO_ERROR &  0xFF;
     ESP_LOGI(TAG, "Built %d byte register response", write_head);
     response_data.size = write_head;
-    realloc(response_data.data, write_head);
+    //realloc(response_data.data, write_head);
     
     printf("RAW data:");
     for (int i=0;i<response_data.size;i++) {
@@ -270,7 +273,7 @@ arbitrary_size_container process_authenticate_command(uint8_t control, u2f_raw_a
     memcpy(signature_input +  0, authenticate_params->application_param, 32);
     memcpy(signature_input + 32, response_data.data, 5);
     memcpy(signature_input + 37, authenticate_params->challenge_param, 32);
-    arbitrary_size_container signature = get_signature(signature_input);
+    arbitrary_size_container signature = get_signature(6, signature_input);
     memcpy(response_data.data + write_head, signature.data, signature.size);
     write_head += signature.size;
     // Free the intermediate copy

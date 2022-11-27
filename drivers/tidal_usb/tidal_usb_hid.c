@@ -26,7 +26,10 @@ void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t rep
 void tud_hid_report_complete_cb(uint8_t itf, uint8_t const *report, uint8_t len)
 {
     ESP_LOGW(TAG, "HID report complete");
-    pop_and_send_report();
+    #if CFG_TUD_U2FHID
+        // Also send any pending U2F reports
+        pop_and_send_report();
+    #endif
 }
 
 // Send up to 6 keyboard scancodes

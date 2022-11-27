@@ -4,7 +4,7 @@
 #include "tusb_console.h"
 #include "tidal_usb_console.h"
 
-#if CONFIG_USB_CDC_ENABLED
+#if CONFIG_TINYUSB_CDC_ENABLED
 #include "tusb_cdc_acm.h"
 
 // USB serial read callbacks from mp

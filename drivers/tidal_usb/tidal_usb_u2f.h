@@ -44,7 +44,7 @@ typedef struct u2f_raw_authenticate_request_body {
 
 // U2F HIF support
 
-#define REPORT_RING_SIZE 10
+#define REPORT_RING_SIZE 16
 
 typedef struct u2f_hid_msg {
     uint32_t CID;
