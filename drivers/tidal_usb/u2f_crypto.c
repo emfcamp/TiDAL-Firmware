@@ -111,12 +111,16 @@ arbitrary_size_container der_encode_signature(uint8_t *signature) {
     return response_data;
 }
 
+
+
 void set_counter(uint8_t handle, uint32_t *target) {
     //atcab_counter_increment(handle, target);
 }
 
 void set_pubkey(uint8_t handle, uint8_t *target) {
-    atcab_genkey(handle, target);
+    // This is an uncompressed key - in DER format?s
+    target[0] = 0x04;
+    atcab_genkey(handle, target + 1);
 }
 
 uint8_t allocate_handle() {
