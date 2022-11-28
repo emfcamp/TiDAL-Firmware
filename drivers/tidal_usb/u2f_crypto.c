@@ -73,42 +73,38 @@ arbitrary_size_container get_attestation_certificate() {
     return response_data;
 }
 
-arbitrary_size_container get_signature(uint8_t handle, uint8_t signature_input[]) {
+size_t get_signature(uint8_t handle, uint8_t *signature_input, uint8_t *target) {
     uint8_t digest[32] = { 0 };
     
     uint8_t signature[64];
     
     ESP_LOGI(TAG, "Calculating digest");
-    atcab_hw_sha2_256(signature_input, sizeof(signature_input), digest);
+    atcab_hw_sha2_256(signature_input, 69, digest);
+
     ESP_LOGI(TAG, "Signing data");
     atcab_sign(handle, &digest, &signature);
-    //memset(response_data.data, 0xF0, 73);
-    return der_encode_signature(&signature);
+    return der_encode_signature(&signature, target);
 }
 
 
-arbitrary_size_container der_encode_signature(uint8_t *signature) {
-    arbitrary_size_container response_data = {
-        .size=70,
-        .data=malloc(70),
-    };
+size_t der_encode_signature(uint8_t *signature, uint8_t *target) {
     // Compound structure
-    response_data.data[0] = 0x30;
+    target[0] = 0x30;
     
     // Length
-    response_data.data[1] = (32 + 2) * 2;
+    target[1] = (32 + 2) * 2;
     
     // r
-    response_data.data[2] = 0x02;
-    response_data.data[3] = 32;
-    memcpy(response_data.data + 4, signature, 32);
+    target[2] = 0x02;
+    target[3] = 32;
+    memcpy(target + 4, signature, 32);
     
     // s
-    response_data.data[36] = 0x02;
-    response_data.data[37] = 32;
-    memcpy(response_data.data + 38, signature + 32, 32);
+    target[36] = 0x02;
+    target[37] = 32;
+    memcpy(target + 38, signature + 32, 32);
     
-    return response_data;
+    return 70;
 }
 
 

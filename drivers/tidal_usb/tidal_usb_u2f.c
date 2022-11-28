@@ -78,11 +78,12 @@ bool handle_message_fragment(uint8_t *buffer) {
         } else {
             // This is the first fragment, set up a big enough buffer
             ESP_LOGI(TAG, "Allocating larger buffer");
-            in_progress_packet = malloc(msg_size);
-            expected_size = msg_size;
+            // The expected size is the reported data size plus the header on the initial packet
+            expected_size = msg_size + 7;
+            in_progress_packet = malloc(expected_size);
             // Copy the entire message, including the header
             uint16_t bytes_to_copy = HID_RPT_SIZE;
-            memcpy(in_progress_packet + current_index, buffer, bytes_to_copy);
+            memcpy(in_progress_packet, buffer, bytes_to_copy);
             current_index = bytes_to_copy;
             packet_needs_free = true;
             return false;
@@ -210,11 +211,8 @@ arbitrary_size_container process_register_command(u2f_raw_register_request_body 
     memcpy(signature_input + 1, register_params, 65);
     signature_input[66] = handle;
     memcpy(signature_input + 67, response_data.data + 1, 64);
-    arbitrary_size_container signature = get_signature(1, signature_input);
-    memcpy(response_data.data + write_head, signature.data, signature.size);
-    write_head += signature.size;
-    // Free the intermediate copy
-    free(signature.data);
+    arbitrary_size_container signature;
+    write_head += get_signature(1, signature_input, response_data.data + write_head);
 
     // Set the status epilogue
     response_data.data[write_head++] = U2F_SW_NO_ERROR >> 8;
@@ -273,11 +271,8 @@ arbitrary_size_container process_authenticate_command(uint8_t control, u2f_raw_a
     memcpy(signature_input +  0, authenticate_params->application_param, 32);
     memcpy(signature_input + 32, response_data.data, 5);
     memcpy(signature_input + 37, authenticate_params->challenge_param, 32);
-    arbitrary_size_container signature = get_signature(6, signature_input);
-    memcpy(response_data.data + write_head, signature.data, signature.size);
-    write_head += signature.size;
-    // Free the intermediate copy
-    free(signature.data);
+    arbitrary_size_container signature;
+    write_head += get_signature(6, &signature_input, response_data.data + write_head);
 
     // Set the status epilogue
     response_data.data[write_head++] = U2F_SW_NO_ERROR >> 8;
