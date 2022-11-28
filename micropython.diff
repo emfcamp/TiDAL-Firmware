@@ -1,18 +1,31 @@
-diff --git a/ports/esp32/CMakeLists.txt b/ports/esp32/CMakeLists.txt
-index 8b2f09a72..bc4af823a 100644
---- a/ports/esp32/CMakeLists.txt
-+++ b/ports/esp32/CMakeLists.txt
-@@ -18,6 +18,10 @@ if(NOT EXISTS ${MICROPY_BOARD_DIR}/mpconfigboard.cmake)
-     message(FATAL_ERROR "Invalid MICROPY_BOARD specified: ${MICROPY_BOARD}")
- endif()
+diff --git a/ports/esp32/Makefile b/ports/esp32/Makefile
+index c8ca9262c..e6224a2a3 100644
+--- a/ports/esp32/Makefile
++++ b/ports/esp32/Makefile
+@@ -30,6 +30,11 @@ ifdef FROZEN_MANIFEST
+        IDFPY_FLAGS += -D MICROPY_FROZEN_MANIFEST=$(FROZEN_MANIFEST)
+ endif
  
++ifdef USER_COMPONENTS
++	IDFPY_FLAGS += -DEXTRA_COMPONENT_DIRS=${USER_COMPONENTS}
++endif
 +
-+set(IDF_TARGET esp32s3)
-+include($ENV{IOT_SOLUTION_PATH}/component.cmake)
 +
- # Include main IDF cmake file.
- include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+ all:
+ 	idf.py $(IDFPY_FLAGS) build
+ 	@$(PYTHON) makeimg.py \
+diff --git a/ports/esp32/main.c b/ports/esp32/main.c
+index a1c27c0a2..56b145478 100644
+--- a/ports/esp32/main.c
++++ b/ports/esp32/main.c
+@@ -95,6 +95,7 @@ void mp_task(void *pvParameter) {
+     #else
+     uart_stdout_init();
+     #endif
++
+     machine_init();
  
+     size_t mp_task_heap_size;
 diff --git a/ports/esp32/mphalport.c b/ports/esp32/mphalport.c
 index 41e6e6ec0..761e93c01 100644
 --- a/ports/esp32/mphalport.c
