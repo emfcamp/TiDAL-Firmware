@@ -255,7 +255,7 @@ arbitrary_size_container process_authenticate_command(uint8_t control, u2f_raw_a
         .data=malloc(85)
     };
     size_t write_head = 0;
-    
+
     // Set reserved byte
     ESP_LOGI(TAG, "Setting presence bit");
     response_data.data[write_head++] = 0x01;

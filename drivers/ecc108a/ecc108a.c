@@ -126,10 +126,8 @@ STATIC mp_obj_t ecc108a_genkey(mp_obj_t slot_id) {
 
     // Return X, Y tuple
     mp_obj_t tuple[2];
-    uint32_t x = (pubkey[0] << 0*8) | (pubkey[1] << 1*8) | (pubkey[2] << 2*8) | (pubkey[3] << 3*8);
-    uint32_t y = (pubkey[4] << 0*8) | (pubkey[5] << 1*8) | (pubkey[6] << 2*8) | (pubkey[7] << 3*8);
-    tuple[0] = mp_obj_new_int_from_ull(x);
-    tuple[1] = mp_obj_new_int_from_ull(y);
+    tuple[0] = mp_obj_new_bytes(pubkey, 32);
+    tuple[1] = mp_obj_new_bytes(pubkey+32, 32);
     return mp_obj_new_tuple(2, tuple);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(ecc108a_genkey_obj, ecc108a_genkey);
@@ -144,10 +142,8 @@ STATIC mp_obj_t ecc108a_get_pubkey(mp_obj_t slot_id) {
 
     // Return X, Y tuple
     mp_obj_t tuple[2];
-    uint32_t x = (pubkey[0] << 0*8) | (pubkey[1] << 1*8) | (pubkey[2] << 2*8) | (pubkey[3] << 3*8);
-    uint32_t y = (pubkey[4] << 0*8) | (pubkey[5] << 1*8) | (pubkey[6] << 2*8) | (pubkey[7] << 3*8);
-    tuple[0] = mp_obj_new_int_from_ull(x);
-    tuple[1] = mp_obj_new_int_from_ull(y);
+    tuple[0] = mp_obj_new_bytes(pubkey, 32);
+    tuple[1] = mp_obj_new_bytes(pubkey+32, 32);
     return mp_obj_new_tuple(2, tuple);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(ecc108a_get_pubkey_obj, ecc108a_get_pubkey);
@@ -165,14 +161,39 @@ STATIC mp_obj_t ecc108a_sign(mp_obj_t slot_id, mp_obj_t message) {
 
     // Return R, S tuple
     mp_obj_t tuple[2];
-    uint32_t r = (signature[0] << 0*8) | (signature[1] << 1*8) | (signature[2] << 2*8) | (signature[3] << 3*8);
-    uint32_t s = (signature[4] << 0*8) | (signature[5] << 1*8) | (signature[6] << 2*8) | (signature[7] << 3*8);
-    tuple[0] = mp_obj_new_int_from_ull(r);
-    tuple[1] = mp_obj_new_int_from_ull(s);
+    tuple[0] = mp_obj_new_bytes(signature, 32);
+    tuple[1] = mp_obj_new_bytes(signature+32, 32);
     return mp_obj_new_tuple(2, tuple);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(ecc108a_sign_obj, ecc108a_sign);
 
+
+STATIC mp_obj_t ecc108a_verify(mp_obj_t message, mp_obj_t signature, mp_obj_t public_key) {
+    
+    mp_obj_tuple_t *public_key_tuple = MP_OBJ_TO_PTR(public_key);
+    const char *x = mp_obj_str_get_data(public_key_tuple->items[0], 32);
+    const char *y = mp_obj_str_get_data(public_key_tuple->items[1], 32);
+    uint8_t key[64];
+    memcpy(&key[0], x, 32);
+    memcpy(&key[32], y, 32);
+    
+    mp_obj_tuple_t *signature_tuple = MP_OBJ_TO_PTR(public_key);
+    const char *r = mp_obj_str_get_data(signature_tuple->items[0], 32);
+    const char *s = mp_obj_str_get_data(signature_tuple->items[1], 32);
+    uint8_t sig[64];
+    memcpy(&sig[0], r, 32);
+    memcpy(&sig[32], s, 32);
+    
+    const char *message_data = mp_obj_str_get_data(message, 32);
+    
+    bool verified;
+    atcab_verify_extern((const uint8_t*) message_data, &sig, &key, &verified);
+    if (verified)
+        return mp_const_true;
+    else
+        return mp_const_false;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_3(ecc108a_verify_obj, ecc108a_verify);
 
 
 STATIC const mp_rom_map_elem_t ecc108a_module_globals_table[] = {
@@ -186,7 +207,8 @@ STATIC const mp_rom_map_elem_t ecc108a_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_get_serial_number), MP_ROM_PTR(&ecc108a_get_serial_number_obj) },
     { MP_ROM_QSTR(MP_QSTR_genkey), MP_ROM_PTR(&ecc108a_genkey_obj) },
     { MP_ROM_QSTR(MP_QSTR_get_pubkey), MP_ROM_PTR(&ecc108a_get_pubkey_obj) },
-    { MP_ROM_QSTR(MP_QSTR_ecc108a_sign), MP_ROM_PTR(&ecc108a_sign_obj) },
+    { MP_ROM_QSTR(MP_QSTR_sign), MP_ROM_PTR(&ecc108a_sign_obj) },
+    { MP_ROM_QSTR(MP_QSTR_verify), MP_ROM_PTR(&ecc108a_verify_obj) },
 };
 STATIC MP_DEFINE_CONST_DICT(ecc108a_module_globals, ecc108a_module_globals_table);
 
