@@ -169,25 +169,31 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_2(ecc108a_sign_obj, ecc108a_sign);
 
 
 STATIC mp_obj_t ecc108a_verify(mp_obj_t message, mp_obj_t signature, mp_obj_t public_key) {
+    // All the strings are length 32, but we need to pass a *pointer* to a size t.
+    const size_t thirtytwo = 32;
     
+    // Extract the pubkey
     mp_obj_tuple_t *public_key_tuple = MP_OBJ_TO_PTR(public_key);
-    const char *x = mp_obj_str_get_data(public_key_tuple->items[0], 32);
-    const char *y = mp_obj_str_get_data(public_key_tuple->items[1], 32);
+    const char *x = mp_obj_str_get_data(public_key_tuple->items[0], &thirtytwo);
+    const char *y = mp_obj_str_get_data(public_key_tuple->items[1], &thirtytwo);
     uint8_t key[64];
     memcpy(&key[0], x, 32);
     memcpy(&key[32], y, 32);
     
-    mp_obj_tuple_t *signature_tuple = MP_OBJ_TO_PTR(public_key);
-    const char *r = mp_obj_str_get_data(signature_tuple->items[0], 32);
-    const char *s = mp_obj_str_get_data(signature_tuple->items[1], 32);
+    // Extract the signature
+    mp_obj_tuple_t *signature_tuple = MP_OBJ_TO_PTR(signature);
+    const char *r = mp_obj_str_get_data(signature_tuple->items[0], &thirtytwo);
+    const char *s = mp_obj_str_get_data(signature_tuple->items[1], &thirtytwo);
     uint8_t sig[64];
     memcpy(&sig[0], r, 32);
     memcpy(&sig[32], s, 32);
     
-    const char *message_data = mp_obj_str_get_data(message, 32);
-    
+    // Extract the message (this is a SHA256 of the user-facing 'message')
+    const char *message_data = mp_obj_str_get_data(message, &thirtytwo);
+
+    // Verify on-chip
     bool verified;
-    atcab_verify_extern((const uint8_t*) message_data, &sig, &key, &verified);
+    assert_ATCA_SUCCESS(atcab_verify_extern((const uint8_t*) message_data, &sig, &key, &verified));
     if (verified)
         return mp_const_true;
     else
