@@ -212,7 +212,7 @@ arbitrary_size_container process_register_command(u2f_raw_register_request_body 
     signature_input[66] = handle;
     memcpy(signature_input + 67, response_data.data + 1, 64);
     arbitrary_size_container signature;
-    write_head += get_signature(1, signature_input, response_data.data + write_head);
+    write_head += get_signature(1, 131, signature_input, response_data.data + write_head);
 
     // Set the status epilogue
     response_data.data[write_head++] = U2F_SW_NO_ERROR >> 8;
@@ -272,7 +272,7 @@ arbitrary_size_container process_authenticate_command(uint8_t control, u2f_raw_a
     memcpy(signature_input + 32, response_data.data, 5);
     memcpy(signature_input + 37, authenticate_params->challenge_param, 32);
     arbitrary_size_container signature;
-    write_head += get_signature(6, &signature_input, response_data.data + write_head);
+    write_head += get_signature(6, 69, &signature_input, response_data.data + write_head);
 
     // Set the status epilogue
     response_data.data[write_head++] = U2F_SW_NO_ERROR >> 8;

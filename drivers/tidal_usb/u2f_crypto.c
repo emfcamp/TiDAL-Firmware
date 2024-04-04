@@ -73,14 +73,13 @@ arbitrary_size_container get_attestation_certificate() {
     return response_data;
 }
 
-size_t get_signature(uint8_t handle, uint8_t *signature_input, uint8_t *target) {
+size_t get_signature(uint8_t handle, size_t signature_length, uint8_t *signature_input, uint8_t *target) {
     uint8_t digest[32] = { 0 };
     
     uint8_t signature[64];
     
     ESP_LOGI(TAG, "Calculating digest");
-    atcab_hw_sha2_256(signature_input, 69, digest);
-
+    atcab_hw_sha2_256(signature_input, signature_length, digest);
     ESP_LOGI(TAG, "Signing data");
     atcab_sign(handle, &digest, &signature);
     return der_encode_signature(&signature, target);
