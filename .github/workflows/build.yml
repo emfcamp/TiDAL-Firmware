@@ -5,6 +5,8 @@ on:
   push:
     tags:
       - "v*"
+env:
+  TARGET: esp32s3
 jobs:
   Build-Firmware:
     runs-on: ubuntu-latest
