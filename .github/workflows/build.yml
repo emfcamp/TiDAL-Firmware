@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: espressif/esp-idf
-          ref: release/v4.4
+          ref: v4.4.1
           path: esp-idf
           submodules: true
       - name: Install SDK
