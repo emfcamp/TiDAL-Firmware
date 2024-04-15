@@ -1,3 +1,4 @@
+set(IDF_TARGET esp32s3)
 idf_build_get_property(target IDF_TARGET)
 
 set(srcs)
