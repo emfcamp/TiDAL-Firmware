@@ -23,22 +23,31 @@ typedef struct _machine_pin_obj_t {
     gpio_num_t id;
 } machine_pin_obj_t;
 
+STATIC mp_obj_t tidal_helper_authentication_operation() {
+    return mp_obj_new_int(authentication_operation);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(tidal_helper_authentication_operation_obj, tidal_helper_authentication_operation);
+
 STATIC mp_obj_t tidal_helper_authentication_requested() {
     mp_obj_t response[3];
     response[0] = mp_const_none;
     response[1] = mp_const_none;
     response[2] = mp_const_none;
     
+    // Is the current operation a request?
     if (authentication_operation == AUTHENTICATE_REQUEST || authentication_operation == REGISTER_REQUEST) {
         response[0] = mp_const_true;
-        if (authentication_operation_slot == 99)
-            response[1] = mp_const_none;
-        else
-            response[1] = mp_obj_new_int(authentication_operation_slot);
-        response[2] = mp_obj_new_bytes(authentication_application_parameter, 32);
     } else {
         response[0] = mp_const_false;
     }
+    // What slot is in use
+    if (authentication_operation_slot == 99) {
+            response[1] = mp_const_none;
+    } else {
+        response[1] = mp_obj_new_int(authentication_operation_slot);
+    }
+    // What's the application parameter
+    response[2] = mp_obj_new_bytes(authentication_application_parameter, 32);
     return mp_obj_new_tuple(3, response);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(tidal_helper_authentication_requested_obj, tidal_helper_authentication_requested);
@@ -65,7 +74,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_1(tidal_helper_authentication_approve_obj, tidal_
 
 STATIC mp_obj_t tidal_helper_authentication_slot(mp_obj_t slot) {
     if (mp_obj_is_int(slot)) {
-        authentication_operation = mp_obj_get_int(slot);
+        authentication_operation_slot = mp_obj_get_int(slot);
         return slot;
     } else {
         mp_raise_ValueError(slot);
@@ -440,6 +449,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_2(tidal_set_backlight_pwm_obj, tidal_set_backligh
 
 STATIC const mp_rom_map_elem_t tidal_helpers_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_ota) },
+    { MP_ROM_QSTR(MP_QSTR_get_authentication_operation), MP_ROM_PTR(&tidal_helper_authentication_operation_obj) },
     { MP_ROM_QSTR(MP_QSTR_set_authentication_approval), MP_ROM_PTR(&tidal_helper_authentication_approve_obj) },
     { MP_ROM_QSTR(MP_QSTR_get_authentication_requested), MP_ROM_PTR(&tidal_helper_authentication_requested_obj) },
     { MP_ROM_QSTR(MP_QSTR_set_authentication_mismatch), MP_ROM_PTR(&tidal_helper_authentication_mismatch_obj) },

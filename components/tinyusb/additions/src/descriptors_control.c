@@ -16,6 +16,7 @@
 #include "descriptors_control.h"
 #include "dfu_device.h"
 #include "u2f_hid.h"
+#include "nvs.h"
 
 
 #define TILDA_REPORT_DESC_U2F(...) \
@@ -59,6 +60,8 @@ uint8_t const desc_hid_report[] = {
 
 #define FUNC_ATTRS (DFU_ATTR_CAN_UPLOAD | DFU_ATTR_CAN_DOWNLOAD | DFU_ATTR_MANIFESTATION_TOLERANT)
 
+int32_t hid_mode = 0;
+
 uint8_t const desc_configuration[] = {
 #if CONFIG_TINYUSB_NET_ECM
     // Config number, interface count, string index, total length, attribute, power in mA
@@ -93,8 +96,47 @@ uint8_t const desc_configuration[] = {
     // Interface number, string index, protocol, report descriptor len, EP In address, size & polling interval
     TUD_HID_DESCRIPTOR(ITF_NUM_HID, STRID_HID_INTERFACE, HID_PROTOCOL_KEYBOARD, sizeof(desc_hid_report), (0x80 | EPNUM_HID_DATA), 8, 10),
 #endif
+
+#if CFG_TUD_DFU
+    // Interface number, Alternate count, starting string index, attributes, detach timeout, transfer size
+    TUD_DFU_DESCRIPTOR(ITF_NUM_DFU, DFU_ALT_COUNT, STRID_DFU_INTERFACE, FUNC_ATTRS, 1000, CFG_TUD_DFU_XFER_BUFSIZE),
+#endif
+
+};
+
+
+uint8_t const desc_configuration_2[] = {
+#if CONFIG_TINYUSB_NET_ECM
+    // Config number, interface count, string index, total length, attribute, power in mA
+    TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, ALT_CONFIG_TOTAL_LEN, 0, 100),
+#else
+    // Config number, interface count, string index, total length, attribute, power in mA
+    TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, TUSB_DESC_TOTAL_LEN, 0, 500),
+#endif
+#if CFG_TUD_BTH
+    // BT Primary controller descriptor
+    // Interface number, string index, attributes, event endpoint, event endpoint size, interval, data in, data out, data endpoint size, iso endpoint sizes
+    TUD_BTH_DESCRIPTOR(ITF_NUM_BTH, 0 /* STRID_BTH_INTERFACE */, (0x80 | EPNUM_BT_EVT), 16, 1, (0x80 | EPNUM_BT_BULK_OUT), EPNUM_BT_BULK_OUT, 64, 0, 9, 17, 25, 33, 49),
+#endif
+#if CFG_TUD_NET
+#if CONFIG_TINYUSB_NET_ECM
+    // Interface number, description string index, MAC address string index, EP notification address and size, EP data address (out, in), and size, max segment size.
+    TUD_CDC_ECM_DESCRIPTOR(ITF_NUM_NET, STRID_NET_INTERFACE, STRID_MAC, (0x80 | EPNUM_NET_NOTIF), 64, EPNUM_NET_DATA, (0x80 | EPNUM_NET_DATA), CFG_TUD_NET_ENDPOINT_SIZE, CFG_TUD_NET_MTU),
+#elif CONFIG_TINYUSB_NET_RNDIS
+    // Interface number, string index, EP notification address and size, EP data address (out, in) and size.
+    TUD_RNDIS_DESCRIPTOR(ITF_NUM_NET, STRID_NET_INTERFACE, (0x80 | EPNUM_NET_NOTIF), 8, EPNUM_NET_DATA, (0x80 | EPNUM_NET_DATA), CFG_TUD_NET_ENDPOINT_SIZE),
+#endif
+#endif
+#if CFG_TUD_CDC
+    // Interface number, string index, EP notification address and size, EP data address (out, in) and size.
+    TUD_CDC_DESCRIPTOR(ITF_NUM_CDC, STRID_CDC_INTERFACE, (0x80 | EPNUM_CDC_NOTIF), 8, EPNUM_CDC_DATA, (0x80 | EPNUM_CDC_DATA), 64),
+#endif
+#if CFG_TUD_MSC
+    // Interface number, string index, EP Out & EP In address, EP size
+    TUD_MSC_DESCRIPTOR(ITF_NUM_MSC, STRID_MSC_INTERFACE, EPNUM_MSC_DATA, (0x80 | EPNUM_MSC_DATA), 64), // highspeed 512
+#endif
 #if CFG_TUD_U2FHID
-    TUD_HID_DESCRIPTOR(ITF_NUM_HID_2, STRID_HID_INTERFACE_2, HID_PROTOCOL_NONE, sizeof(desc_hid_report_2), (0x80 | EPNUM_HID_DATA_2), 8, 10),
+    TUD_HID_DESCRIPTOR(ITF_NUM_HID, STRID_HID_INTERFACE, HID_PROTOCOL_NONE, sizeof(desc_hid_report_2), (0x80 | EPNUM_HID_DATA), 8, 10),
 #endif
 
 #if CFG_TUD_DFU
@@ -103,6 +145,7 @@ uint8_t const desc_configuration[] = {
 #endif
 
 };
+
 
 // =============================================================================
 // CALLBACKS
@@ -197,12 +240,12 @@ uint8_t const *tud_hid_descriptor_report_cb(uint8_t itf)
 {
     ESP_LOGW(TAG, "Getting descriptor for interface %d", itf);
     #if CFG_TUD_HID_KBD
-    if (itf == 0) {
+    if (hid_mode == 0) {
         return desc_hid_report;
     }
     #endif
     #if CFG_TUD_U2FHID
-    if (itf == 0+(CFG_TUD_HID_KBD)) {
+    if (hid_mode == 1) {
         return desc_hid_report_2;
     }
     #endif
@@ -260,13 +303,23 @@ void tusb_set_descriptor(tusb_desc_device_t *dev_desc, const char **str_desc)
 void tusb_set_config_descriptor(const uint8_t *config_desc)
 {
     size_t length = 0;
-    const uint8_t *config_descriptor = NULL; 
-    if (config_desc == NULL) {
+    const uint8_t *config_descriptor = NULL;
+
+    nvs_handle_t h = 0;
+    esp_err_t err = nvs_open("tidal", NVS_READONLY, &h);
+    hid_mode = 1;
+    err = nvs_get_i32(h, "enable_u2f", &hid_mode);
+    nvs_close(h);
+    if (err != ESP_OK) {
+        hid_mode = 1;
+    }
+ 
+    if (hid_mode == 0) {
         config_descriptor = desc_configuration;
-        ESP_LOGI(TAG, "using default config desc");
+        ESP_LOGI(TAG, "using keyboard descriptors");
     } else {
-        config_descriptor = config_desc;
-        ESP_LOGI(TAG, "using custom config desc");
+        config_descriptor = desc_configuration_2;
+        ESP_LOGI(TAG, "using u2fhid descriptors");
     }
     length = (config_descriptor[3]<<8) + config_descriptor[2];
     ESP_LOGI(TAG, "config desc size=%d", length);

@@ -29,6 +29,9 @@
 extern "C" {
 #endif
 
+int32_t hid_mode;
+
+
 //------------- EndPoint Descriptor -------------//
 enum {
     EPNUM_DEFAULT = 0,
@@ -54,13 +57,9 @@ enum {
 #   if CFG_TUD_HID_KBD
     EPNUM_HID_DATA,
 #   endif
-
-#   if CFG_TUD_U2FHID
-    EPNUM_HID_DATA_2,
-#   endif
 };
 
-#if ((CFG_TUD_BTH * 2) + (CFG_TUD_NET * 2) + (CFG_TUD_CDC * 2) + CFG_TUD_MSC + CFG_TUD_HID + CFG_TUD_U2FHID) > 4
+#if ((CFG_TUD_BTH * 2) + (CFG_TUD_NET * 2) + (CFG_TUD_CDC * 2) + CFG_TUD_MSC + CFG_TUD_HID) > 4
 #error "USB endpoint number not be more than 5"
 #endif
 
@@ -93,12 +92,8 @@ enum {
     ITF_NUM_MSC,
 #   endif
 
-#   if CFG_TUD_HID_KBD
+#   if CFG_TUD_HID
     ITF_NUM_HID,
-#   endif
-
-#   if CFG_TUD_U2FHID
-    ITF_NUM_HID_2,
 #   endif
 
 #   if CFG_TUD_DFU
@@ -145,8 +140,7 @@ enum {
                           TUD_CDC_DESC_LEN * CFG_TUD_CDC + 
                           TUD_RNDIS_DESC_LEN * CFG_TUD_NET + 
                           TUD_MSC_DESC_LEN * CFG_TUD_MSC + 
-                          TUD_HID_DESC_LEN * CFG_TUD_HID_KBD +
-                          TUD_HID_DESC_LEN * CFG_TUD_U2FHID +
+                          TUD_HID_DESC_LEN * (CFG_TUD_HID_KBD | CFG_TUD_U2FHID) +
                           TUD_BTH_DESC_LEN * CFG_TUD_BTH,
 
     ALT_CONFIG_TOTAL_LEN = TUD_CONFIG_DESC_LEN + 

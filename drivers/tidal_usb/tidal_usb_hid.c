@@ -14,7 +14,7 @@ static const char *TAG = "tidalHID";
 void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t report_type, uint8_t const* buffer, uint16_t bufsize) { 
     printf("REPORT: %d %d %d\n", itf, report_id, report_type);
     #if CFG_TUD_U2FHID
-    if (itf == 0+(CFG_TUD_HID_KBD)) {
+    if (hid_mode == 1) {
         // This is the U2F device
         handle_report_u2f(itf, report_id, report_type, buffer, bufsize);
     }

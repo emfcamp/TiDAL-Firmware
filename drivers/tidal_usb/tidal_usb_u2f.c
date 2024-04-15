@@ -255,7 +255,7 @@ arbitrary_size_container process_authenticate_command(uint8_t control, u2f_raw_a
     ESP_LOGI(TAG, "Allocating container");
     arbitrary_size_container response_data = {
         .size=0,
-        .data=malloc(256)
+        .data=malloc(185)
     };
     memset(response_data.data, 0x00, 185);
     size_t write_head = 0;
@@ -264,12 +264,12 @@ arbitrary_size_container process_authenticate_command(uint8_t control, u2f_raw_a
     ESP_LOGI(TAG, "Setting presence bit");
     response_data.data[write_head++] = 0x01;
     // The next 4 bytes are a counter, increment it for this handle and return
-    uint32_t counter_value = 0;
+    uint32_t counter_value = 1;
     set_counter(authenticate_params->key_handle[0], &counter_value);
-    response_data.data[write_head++] = (counter_value >> 24) && 0xFF;
-    response_data.data[write_head++] = (counter_value >> 16) && 0xFF;
-    response_data.data[write_head++] = (counter_value >>  8) && 0xFF;
-    response_data.data[write_head++] = (counter_value >>  0) && 0xFF;
+    response_data.data[write_head++] = 0x00;//(counter_value >> 24) && 0xFF;
+    response_data.data[write_head++] = 0x00;//(counter_value >> 16) && 0xFF;
+    response_data.data[write_head++] = 0x00;//(counter_value >>  8) && 0xFF;
+    response_data.data[write_head++] = 0x00;//(counter_value >>  0) && 0xFF;
     
     // Create the signature out of the application parameter, the user presence byte, the counter then the challenge param
     ESP_LOGI(TAG, "Setting signature");
@@ -277,9 +277,8 @@ arbitrary_size_container process_authenticate_command(uint8_t control, u2f_raw_a
     memcpy(signature_input +  0, authenticate_params->application_param, 32);
     memcpy(signature_input + 32, response_data.data, 5);
     memcpy(signature_input + 37, authenticate_params->challenge_param, 32);
-    memset(&response_data.data[write_head], 0xF0, 70);
-    /*write_head += *///get_signature(6, 69, signature_input, response_data.data + write_head);
-    write_head += 70;
+    write_head += get_signature(authenticate_params->key_handle[0], 69, signature_input, response_data.data + write_head);
+
     // Set the status epilogue
     response_data.data[write_head++] = U2F_SW_NO_ERROR >> 8;
     response_data.data[write_head++] = U2F_SW_NO_ERROR &  0xFF;
@@ -349,7 +348,6 @@ void handle_u2f_msg(uint8_t *buffer, uint16_t bufsize) {
         if (authentication_operation == NO_OPERATION || authentication_operation == REGISTER_REQUEST) {
             // Set shared variables with micropython
             authentication_operation = REGISTER_REQUEST;
-            authentication_operation_slot = 99;
             memcpy(authentication_application_parameter, register_params->application_param, 32);
 
             // The user needs to allow this, send back the conditions
@@ -371,6 +369,7 @@ void handle_u2f_msg(uint8_t *buffer, uint16_t bufsize) {
             arbitrary_size_container response_data = process_register_command(register_params);
             send_multipart_response(&response_data);
             authentication_operation = NO_OPERATION;
+            authentication_operation_slot = 99;
             free(response_data.data);
         }
     } else if (raw_message->INS == U2F_AUTHENTICATE) {
@@ -407,6 +406,7 @@ void handle_u2f_msg(uint8_t *buffer, uint16_t bufsize) {
             send_multipart_response(&response_data);
             free(response_data.data);
             authentication_operation = NO_OPERATION;
+            authentication_operation_slot = 99;
         }
         else {
             // The user needs to allow this, send back the conditions

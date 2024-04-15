@@ -112,15 +112,15 @@ size_t der_encode_signature(uint8_t signature[64], uint8_t target[70]) {
 
 
 void set_counter(uint8_t handle, uint32_t *target) {
-    return 1;
+    *target = 1;
     //atcab_counter_increment(handle, target);
 }
 
 void set_pubkey(uint8_t handle, uint8_t *target) {
     // This is an uncompressed key - in DER format?s
     target[0] = 0x04;
-    atcab_get_pubkey(handle, target+1);
-    //atcab_genkey(handle, target + 1);
+    //atcab_get_pubkey(handle, target+1);
+    atcab_genkey(handle, target + 1);
 }
 
 uint8_t allocate_handle() {

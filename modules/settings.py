@@ -25,6 +25,13 @@ def set(k, v):
     _settings[k] = v
     _modified = True
 
+def delete(k):
+    global _modified
+    if _settings is None:
+        load()
+    del _settings[k]
+    _modified = True
+
 def save():
     global _settings, _modified
     if _settings is None:

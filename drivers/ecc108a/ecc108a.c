@@ -62,7 +62,15 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_0(ecc108a_get_serial_number_obj, ecc108a_get_seri
 
 
 STATIC mp_obj_t ecc108a_provision_slot() {
-    // Retrieve the current configuration zone
+    // Retrieve the current configuration zone and patch it
+    /*
+    Desired state from ecc108a_tools.run()
+    Key n:
+      SlotLocked: 1 (unlocked)
+      SlotConfig: 6083
+      KeyConfig: 0033
+      UseFlag: 0xff
+    */
     uint8_t buf[128] = {0};
     assert_ATCA_SUCCESS(atcab_read_config_zone(&buf));
 
