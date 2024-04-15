@@ -1,4 +1,5 @@
 #include "u2f_hid.h"
+#include "tidal_usb_u2f_shared_variables.h"
 
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 

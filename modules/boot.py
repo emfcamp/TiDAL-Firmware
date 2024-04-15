@@ -25,6 +25,7 @@ else:
 
     from app_launcher import Launcher
     menu = Launcher()
+    Launcher._singleton = menu
 
 try:
     os.mkdir("/apps")

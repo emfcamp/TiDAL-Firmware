@@ -98,6 +98,12 @@ class Scheduler:
         enter_level = self._level
         deactivated_app = None
         while True:
+            if first_time:
+                if settings.get("enable_u2f", True):
+                    # Add the U2F periodic task
+                    import authenticator
+                    authenticator.allow_interrupt_when_authenticating()
+
             while self.check_for_interrupts() or first_time:
                 first_time = False
                 uasyncio.run_until_complete()

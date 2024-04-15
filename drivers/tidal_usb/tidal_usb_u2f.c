@@ -5,6 +5,9 @@
 #include "esp_log.h"
 #include "u2f_crypto.h"
 #include <unistd.h>
+#include "py/builtin.h"
+
+#include "tidal_usb_console.h"
 
 #if CONFIG_TINYUSB_U2FHID_ENABLED
 static const char *TAG = "tidalU2F";
@@ -14,9 +17,8 @@ uint8_t *in_progress_packet = NULL;
 bool packet_needs_free = false;
 uint16_t expected_size = 0;
 uint16_t current_index = 0;
-bool had_user_interaction = false;
 
-u2f_hid_msg upcoming_report_ring[REPORT_RING_SIZE] = { NULL };
+u2f_hid_msg upcoming_report_ring[REPORT_RING_SIZE] = { 0 };
 bool upcoming_report_ring_waiting[REPORT_RING_SIZE] = { false };
 uint8_t write_head = 0;
 uint8_t read_head = 0;
@@ -35,7 +37,7 @@ void push_report(u2f_hid_msg *msg) {
 
 void pop_and_send_report() {
     if (!upcoming_report_ring_waiting[read_head]) {
-        // There's already a report waiting to be picked up. This is a fatal error.
+        // There's no report waiting to be picked up. This is a fatal error.
         ESP_LOGW(TAG, "U2F outbound report buffer empty");
         return;
     }
@@ -47,7 +49,7 @@ void pop_and_send_report() {
 }
 
 
-bool handle_message_fragment(uint8_t *buffer) {
+bool handle_message_fragment(const uint8_t *buffer) {
     const u2f_hid_msg *msg = (u2f_hid_msg *) buffer;
     if (in_progress_packet != NULL) {
         // This is a continuation packet
@@ -135,7 +137,8 @@ void handle_report_u2f(uint8_t itf, uint8_t report_id, hid_report_type_t report_
         free(in_progress_packet);
         packet_needs_free = false;
     }
-    in_progress_packet = expected_size = current_index = NULL;
+    in_progress_packet = NULL;
+    expected_size = current_index = 0;
 
 }
  
@@ -197,7 +200,7 @@ arbitrary_size_container process_register_command(u2f_raw_register_request_body 
     
     // Attestation certificate
     ESP_LOGI(TAG, "Setting cert");
-    // Get the certificate from the secure elefment
+    // Get the certificate from the secure element
     arbitrary_size_container cert = get_attestation_certificate();
     // Copy it into the current data stream
     memcpy(response_data.data + write_head, cert.data, cert.size);
@@ -251,19 +254,22 @@ arbitrary_size_container process_authenticate_command(uint8_t control, u2f_raw_a
 
     ESP_LOGI(TAG, "Allocating container");
     arbitrary_size_container response_data = {
-        .size=85,
-        .data=malloc(85)
+        .size=0,
+        .data=malloc(256)
     };
+    memset(response_data.data, 0x00, 185);
     size_t write_head = 0;
 
     // Set reserved byte
     ESP_LOGI(TAG, "Setting presence bit");
     response_data.data[write_head++] = 0x01;
-    // The next 4 bytes are a counter
-    response_data.data[write_head++] = 0x00;
-    response_data.data[write_head++] = 0x00;
-    response_data.data[write_head++] = 0x00;
-    response_data.data[write_head++] = 0x01;
+    // The next 4 bytes are a counter, increment it for this handle and return
+    uint32_t counter_value = 0;
+    set_counter(authenticate_params->key_handle[0], &counter_value);
+    response_data.data[write_head++] = (counter_value >> 24) && 0xFF;
+    response_data.data[write_head++] = (counter_value >> 16) && 0xFF;
+    response_data.data[write_head++] = (counter_value >>  8) && 0xFF;
+    response_data.data[write_head++] = (counter_value >>  0) && 0xFF;
     
     // Create the signature out of the application parameter, the user presence byte, the counter then the challenge param
     ESP_LOGI(TAG, "Setting signature");
@@ -271,15 +277,15 @@ arbitrary_size_container process_authenticate_command(uint8_t control, u2f_raw_a
     memcpy(signature_input +  0, authenticate_params->application_param, 32);
     memcpy(signature_input + 32, response_data.data, 5);
     memcpy(signature_input + 37, authenticate_params->challenge_param, 32);
-    arbitrary_size_container signature;
-    write_head += get_signature(6, 69, &signature_input, response_data.data + write_head);
-
+    memset(&response_data.data[write_head], 0xF0, 70);
+    /*write_head += *///get_signature(6, 69, signature_input, response_data.data + write_head);
+    write_head += 70;
     // Set the status epilogue
     response_data.data[write_head++] = U2F_SW_NO_ERROR >> 8;
     response_data.data[write_head++] = U2F_SW_NO_ERROR &  0xFF;
     ESP_LOGI(TAG, "Built %d byte authenticate response", write_head);
     response_data.size = write_head;
-    realloc(response_data.data, write_head);
+    //realloc(response_data.data, write_head);
 
     
     /*printf("RAW data:");
@@ -340,9 +346,76 @@ void handle_u2f_msg(uint8_t *buffer, uint16_t bufsize) {
         ESP_LOGI(TAG, "Will process U2F_REGISTER raw message (Instruction %x)", raw_message->INS);
         u2f_raw_register_request_body *register_params = (u2f_raw_register_request_body *) raw_message->extended_form.data;
         
-        if (!had_user_interaction) {
+        if (authentication_operation == NO_OPERATION || authentication_operation == REGISTER_REQUEST) {
+            // Set shared variables with micropython
+            authentication_operation = REGISTER_REQUEST;
+            authentication_operation_slot = 99;
+            memcpy(authentication_application_parameter, register_params->application_param, 32);
+
             // The user needs to allow this, send back the conditions
             // not satisfied status as the only body
+            ESP_LOGI(TAG, "Awaiting user interaction, reporting conditions not satisfied");
+            u2f_hid_msg response = {
+                .CID = TIDAL_CHANNEL,
+                .init.CMD = U2FHID_MSG,
+                .init.BCNTH = 0,
+                .init.BCNTL = 0x02,
+                .init.data = {
+                    (U2F_SW_CONDITIONS_NOT_SATISFIED >> 8),
+                    (U2F_SW_CONDITIONS_NOT_SATISFIED & 0xff)
+                }
+            };
+            u2f_report(&response);
+        } else if (authentication_operation == REGISTER_APPROVED) {
+            // Reset the interaction flag
+            arbitrary_size_container response_data = process_register_command(register_params);
+            send_multipart_response(&response_data);
+            authentication_operation = NO_OPERATION;
+            free(response_data.data);
+        }
+    } else if (raw_message->INS == U2F_AUTHENTICATE) {
+
+/*        arbitrary_size_container response_data = {
+        .size=185,
+        .data=malloc(185)
+    };
+    size_t write_head = 0;
+
+    memcpy(response_data.data, raw_message->extended_form.data, 70);
+    response_data.size = 70;
+    realloc(response_data.data, 70);
+  */  
+    
+        ESP_LOGI(TAG, "Will process U2F_AUTHENTICATE raw message (Instruction %x)", raw_message->INS);
+        u2f_raw_authenticate_request_body *authenticate_params = (u2f_raw_authenticate_request_body *) raw_message->extended_form.data;
+
+        if (authentication_operation == KEY_MISMATCH) {
+            u2f_hid_msg response = {
+                .CID = TIDAL_CHANNEL,
+                .init.CMD = U2FHID_MSG,
+                .init.BCNTH = 0,
+                .init.BCNTL = 0x02,
+                .init.data = {
+                    (U2F_SW_WRONG_DATA >> 8),
+                    (U2F_SW_WRONG_DATA & 0xff)
+                }
+            };
+            u2f_report(&response);
+            authentication_operation = NO_OPERATION;
+        } else if (authentication_operation == AUTHENTICATE_APPROVED) {
+            arbitrary_size_container response_data = process_authenticate_command(raw_message->P1, authenticate_params);
+            send_multipart_response(&response_data);
+            free(response_data.data);
+            authentication_operation = NO_OPERATION;
+        }
+        else {
+            // The user needs to allow this, send back the conditions
+            // not satisfied status as the only body
+
+            // Set shared variables with micropython
+            authentication_operation = AUTHENTICATE_REQUEST;
+            authentication_operation_slot = authenticate_params->key_handle[0];
+            memcpy(authentication_application_parameter, authenticate_params->application_param, 32);
 
             ESP_LOGI(TAG, "Awaiting user interaction, reporting conditions not satisfied");
             u2f_hid_msg response = {
@@ -355,22 +428,8 @@ void handle_u2f_msg(uint8_t *buffer, uint16_t bufsize) {
                     (U2F_SW_CONDITIONS_NOT_SATISFIED & 0xff)
                 }
             };
-            had_user_interaction = true;
             u2f_report(&response);
-        } else {
-            // Reset the interaction flag
-            had_user_interaction = false;
-            arbitrary_size_container response_data = process_register_command(register_params);
-            send_multipart_response(&response_data);
-            free(response_data.data);
-        }
-    } else if (raw_message->INS == U2F_AUTHENTICATE) {
-        ESP_LOGI(TAG, "Will process U2F_AUTHENTICATE raw message (Instruction %x)", raw_message->INS);
-        u2f_raw_authenticate_request_body *authenticate_params = (u2f_raw_authenticate_request_body *) raw_message->extended_form.data;
-        
-        arbitrary_size_container response_data = process_authenticate_command(raw_message->P1, authenticate_params);
-        send_multipart_response(&response_data);
-        free(response_data.data);
+        } 
     }  else {
         ESP_LOGE(TAG, "Got U2F raw message, but instruction %x is not known", raw_message->INS);
     }

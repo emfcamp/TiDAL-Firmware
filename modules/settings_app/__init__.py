@@ -151,6 +151,7 @@ class SettingsApp(MenuApp):
                 (5, 15, 30, 60, 5*60, 10*60, 30*60, 60*60, 8*60*60)),
             self.make_choice("USB sleep delay", None, "usb_nosleep_time", 15, fmt_time, (15, 30, 60)),
             self.make_choice("UART menu app", None, "uart_menu_app", True, fmt_on_off, (True, False)),
+            self.make_choice("MFA mode", None, "enable_u2f", True, fmt_on_off, (True, False)),
             self.make_nvs_choice("REPL on SDA/SCL", None, "uart_sdascl", 0, fmt_on_off, (1, 0)),
 
         )

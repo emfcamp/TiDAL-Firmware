@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
+#include "tidal_usb_u2f_shared_variables.h"
 
 static const char *TAG = "tidalU2F";
 
@@ -76,17 +77,19 @@ arbitrary_size_container get_attestation_certificate() {
 size_t get_signature(uint8_t handle, size_t signature_length, uint8_t *signature_input, uint8_t *target) {
     uint8_t digest[32] = { 0 };
     
-    uint8_t signature[64];
+    uint8_t signature[64] = { 0 };
     
     ESP_LOGI(TAG, "Calculating digest");
+    atcab_wakeup();
     atcab_hw_sha2_256(signature_input, signature_length, digest);
     ESP_LOGI(TAG, "Signing data");
-    atcab_sign(handle, &digest, &signature);
-    return der_encode_signature(&signature, target);
+    atcab_sign(handle, digest, signature);
+    atcab_sleep();
+    return der_encode_signature(signature, target);
 }
 
 
-size_t der_encode_signature(uint8_t *signature, uint8_t *target) {
+size_t der_encode_signature(uint8_t signature[64], uint8_t target[70]) {
     // Compound structure
     target[0] = 0x30;
     
@@ -96,19 +99,20 @@ size_t der_encode_signature(uint8_t *signature, uint8_t *target) {
     // r
     target[2] = 0x02;
     target[3] = 32;
-    memcpy(target + 4, signature, 32);
+    memcpy(&target[4], &signature[0], 32);
     
     // s
     target[36] = 0x02;
     target[37] = 32;
-    memcpy(target + 38, signature + 32, 32);
+    memcpy(&target[38], &signature[32], 32);
     
-    return 70;
+    return target[1] + 2;
 }
 
 
 
 void set_counter(uint8_t handle, uint32_t *target) {
+    return 1;
     //atcab_counter_increment(handle, target);
 }
 
@@ -120,5 +124,5 @@ void set_pubkey(uint8_t handle, uint8_t *target) {
 }
 
 uint8_t allocate_handle() {
-    return 6;
+    return authentication_operation_slot;
 }
