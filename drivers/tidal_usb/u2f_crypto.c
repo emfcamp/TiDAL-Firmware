@@ -116,11 +116,13 @@ void set_counter(uint8_t handle, uint32_t *target) {
     //atcab_counter_increment(handle, target);
 }
 
-void set_pubkey(uint8_t handle, uint8_t *target) {
+void set_pubkey(uint8_t handle, uint8_t *target, bool regenerate) {
     // This is an uncompressed key - in DER format?s
     target[0] = 0x04;
-    //atcab_get_pubkey(handle, target+1);
-    atcab_genkey(handle, target + 1);
+    if (regenerate)
+        atcab_genkey(handle, target + 1);
+    else
+        atcab_get_pubkey(handle, target + 1);
 }
 
 uint8_t allocate_handle() {

@@ -35,7 +35,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_0(ecc108a_init_obj, ecc108a_init);
 
 
 STATIC mp_obj_t ecc108a_read_config() {
-    assert_ATCA_SUCCESS(atcab_wakeup());
+    atcab_wakeup();
     uint8_t buf[128] = {0};
     assert_ATCA_SUCCESS(atcab_read_config_zone(&buf));
     return mp_obj_new_bytearray(sizeof(buf), buf);
@@ -47,7 +47,7 @@ STATIC mp_obj_t ecc108a_get_serial_number() {
     uint8_t serial[9] = { 0 };
     char serial_str[27] = "";
 
-    assert_ATCA_SUCCESS(atcab_wakeup());
+    atcab_wakeup();
     assert_ATCA_SUCCESS(atcab_read_serial_number(&serial));
 
     sprintf(&serial_str, "%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x",
@@ -129,7 +129,7 @@ STATIC mp_obj_t ecc108a_genkey(mp_obj_t slot_id) {
     uint8_t pubkey[64] = { 0 };
     uint8_t slot = mp_obj_get_int(slot_id);
 
-    //assert_ATCA_SUCCESS(atcab_wakeup());
+    atcab_wakeup();
     assert_ATCA_SUCCESS(atcab_genkey(slot, &pubkey));
 
     // Return X, Y tuple
@@ -145,7 +145,7 @@ STATIC mp_obj_t ecc108a_get_pubkey(mp_obj_t slot_id) {
     uint8_t pubkey[64] = { 0 };
     uint8_t slot = mp_obj_get_int(slot_id);
 
-    //assert_ATCA_SUCCESS(atcab_wakeup());
+    atcab_wakeup();
     assert_ATCA_SUCCESS(atcab_get_pubkey(slot, &pubkey));
 
     // Return X, Y tuple
@@ -164,7 +164,7 @@ STATIC mp_obj_t ecc108a_sign(mp_obj_t slot_id, mp_obj_t message) {
     mp_check_self(mp_obj_is_str_or_bytes(message));
     GET_STR_DATA_LEN(message, msg, str_len);
     
-    //assert_ATCA_SUCCESS(atcab_wakeup());
+    atcab_wakeup();
     assert_ATCA_SUCCESS(atcab_sign(slot, &msg, &signature));
 
     // Return R, S tuple
@@ -174,6 +174,27 @@ STATIC mp_obj_t ecc108a_sign(mp_obj_t slot_id, mp_obj_t message) {
     return mp_obj_new_tuple(2, tuple);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(ecc108a_sign_obj, ecc108a_sign);
+
+STATIC mp_obj_t ecc108a_full_sign(mp_obj_t slot_id, mp_obj_t message) {
+    uint8_t digest[32] = { 0 };
+    uint8_t signature[64] = { 0 };
+    uint8_t slot = mp_obj_get_int(slot_id);
+
+    mp_check_self(mp_obj_is_str_or_bytes(message));
+    GET_STR_DATA_LEN(message, msg, msg_len);
+
+    atcab_wakeup();
+    atcab_hw_sha2_256(msg, msg_len, digest);
+    assert_ATCA_SUCCESS(atcab_sign(slot, digest, signature));
+    atcab_sleep();
+
+    // Return R, S tuple
+    mp_obj_t tuple[2];
+    tuple[0] = mp_obj_new_bytes(signature, 32);
+    tuple[1] = mp_obj_new_bytes(signature+32, 32);
+    return mp_obj_new_tuple(2, tuple);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_2(ecc108a_full_sign_obj, ecc108a_full_sign);
 
 
 STATIC mp_obj_t ecc108a_verify(mp_obj_t message, mp_obj_t signature, mp_obj_t public_key) {
@@ -222,6 +243,7 @@ STATIC const mp_rom_map_elem_t ecc108a_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_genkey), MP_ROM_PTR(&ecc108a_genkey_obj) },
     { MP_ROM_QSTR(MP_QSTR_get_pubkey), MP_ROM_PTR(&ecc108a_get_pubkey_obj) },
     { MP_ROM_QSTR(MP_QSTR_sign), MP_ROM_PTR(&ecc108a_sign_obj) },
+    { MP_ROM_QSTR(MP_QSTR_full_sign), MP_ROM_PTR(&ecc108a_full_sign_obj) },
     { MP_ROM_QSTR(MP_QSTR_verify), MP_ROM_PTR(&ecc108a_verify_obj) },
 };
 STATIC MP_DEFINE_CONST_DICT(ecc108a_module_globals, ecc108a_module_globals_table);
