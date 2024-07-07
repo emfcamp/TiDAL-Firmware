@@ -162,10 +162,11 @@ STATIC mp_obj_t ecc108a_sign(mp_obj_t slot_id, mp_obj_t message) {
     uint8_t slot = mp_obj_get_int(slot_id);
     
     mp_check_self(mp_obj_is_str_or_bytes(message));
-    GET_STR_DATA_LEN(message, msg, str_len);
+    GET_STR_DATA_LEN(message, digest, digest_len);
     
     atcab_wakeup();
-    assert_ATCA_SUCCESS(atcab_sign(slot, &msg, &signature));
+    assert_ATCA_SUCCESS(atcab_sign(slot, digest, signature));
+    atcab_sleep();
 
     // Return R, S tuple
     mp_obj_t tuple[2];
@@ -195,6 +196,20 @@ STATIC mp_obj_t ecc108a_full_sign(mp_obj_t slot_id, mp_obj_t message) {
     return mp_obj_new_tuple(2, tuple);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(ecc108a_full_sign_obj, ecc108a_full_sign);
+
+/*
+import ecc108a, hashlib
+slot = 6
+key = ecc108a.get_pubkey(slot)
+message = "This is a test message"
+hash = hashlib.sha256(message).digest()
+sig = ecc108a.sign(slot, hash)
+ecc108a.verify(hash, sig, key)
+
+*/
+//msg = b'a'*32 ; ecc108a.verify(msg, (msg, msg), (msg, msg))
+// ecc108a.verify(msg, (b'\xfd\x0c \xc4\xe0\x1c\x1d\xd8H\xf6\xb5?12\xc2\x1e>k\xc8\xb3\xc4=\x0e\xdb#v\xba\xffn\x94<\x7f', b'\xcb~\xe0`\t\xc9Yf\xfd\xdbc2\xe7\xf4\x81\xf0\x13\xc8\xb90\xd7\xa3~XI\xb4c\xa9H\x00Wu'), (b'\xe4`\xb2\x93\xc9\x9bj\x9f\xfbD\x94\x1di\x9b\x96\xc7\x91F\x1c\xcf\x7f\xe4\xbe\x8d4%P\xe3\xbb\x18;\xa0', b'\x0b\x9e\xe8\xf1\x9cB\x06\xb1\x93\xd2&\x7f\xdb\x03\x17\xa82\x99\x18\x1f\t\x1cz\xe5H\xb2\xb3}fM\xabe'))
+
 
 
 STATIC mp_obj_t ecc108a_verify(mp_obj_t message, mp_obj_t signature, mp_obj_t public_key) {

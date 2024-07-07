@@ -155,7 +155,7 @@ void handle_u2f_init(u2fhid_init_request const* init_request) {
         .DEVICE_VER_MAJOR = 0x03,
         .DEVICE_VER_MINOR = 0x04,
         .DEVICE_VER_BUILD = 0x05,
-        .CAPABILITIES = CAPFLAG_WINK
+        .CAPABILITIES = 0 //CAPFLAG_WINK
     };
     
     // Allocate a response report

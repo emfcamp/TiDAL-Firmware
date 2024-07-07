@@ -91,6 +91,8 @@ def allow_interrupt_when_authenticating():
             prompting = True
             name = binascii.hexlify(application_param).decode('latin-1')
             
+            #slot_id = 6
+            
             if operation == 1: # Registration request
                 # Re-use an old slot for this application, if possible
                 if slot_id is None:
@@ -144,7 +146,10 @@ def allow_interrupt_when_authenticating():
                     pubkey = ecc108a.get_pubkey(slot_id)
                     tidal_authentication.set_pubkey(pubkey)
                     print("pubkey", pubkey)
-                    signature = ecc108a.full_sign(slot_id, to_sign)
+                    ecc108a.init()
+                    ecc108a.read_config()
+                    sig = hashlib.sha256(to_sign).digest()
+                    signature = ecc108a.sign(slot_id, sig)
                     print("sig", signature)
                     tidal_authentication.set_signature(signature)
                     tidal_authentication.set_authentication_approval(response)

@@ -83,6 +83,8 @@ size_t get_signature(uint8_t handle, size_t signature_length, uint8_t *signature
     atcab_wakeup();
     atcab_hw_sha2_256(signature_input, signature_length, digest);
     ESP_LOGI(TAG, "Signing data");
+    atcab_sleep();
+    atcab_wakeup();
     atcab_sign(handle, digest, signature);
     atcab_sleep();
     return der_encode_signature(signature, target);
