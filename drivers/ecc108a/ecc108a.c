@@ -165,7 +165,8 @@ STATIC mp_obj_t ecc108a_sign(mp_obj_t slot_id, mp_obj_t message) {
     GET_STR_DATA_LEN(message, digest, digest_len);
     
     assert_ATCA_SUCCESS(atcab_wakeup());
-    assert_ATCA_SUCCESS(atcab_sign(slot, &msg, &signature));
+    assert_ATCA_SUCCESS(atcab_sign(slot, digest, signature));
+    atcab_sleep();
 
     // Return R, S tuple
     mp_obj_t tuple[2];
