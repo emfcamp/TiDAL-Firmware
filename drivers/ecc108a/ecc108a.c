@@ -164,17 +164,8 @@ STATIC mp_obj_t ecc108a_sign(mp_obj_t slot_id, mp_obj_t message) {
     mp_check_self(mp_obj_is_str_or_bytes(message));
     GET_STR_DATA_LEN(message, digest, digest_len);
     
-<<<<<<< HEAD
-    //assert_ATCA_SUCCESS(atcab_wakeup());
+    assert_ATCA_SUCCESS(atcab_wakeup());
     assert_ATCA_SUCCESS(atcab_sign(slot, &msg, &signature));
-||||||| parent of be695b2... Improvements to u2f
-    atcab_wakeup();
-    assert_ATCA_SUCCESS(atcab_sign(slot, &msg, &signature));
-=======
-    atcab_wakeup();
-    assert_ATCA_SUCCESS(atcab_sign(slot, digest, signature));
-    atcab_sleep();
->>>>>>> be695b2... Improvements to u2f
 
     // Return R, S tuple
     mp_obj_t tuple[2];
