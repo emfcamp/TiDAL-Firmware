@@ -35,7 +35,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_0(ecc108a_init_obj, ecc108a_init);
 
 
 STATIC mp_obj_t ecc108a_read_config() {
-    atcab_wakeup();
+    assert_ATCA_SUCCESS(atcab_wakeup());
     uint8_t buf[128] = {0};
     assert_ATCA_SUCCESS(atcab_read_config_zone(&buf));
     return mp_obj_new_bytearray(sizeof(buf), buf);
@@ -47,7 +47,7 @@ STATIC mp_obj_t ecc108a_get_serial_number() {
     uint8_t serial[9] = { 0 };
     char serial_str[27] = "";
 
-    atcab_wakeup();
+    assert_ATCA_SUCCESS(atcab_wakeup());
     assert_ATCA_SUCCESS(atcab_read_serial_number(&serial));
 
     sprintf(&serial_str, "%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x",
@@ -129,7 +129,7 @@ STATIC mp_obj_t ecc108a_genkey(mp_obj_t slot_id) {
     uint8_t pubkey[64] = { 0 };
     uint8_t slot = mp_obj_get_int(slot_id);
 
-    atcab_wakeup();
+    //assert_ATCA_SUCCESS(atcab_wakeup());
     assert_ATCA_SUCCESS(atcab_genkey(slot, &pubkey));
 
     // Return X, Y tuple
@@ -145,7 +145,7 @@ STATIC mp_obj_t ecc108a_get_pubkey(mp_obj_t slot_id) {
     uint8_t pubkey[64] = { 0 };
     uint8_t slot = mp_obj_get_int(slot_id);
 
-    atcab_wakeup();
+    //assert_ATCA_SUCCESS(atcab_wakeup());
     assert_ATCA_SUCCESS(atcab_get_pubkey(slot, &pubkey));
 
     // Return X, Y tuple
@@ -164,9 +164,17 @@ STATIC mp_obj_t ecc108a_sign(mp_obj_t slot_id, mp_obj_t message) {
     mp_check_self(mp_obj_is_str_or_bytes(message));
     GET_STR_DATA_LEN(message, digest, digest_len);
     
+<<<<<<< HEAD
+    //assert_ATCA_SUCCESS(atcab_wakeup());
+    assert_ATCA_SUCCESS(atcab_sign(slot, &msg, &signature));
+||||||| parent of be695b2... Improvements to u2f
+    atcab_wakeup();
+    assert_ATCA_SUCCESS(atcab_sign(slot, &msg, &signature));
+=======
     atcab_wakeup();
     assert_ATCA_SUCCESS(atcab_sign(slot, digest, signature));
     atcab_sleep();
+>>>>>>> be695b2... Improvements to u2f
 
     // Return R, S tuple
     mp_obj_t tuple[2];

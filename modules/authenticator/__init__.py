@@ -8,11 +8,11 @@ import tidal
 import orientation
 import _thread
 import vga2_bold_16x32
-import tidal_authentication
+import  tidal_helpers
 import binascii
 import machine
 import ecc108a
-import hashlib
+import tidal_authentication
 
 
 class PromptPermission(DialogWindow):
@@ -80,8 +80,8 @@ prompting = False
 def allow_interrupt_when_authenticating():
     def check_for_wink():
         global prompting
-        requested, slot_id, application_param = tidal_authentication.get_authentication_requested()
-        operation = tidal_authentication.get_authentication_operation()
+        requested, slot_id, application_param = tidal_helpers.get_authentication_requested()
+        operation = tidal_helpers.get_authentication_operation()
         if requested == False:
             return
         elif prompting:
@@ -110,17 +110,15 @@ def allow_interrupt_when_authenticating():
                 
                 # No slots available, cancel the approval
                 if slot_id is None:
-                    tidal_authentication.set_authentication_approval(False)
+                    tidal_helpers.set_authentication_approval(False)
                     prompting = False
                     return
-                else:
-                    tidal_authentication.set_authentication_slot(slot_id)
             elif operation == 3: # Authenticate request
                 if slot_id:
                     # Check the application parameter matches
                     expected_name = settings.get(f"auth_slot_{slot_id}_name", "")
                     if name != expected_name:
-                        tidal_authentication.set_authentication_mismatch()
+                        tidal_helpers.set_authentication_mismatch()
                         prompting = False
                         return
             
