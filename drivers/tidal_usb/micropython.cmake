@@ -7,6 +7,8 @@ target_sources(usermod_tidal_usb INTERFACE
     ${CMAKE_CURRENT_LIST_DIR}/tidal_usb_hid.c
     ${CMAKE_CURRENT_LIST_DIR}/tidal_usb_console.c
     ${CMAKE_CURRENT_LIST_DIR}/tidal_usb_u2f.c
+    ${CMAKE_CURRENT_LIST_DIR}/tidal_usb_u2f_shared_variables.c
+    ${CMAKE_CURRENT_LIST_DIR}/u2f_crypto.c
 )
 
 # Add the current directory as an include directory.

@@ -13,6 +13,7 @@
 #include "esp32s2/rom/usb/usb_persist.h"
 #include "esp_wpa2.h"
 #include "driver/ledc.h"
+#include "tidal_usb_u2f_shared_variables.h"
 
 // static const char *TAG = "tidal_helpers";
 
@@ -21,6 +22,67 @@ typedef struct _machine_pin_obj_t {
     mp_obj_base_t base;
     gpio_num_t id;
 } machine_pin_obj_t;
+
+STATIC mp_obj_t tidal_helper_authentication_operation() {
+    return mp_obj_new_int(authentication_operation);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(tidal_helper_authentication_operation_obj, tidal_helper_authentication_operation);
+
+STATIC mp_obj_t tidal_helper_authentication_requested() {
+    mp_obj_t response[3];
+    response[0] = mp_const_none;
+    response[1] = mp_const_none;
+    response[2] = mp_const_none;
+    
+    // Is the current operation a request?
+    if (authentication_operation == AUTHENTICATE_REQUEST || authentication_operation == REGISTER_REQUEST) {
+        response[0] = mp_const_true;
+    } else {
+        response[0] = mp_const_false;
+    }
+    // What slot is in use
+    if (authentication_operation_slot == 99) {
+            response[1] = mp_const_none;
+    } else {
+        response[1] = mp_obj_new_int(authentication_operation_slot);
+    }
+    // What's the application parameter
+    response[2] = mp_obj_new_bytes(authentication_application_parameter, 32);
+    return mp_obj_new_tuple(3, response);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(tidal_helper_authentication_requested_obj, tidal_helper_authentication_requested);
+
+STATIC mp_obj_t tidal_helper_authentication_mismatch() {
+    authentication_operation = KEY_MISMATCH;
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(tidal_helper_authentication_mismatch_obj, tidal_helper_authentication_mismatch);
+
+STATIC mp_obj_t tidal_helper_authentication_approve(mp_obj_t state) {
+    if (state == mp_const_true) {
+        if (authentication_operation == AUTHENTICATE_REQUEST)
+            authentication_operation = AUTHENTICATE_APPROVED;
+        if (authentication_operation == REGISTER_REQUEST)
+            authentication_operation = REGISTER_APPROVED;
+    }
+    if (state == mp_const_false)
+        authentication_operation = USER_REFUSED;
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(tidal_helper_authentication_approve_obj, tidal_helper_authentication_approve);
+
+
+STATIC mp_obj_t tidal_helper_authentication_slot(mp_obj_t slot) {
+    if (mp_obj_is_int(slot)) {
+        authentication_operation_slot = mp_obj_get_int(slot);
+        return slot;
+    } else {
+        mp_raise_ValueError(slot);
+    }
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(tidal_helper_authentication_slot_obj, tidal_helper_authentication_slot);
+
 
 STATIC gpio_num_t get_pin(mp_obj_t pin_obj) {
     if (mp_obj_is_int(pin_obj)) {
@@ -387,6 +449,11 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_2(tidal_set_backlight_pwm_obj, tidal_set_backligh
 
 STATIC const mp_rom_map_elem_t tidal_helpers_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_ota) },
+    { MP_ROM_QSTR(MP_QSTR_get_authentication_operation), MP_ROM_PTR(&tidal_helper_authentication_operation_obj) },
+    { MP_ROM_QSTR(MP_QSTR_set_authentication_approval), MP_ROM_PTR(&tidal_helper_authentication_approve_obj) },
+    { MP_ROM_QSTR(MP_QSTR_get_authentication_requested), MP_ROM_PTR(&tidal_helper_authentication_requested_obj) },
+    { MP_ROM_QSTR(MP_QSTR_set_authentication_mismatch), MP_ROM_PTR(&tidal_helper_authentication_mismatch_obj) },
+    { MP_ROM_QSTR(MP_QSTR_set_authentication_slot), MP_ROM_PTR(&tidal_helper_authentication_slot_obj) },
     { MP_ROM_QSTR(MP_QSTR_get_variant), MP_ROM_PTR(&tidal_helper_get_variant_obj) },
     { MP_ROM_QSTR(MP_QSTR_usb_connected), MP_ROM_PTR(&tidal_helper_usb_connected_obj) },
     { MP_ROM_QSTR(MP_QSTR_usb_suspended), MP_ROM_PTR(&tidal_helper_usb_suspended_obj) },

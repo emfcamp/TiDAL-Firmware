@@ -5,9 +5,12 @@ on:
   push:
     tags:
       - "v*"
+env:
+  TARGET: esp32s3
+  IDF_TARGET: esp32s3
 jobs:
   Build-Firmware:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Install dependencies
         run: |
@@ -21,7 +24,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: espressif/esp-idf
-          ref: release/v4.4
+          ref: v4.4.1
           path: esp-idf
           submodules: true
       - name: Install SDK
@@ -48,8 +51,8 @@ jobs:
           source esp-idf/export.sh
           ln -sfn $GITHUB_WORKSPACE/tildamk6 micropython/ports/esp32/boards/tildamk6
           cd micropython/ports/esp32
-          make submodules BOARD=tildamk6 USER_C_MODULES=$GITHUB_WORKSPACE/drivers/micropython.cmake IOT_SOLUTION_PATH=$GITHUB_WORKSPACE/esp-iot-solution TARGET=esp32s3
-          make BOARD=tildamk6 USER_C_MODULES=$GITHUB_WORKSPACE/drivers/micropython.cmake $@ IOT_SOLUTION_PATH=$GITHUB_WORKSPACE/esp-iot-solution TARGET=esp32s3
+          make submodules BOARD=tildamk6 USER_C_MODULES=$GITHUB_WORKSPACE/drivers/micropython.cmake USER_COMPONENTS=$GITHUB_WORKSPACE/components/tinyusb IOT_SOLUTION_PATH=$GITHUB_WORKSPACE/esp-iot-solution TARGET=esp32s3
+          make BOARD=tildamk6 USER_C_MODULES=$GITHUB_WORKSPACE/drivers/micropython.cmake USER_COMPONENTS=$GITHUB_WORKSPACE/components/tinyusb $@ IOT_SOLUTION_PATH=$GITHUB_WORKSPACE/esp-iot-solution TARGET=esp32s3
           cd ../../..
           echo "{\"build\":\"$(git describe --tags --always)\", \"name\":\"$(git describe --tags --always)\"}" > micropython/ports/esp32/build-tildamk6/tidal.txt
       - name: Archive firmware
