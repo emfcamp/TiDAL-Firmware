@@ -30,13 +30,13 @@ This is (currently) very large. You can alternatively build this locally yoursel
 
 At this stage, you can run the image, mounting the current working directory as the firmware target:
 
-    docker run -it -v "$(pwd)"/:/firmware matthewwilkes/esp_idf:4.4 IOT_SOLUTION_PATH=/firmware/esp-iot-solution TARGET=esp32s3
+    docker run -it -v "$(pwd)"/:/firmware:Z matthewwilkes/esp_idf:4.4 IOT_SOLUTION_PATH=/firmware/esp-iot-solution TARGET=esp32s3
 
 This will leave the firmware build context in `./micropython/ports/esp32/build-tildamk6` and output the flashing command. Only the three .bin files referenced are important.
 
 However, if you have the device plugged into the machine running the docker container you can skip straight to a flash, just mount the device and add the deploy argument when running:
 
-    docker run -it --device /dev/ttyUSB0 -v "$(pwd)"/:/firmware matthewwilkes/esp_idf:4.4 IOT_SOLUTION_PATH=/firmware/esp-iot-solution TARGET=esp32s3 deploy
+    docker run -it --device /dev/ttyUSB0 -v "$(pwd)"/:/firmware:Z matthewwilkes/esp_idf:4.4 IOT_SOLUTION_PATH=/firmware/esp-iot-solution TARGET=esp32s3 deploy
 
 (Note: flashing from within Docker won't work on a Mac because of a [known issue](https://github.com/docker/for-mac/issues/900) - use `esptool` outside Docker to execute the flashing command printed at the end of the build
 
@@ -52,7 +52,7 @@ if you're using the electo magentic yield prototype, use:
 
 If you need to switch which version you're building, run
 
-    docker run -it -v "$(pwd)"/:/firmware matthewwilkes/esp_idf:4.4 IOT_SOLUTION_PATH=/firmware/esp-iot-solution TARGET=esp32s3 clean
+    docker run -it -v "$(pwd)"/:/firmware:Z matthewwilkes/esp_idf:4.4 IOT_SOLUTION_PATH=/firmware/esp-iot-solution TARGET=esp32s3 clean
 
 to remove the cached definitions.
 
@@ -62,7 +62,7 @@ You might need to force download mode on the board (by holding the Boot button d
 
 If your serial port is on a different name then map that with docker:
 
-    docker run -it --device /dev/ttyACM0:/dev/ttyUSB0 -v "$(pwd)"/:/firmware matthewwilkes/esp_idf:4.4 IOT_SOLUTION_PATH=/firmware/esp-iot-solution TARGET=esp32s3 deploy
+    docker run -it --device /dev/ttyACM0:/dev/ttyUSB0 -v "$(pwd)"/:/firmware:Z matthewwilkes/esp_idf:4.4 IOT_SOLUTION_PATH=/firmware/esp-iot-solution TARGET=esp32s3 deploy
 
 ## Accessing the REPL
 
