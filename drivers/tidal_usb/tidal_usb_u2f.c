@@ -179,9 +179,7 @@ arbitrary_size_container process_register_command(u2f_raw_register_request_body 
     };
     memset(response_data.data, 0x00, 1024);
     size_t write_head = 0;
-    uint8_t handle = allocate_handle();
-    uint8_t signature_input[131] = { 0 };
-
+    //uint8_t handle = allocate_handle();
 
     // Set reserved byte
     ESP_LOGI(TAG, "Setting header");
@@ -189,19 +187,25 @@ arbitrary_size_container process_register_command(u2f_raw_register_request_body 
 
     // The next 65 bytes are the pubkey
     ESP_LOGI(TAG, "Setting pubkey");
-    set_pubkey(handle, response_data.data + write_head);
-    write_head += 65;
+    response_data.data[write_head++] = 0x04;
+    memcpy(response_data.data + write_head, authentication_pubkey, 64);
+    write_head += 64;
+    //set_pubkey(handle, response_data.data + write_head);
 
     // Then handle length followed by handle
     ESP_LOGI(TAG, "Setting handle");
     response_data.data[write_head++] = 0x01;
-    response_data.data[write_head++] = handle;
+    response_data.data[write_head++] = authentication_operation_slot;
 
     
     // Attestation certificate
     ESP_LOGI(TAG, "Setting cert");
-    // Get the certificate from the secure element
+    // Get the attestation certificate and reuse the current pubkey
     arbitrary_size_container cert = get_attestation_certificate();
+    //set_pubkey(handle, cert.data + 438);
+    cert.data[438] = 0x04;
+    memcpy(cert.data+439, authentication_pubkey, 64);
+
     // Copy it into the current data stream
     memcpy(response_data.data + write_head, cert.data, cert.size);
     write_head += cert.size;
@@ -210,12 +214,20 @@ arbitrary_size_container process_register_command(u2f_raw_register_request_body 
 
     // Create the signature out of 0x00, the register request, key handle and pubkey
     ESP_LOGI(TAG, "Setting signature");
-    signature_input[0] = 0x00;
-    memcpy(signature_input + 1, register_params, 65);
-    signature_input[66] = handle;
-    memcpy(signature_input + 67, response_data.data + 1, 64);
-    arbitrary_size_container signature;
-    write_head += get_signature(1, 131, signature_input, response_data.data + write_head);
+    authentication_value_to_sign[0] = 0x00;
+    memcpy(authentication_value_to_sign + 1, register_params, 65);
+    authentication_value_to_sign[66] = authentication_operation_slot;
+    memcpy(authentication_value_to_sign + 67, response_data.data + 1, 64);
+    authentication_length_to_sign = 131;
+    
+    if (authentication_operation != REGISTER_APPROVED) {
+        // We're not approved yet, we're just setting up. End early.
+        response_data.size = write_head;
+        return response_data;
+    }
+
+    write_head += der_encode_signature(authentication_signature, response_data.data + write_head);
+    //write_head += get_signature(1, 131, signature_input, response_data.data + write_head);
 
     // Set the status epilogue
     response_data.data[write_head++] = U2F_SW_NO_ERROR >> 8;
@@ -239,6 +251,11 @@ arbitrary_size_container process_register_command(u2f_raw_register_request_body 
 
 
 arbitrary_size_container process_authenticate_command(uint8_t control, u2f_raw_authenticate_request_body *authenticate_params) {
+    memcpy(authentication_value_to_sign +  0, authenticate_params->application_param, 32);
+    authentication_value_to_sign[32] = 1;
+    memcpy(authentication_value_to_sign + 37, authenticate_params->challenge_param, 32);
+    authentication_length_to_sign = 69;
+
     if (control == 7) {
         ESP_LOGI(TAG, "Allocating container");
         // Valid responses from this are test of presence required or bad key handle.
@@ -273,11 +290,10 @@ arbitrary_size_container process_authenticate_command(uint8_t control, u2f_raw_a
     
     // Create the signature out of the application parameter, the user presence byte, the counter then the challenge param
     ESP_LOGI(TAG, "Setting signature");
-    uint8_t signature_input[69] = { 0 };
-    memcpy(signature_input +  0, authenticate_params->application_param, 32);
-    memcpy(signature_input + 32, response_data.data, 5);
-    memcpy(signature_input + 37, authenticate_params->challenge_param, 32);
-    write_head += get_signature(authenticate_params->key_handle[0], 69, signature_input, response_data.data + write_head);
+    //uint8_t signature_input[69] = { 0 };
+    //write_head += get_signature(authenticate_params->key_handle[0], 69, signature_input, response_data.data + write_head);
+    write_head +=  der_encode_signature(authentication_signature, response_data.data + write_head);
+
 
     // Set the status epilogue
     response_data.data[write_head++] = U2F_SW_NO_ERROR >> 8;
@@ -346,9 +362,6 @@ void handle_u2f_msg(uint8_t *buffer, uint16_t bufsize) {
         u2f_raw_register_request_body *register_params = (u2f_raw_register_request_body *) raw_message->extended_form.data;
         
         if (authentication_operation == NO_OPERATION || authentication_operation == REGISTER_REQUEST) {
-            // Set shared variables with micropython
-            authentication_operation = REGISTER_REQUEST;
-            memcpy(authentication_application_parameter, register_params->application_param, 32);
 
             // The user needs to allow this, send back the conditions
             // not satisfied status as the only body
@@ -363,6 +376,16 @@ void handle_u2f_msg(uint8_t *buffer, uint16_t bufsize) {
                     (U2F_SW_CONDITIONS_NOT_SATISFIED & 0xff)
                 }
             };
+            
+            // Set shared variables with micropython
+            authentication_value_to_sign[0] = 0x00;
+            memcpy(authentication_value_to_sign + 1, register_params, 65);
+            authentication_length_to_sign = 133;
+            
+            memcpy(authentication_application_parameter, register_params->application_param, 32);
+            authentication_operation = REGISTER_REQUEST;
+            
+            // Send the waiting response
             u2f_report(&response);
         } else if (authentication_operation == REGISTER_APPROVED) {
             // Reset the interaction flag
@@ -370,6 +393,7 @@ void handle_u2f_msg(uint8_t *buffer, uint16_t bufsize) {
             send_multipart_response(&response_data);
             authentication_operation = NO_OPERATION;
             authentication_operation_slot = 99;
+            authentication_length_to_sign = 0;
             free(response_data.data);
         }
     } else if (raw_message->INS == U2F_AUTHENTICATE) {

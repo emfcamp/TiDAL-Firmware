@@ -173,4 +173,4 @@ const mp_obj_module_t tidal_authentication_user_module = {
     .globals = (mp_obj_dict_t *)&tidal_authentication_module_globals,
 };
 
-MP_REGISTER_MODULE(MP_QSTR_tidal_authentication, tidal_authentication_user_module, 1);
+MP_REGISTER_MODULE(MP_QSTR__tidal_authentication, tidal_authentication_user_module, 1);

@@ -9,10 +9,10 @@ import orientation
 import _thread
 import vga2_bold_16x32
 import  tidal_helpers
+import hashlib
 import binascii
 import machine
 import ecc108a
-import tidal_authentication
 
 
 class PromptPermission(DialogWindow):
@@ -61,6 +61,8 @@ def cycle_leds():
 def trigger_wink(slot_id=None):
     from app_launcher import Launcher
     launcher = Launcher._singleton
+    if slot_id is None:
+        return False
     authenticator_app = launcher._apps.get('authenticator.Authenticator')
     if authenticator_app is None:
         authenticator_app = launcher._apps['authenticator.Authenticator'] = Authenticator()
@@ -80,8 +82,8 @@ prompting = False
 def allow_interrupt_when_authenticating():
     def check_for_wink():
         global prompting
-        requested, slot_id, application_param = tidal_helpers.get_authentication_requested()
-        operation = tidal_helpers.get_authentication_operation()
+        requested, slot_id, application_param = tidal.authentication.get_authentication_requested()
+        operation = tidal.authentication.get_authentication_operation()
         if requested == False:
             return
         elif prompting:
@@ -92,6 +94,7 @@ def allow_interrupt_when_authenticating():
             name = binascii.hexlify(application_param).decode('latin-1')
             
             #slot_id = 6
+            print("Operation ", operation, " - Slot", slot_id)
             
             if operation == 1: # Registration request
                 # Re-use an old slot for this application, if possible
@@ -110,7 +113,7 @@ def allow_interrupt_when_authenticating():
                 
                 # No slots available, cancel the approval
                 if slot_id is None:
-                    tidal_helpers.set_authentication_approval(False)
+                    tidal.authentication.set_authentication_approval(False)
                     prompting = False
                     return
             elif operation == 3: # Authenticate request
@@ -118,10 +121,19 @@ def allow_interrupt_when_authenticating():
                     # Check the application parameter matches
                     expected_name = settings.get(f"auth_slot_{slot_id}_name", "")
                     if name != expected_name:
-                        tidal_helpers.set_authentication_mismatch()
+                        tidal.authentication.set_authentication_mismatch()
                         prompting = False
                         return
-            
+                elif slot_id is None:
+                    for i in range(16):
+                        expected_name = settings.get(f"auth_slot_{i}_name", "")
+                        if expected_name == name:
+                            slot_id = i
+                            break
+                
+            # Ensure the slot is in the shared variable, even if it's been searched for
+            tidal.authentication.set_authentication_slot(slot_id)
+
             # Prompt the user for permission
             response = trigger_wink(slot_id)
             if response:
@@ -131,8 +143,8 @@ def allow_interrupt_when_authenticating():
                 settings.save()
 
                 try:
-                    to_sign = tidal_authentication.get_to_sign()
-                    if tidal_authentication.get_authentication_operation() == 1:
+                    to_sign = tidal.authentication.get_to_sign()
+                    if tidal.authentication.get_authentication_operation() == 1:
                         # This is a register request, overwrite the handle at byte 66
                         to_sign = bytearray(to_sign)
                         to_sign[66] = slot_id
@@ -142,15 +154,15 @@ def allow_interrupt_when_authenticating():
                     print("material", to_sign)
                     print("slot", slot_id)
                     pubkey = ecc108a.get_pubkey(slot_id)
-                    tidal_authentication.set_pubkey(pubkey)
+                    tidal.authentication.set_pubkey(pubkey)
                     print("pubkey", pubkey)
                     ecc108a.init()
                     ecc108a.read_config()
                     sig = hashlib.sha256(to_sign).digest()
                     signature = ecc108a.sign(slot_id, sig)
                     print("sig", signature)
-                    tidal_authentication.set_signature(signature)
-                    tidal_authentication.set_authentication_approval(response)
+                    tidal.authentication.set_signature(signature)
+                    tidal.authentication.set_authentication_approval(response)
                 except OSError:
                     # Retry
                     pass

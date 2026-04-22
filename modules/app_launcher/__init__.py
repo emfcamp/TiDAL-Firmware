@@ -11,7 +11,6 @@ import ujson
 import os
 import functools
 import settings
-import authenticator
 
 def path_isfile(path):
     # Wow totally an elegant way to do os.path.isfile...

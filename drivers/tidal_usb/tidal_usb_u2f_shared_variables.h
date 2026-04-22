@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 enum authentication_state {
     NO_OPERATION,
@@ -13,3 +14,7 @@ enum authentication_state {
 enum authentication_state authentication_operation;
 uint8_t authentication_operation_slot;
 uint8_t authentication_application_parameter[32];
+uint8_t authentication_pubkey[64];
+uint8_t authentication_signature[64];
+uint8_t authentication_value_to_sign[256];
+size_t authentication_length_to_sign;
