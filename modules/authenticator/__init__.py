@@ -100,6 +100,8 @@ def allow_interrupt_when_authenticating():
                 # Re-use an old slot for this application, if possible
                 if slot_id is None:
                     for i in range(16):
+                        print("Looking for matching slot: ", i, settings.get(f"auth_slot_{i}_name"))
+                        
                         if settings.get(f"auth_slot_{i}_name", "") == name:
                             slot_id = i
                             break
@@ -107,6 +109,7 @@ def allow_interrupt_when_authenticating():
                 # If not, find an unused slot
                 if slot_id is None:
                     for i in range(16):
+                        print("Looking for empty slot: ", i, settings.get(f"auth_slot_{i}_name"))
                         if not settings.get(f"auth_slot_{i}_name", ""):
                             slot_id = i
                             break
@@ -117,6 +120,7 @@ def allow_interrupt_when_authenticating():
                     prompting = False
                     return
             elif operation == 3: # Authenticate request
+                slot_id=None
                 if slot_id:
                     # Check the application parameter matches
                     expected_name = settings.get(f"auth_slot_{slot_id}_name", "")
@@ -161,6 +165,7 @@ def allow_interrupt_when_authenticating():
                     sig = hashlib.sha256(to_sign).digest()
                     signature = ecc108a.sign(slot_id, sig)
                     print("sig", signature)
+                    print("Validity: ", ecc108a.verify(sig, signature, pubkey))
                     tidal.authentication.set_signature(signature)
                     tidal.authentication.set_authentication_approval(response)
                 except OSError:

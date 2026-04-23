@@ -251,11 +251,6 @@ arbitrary_size_container process_register_command(u2f_raw_register_request_body 
 
 
 arbitrary_size_container process_authenticate_command(uint8_t control, u2f_raw_authenticate_request_body *authenticate_params) {
-    memcpy(authentication_value_to_sign +  0, authenticate_params->application_param, 32);
-    authentication_value_to_sign[32] = 1;
-    memcpy(authentication_value_to_sign + 37, authenticate_params->challenge_param, 32);
-    authentication_length_to_sign = 69;
-
     if (control == 7) {
         ESP_LOGI(TAG, "Allocating container");
         // Valid responses from this are test of presence required or bad key handle.
@@ -440,6 +435,17 @@ void handle_u2f_msg(uint8_t *buffer, uint16_t bufsize) {
             authentication_operation = AUTHENTICATE_REQUEST;
             authentication_operation_slot = authenticate_params->key_handle[0];
             memcpy(authentication_application_parameter, authenticate_params->application_param, 32);
+            
+            // Set shared variables with micropython
+            memcpy(authentication_value_to_sign +  0, authenticate_params->application_param, 32);
+            authentication_value_to_sign[32] = 1;
+            authentication_value_to_sign[33] = 0;
+            authentication_value_to_sign[34] = 0;
+            authentication_value_to_sign[35] = 0;
+            authentication_value_to_sign[36] = 0;
+            memcpy(authentication_value_to_sign + 37, authenticate_params->challenge_param, 32);
+            authentication_length_to_sign = 69;
+            
 
             ESP_LOGI(TAG, "Awaiting user interaction, reporting conditions not satisfied");
             u2f_hid_msg response = {
