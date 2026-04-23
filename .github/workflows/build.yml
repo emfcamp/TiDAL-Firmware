@@ -89,3 +89,16 @@ jobs:
           files: |
             micropython/ports/esp32/build-tildamk6/micropython.bin
             micropython/ports/esp32/build-tildamk6/tidal.txt
+      - name: Build merged image
+        run: |
+          source esp-idf/export.sh
+          cd micropython/ports/esp32
+          python -m esptool --chip esp32s3 -b 460800 merge_bin -o merged-firmware.bin --flash_mode dio --flash_freq 80m --flash_size 8MB 0x0 build-tildamk6/bootloader/bootloader.bin 0x10000 build-tildamk6/micropython.bin 0x8000 build-tildamk6/partition_table/partition-table.bin 0xd000 build-tildamk6/ota_data_initial.bin
+          cp merged-firmware.bin $GITHUB_WORKSPACE/flasher/
+        if: startsWith(github.event.ref, 'refs/tags/v')
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/upload-pages-artifact@v3 # or specific "vX.X.X" version tag for this action
+        with:
+          path: ./flasher
+        if: ${{startsWith(github.event.ref, 'refs/tags/v') && !contains(github.event.ref, '-') }}
