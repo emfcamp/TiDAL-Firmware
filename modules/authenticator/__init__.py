@@ -31,11 +31,30 @@ class Authenticator(MenuApp):
     APP_ID = "authenticator"
     TITLE = "Authenticator"
 
+
+    def provision(self):
+        print("Provisioning")
+        ecc108a.provision_slot()
+        ecc108a.lock_config_zone()
+        self.window.set_choices(self.CHOICES, True)
+
+    def on_activate(self):
+        super().on_activate()
+        self.set_rotation(90, redraw=True)
+
     @property
     def CHOICES(self):
-        # The crypto chip has 16 slots
-        choices = [self.make_slot_select(slot_id) for slot_id in range(16)]
-        print(choices)
+        # The crypto chip has 16 slots, but they might not all be usable/provisioned
+
+        # First, do we offer a provision?
+        ecc108a.init()
+        config = ecc108a.read_config()
+        if config[86] != 0x55:
+            # This chip isn't locked, so is not usable. Offer to provision.
+            return [("Irreversably provision crypto", self.provision)]
+
+        # If not, filter the slots based on which are allowed
+        choices = [self.make_slot_select(slot_id) for slot_id in usable_slots()]
         return choices
 
     def make_slot_select(self, slot_id):
@@ -58,6 +77,19 @@ def cycle_leds():
     tidal.led.write()
 
 
+def usable_slots():
+    ecc108a.init()
+    config = ecc108a.read_config()
+
+    available = []
+    for key in range(16):
+        slotconfig = int.from_bytes(config[key * 2:][20:22], 'little')
+        keyconfig = int.from_bytes(config[key * 2:][96:98], 'little')
+        if slotconfig == 0x6083 and keyconfig == 0x0033:
+            available.append(key)
+    return available
+
+
 def trigger_wink(slot_id=None):
     from app_launcher import Launcher
     launcher = Launcher._singleton
@@ -68,6 +100,7 @@ def trigger_wink(slot_id=None):
         authenticator_app = launcher._apps['authenticator.Authenticator'] = Authenticator()
     schedule = get_scheduler()
     schedule.switch_app(authenticator_app)
+    authenticator_app.set_rotation(90, redraw=True)
     tidal.led_power_on(True)
     tidal.led[0] = (255, 255, 0)
     flasher = authenticator_app.periodic(250, cycle_leds)
@@ -99,7 +132,7 @@ def allow_interrupt_when_authenticating():
             if operation == 1: # Registration request
                 # Re-use an old slot for this application, if possible
                 if slot_id is None:
-                    for i in range(16):
+                    for i in usable_slots():
                         print("Looking for matching slot: ", i, settings.get(f"auth_slot_{i}_name"))
                         
                         if settings.get(f"auth_slot_{i}_name", "") == name:
@@ -108,7 +141,7 @@ def allow_interrupt_when_authenticating():
                 
                 # If not, find an unused slot
                 if slot_id is None:
-                    for i in range(16):
+                    for i in usable_slots():
                         print("Looking for empty slot: ", i, settings.get(f"auth_slot_{i}_name"))
                         if not settings.get(f"auth_slot_{i}_name", ""):
                             slot_id = i
@@ -120,7 +153,9 @@ def allow_interrupt_when_authenticating():
                     prompting = False
                     return
             elif operation == 3: # Authenticate request
-                slot_id=None
+                # Force re-discovery of the slot id - TODO: Remove this
+                slot_id = None
+
                 if slot_id:
                     # Check the application parameter matches
                     expected_name = settings.get(f"auth_slot_{slot_id}_name", "")
@@ -129,7 +164,7 @@ def allow_interrupt_when_authenticating():
                         prompting = False
                         return
                 elif slot_id is None:
-                    for i in range(16):
+                    for i in usable_slots():
                         expected_name = settings.get(f"auth_slot_{i}_name", "")
                         if expected_name == name:
                             slot_id = i
