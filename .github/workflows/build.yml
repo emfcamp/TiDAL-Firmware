@@ -12,10 +12,16 @@ jobs:
   Build-Firmware:
     runs-on: ubuntu-22.04
     steps:
+      - name: Install Python3.8
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.8'
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential python3-pip python3-pillow libusb-1.0-0-dev cmake
+          sudo apt-get install -y build-essential libusb-1.0-0-dev cmake
+      - name: Add python deps
+        run: pip install pillow
       - name: Check out driver code
         uses: actions/checkout@v2
         with:
