@@ -22,5 +22,5 @@ RUN bash -c "source /esp-idf/export.sh && python3 -m pip install Pillow"
 
 # Copy the build script in and define that as the entrypoint
 COPY scripts/build.sh /
-COPY scripts/merge_firmwares.sh /
+COPY scripts/merge-firmwares.sh /
 ENTRYPOINT ["/build.sh"]
