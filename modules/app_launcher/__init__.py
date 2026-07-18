@@ -82,6 +82,7 @@ class Launcher(MenuApp):
         core_app_info = [
             ("App store", "app_store", "Store"),
             ("USB Keyboard", "hid", "USBKeyboard"),
+            ("Authenticator", "authenticator", "Authenticator"),
             ("Name Badge", "hello", "Hello"),
             ("Torch", "torch", "Torch"),
             ("Logo", "emflogo", "EMFLogo"),

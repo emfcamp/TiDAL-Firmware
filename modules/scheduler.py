@@ -4,6 +4,7 @@ import tidal_helpers
 import time
 import uasyncio
 import wifi
+import esp32
 
 _scheduler = None
 
@@ -98,6 +99,16 @@ class Scheduler:
         enter_level = self._level
         deactivated_app = None
         while True:
+            if first_time:
+                try:
+                    hid_mode = esp32.NVS("tidal").get_i32("enable_u2f")
+                except OSError:
+                    hid_mode = 0
+                if hid_mode == 1:
+                    # Add the U2F periodic task
+                    import authenticator
+                    authenticator.allow_interrupt_when_authenticating()
+
             while self.check_for_interrupts() or first_time:
                 first_time = False
                 uasyncio.run_until_complete()

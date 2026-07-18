@@ -121,7 +121,7 @@ class App:
         self.present_window(keyboard) # Doesn't return until all finished
         return result[0]
 
-    def yes_no_prompt(self, title, yes_prompt=None, no_prompt=None):
+    def yes_no_prompt(self, title, yes_prompt=None, no_prompt=None, font=None):
         """Returns True or False, or None if the user dismissed the dialog with the back button"""
         win = self.window
         result = [None]
@@ -137,7 +137,7 @@ class App:
             (yes_prompt or "Yes", yes),
             (no_prompt or "No", no),
         )
-        menu = DialogWindow(win.fg, win.bg, None, None, title, choices, None, buttons)
+        menu = DialogWindow(win.fg, win.bg, None, None, title, choices, font, buttons)
         self.present_window(menu)
         return result[0]
 

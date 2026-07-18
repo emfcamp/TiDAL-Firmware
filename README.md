@@ -22,15 +22,15 @@ Apply patches to submodules:
 
 Pull the docker image containing the IDF:
 
-    docker pull matthewwilkes/esp_idf:4.4
+    docker pull matthewwilkes/esp_idf:4.4.1
     
 This is (currently) very large. You can alternatively build this locally yourself:
 
-    docker build . -t esp_idf:4.4
+    docker build . -t esp_idf:4.4.1
 
 At this stage, you can run the image, mounting the current working directory as the firmware target:
 
-    docker run -it -v "$(pwd)"/:/firmware matthewwilkes/esp_idf:4.4 IOT_SOLUTION_PATH=/firmware/esp-iot-solution TARGET=esp32s3
+    docker run -it -v "$(pwd)"/:/firmware matthewwilkes/esp_idf:4.4.1 IOT_SOLUTION_PATH=/firmware/esp-iot-solution TARGET=esp32s3 IDF_TARGET=esp32s3
 
 This will leave the firmware build context in `./micropython/ports/esp32/build-tildamk6` and output the flashing command. Only the three .bin files referenced are important.
 
@@ -52,7 +52,7 @@ if you're using the electo magentic yield prototype, use:
 
 If you need to switch which version you're building, run
 
-    docker run -it -v "$(pwd)"/:/firmware matthewwilkes/esp_idf:4.4 IOT_SOLUTION_PATH=/firmware/esp-iot-solution TARGET=esp32s3 clean
+    docker run -it -v "$(pwd)"/:/firmware matthewwilkes/esp_idf:4.4.1 IOT_SOLUTION_PATH=/firmware/esp-iot-solution TARGET=esp32s3 clean
 
 to remove the cached definitions.
 
@@ -62,7 +62,7 @@ You might need to force download mode on the board (by holding the Boot button d
 
 If your serial port is on a different name then map that with docker:
 
-    docker run -it --device /dev/ttyACM0:/dev/ttyUSB0 -v "$(pwd)"/:/firmware matthewwilkes/esp_idf:4.4 IOT_SOLUTION_PATH=/firmware/esp-iot-solution TARGET=esp32s3 deploy
+    docker run -it --device /dev/ttyACM0:/dev/ttyUSB0 -v "$(pwd)"/:/firmware matthewwilkes/esp_idf:4.4.1 IOT_SOLUTION_PATH=/firmware/esp-iot-solution TARGET=esp32s3 deploy
 
 ## Accessing the REPL
 

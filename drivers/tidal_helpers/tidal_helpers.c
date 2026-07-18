@@ -13,6 +13,7 @@
 #include "esp32s2/rom/usb/usb_persist.h"
 #include "esp_wpa2.h"
 #include "driver/ledc.h"
+#include "tidal_usb_u2f_shared_variables.h"
 
 // static const char *TAG = "tidal_helpers";
 

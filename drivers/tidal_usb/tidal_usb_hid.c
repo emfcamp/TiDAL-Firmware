@@ -1,4 +1,5 @@
 #include "py/runtime.h"
+#include "esp_log.h"
 #include "tinyusb.h"
 #include "tusb_hid.h"
 #include "usb.h"
@@ -8,10 +9,12 @@
 #include "tidal_usb_u2f.h"
 #endif
 
+static const char *TAG = "tidalHID";
+
 void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t report_type, uint8_t const* buffer, uint16_t bufsize) { 
     printf("REPORT: %d %d %d\n", itf, report_id, report_type);
     #if CFG_TUD_U2FHID
-    if (itf == 1) {
+    if (hid_mode == 1) {
         // This is the U2F device
         handle_report_u2f(itf, report_id, report_type, buffer, bufsize);
     }
@@ -22,7 +25,11 @@ void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t rep
 // report, so buttons are considered held until they're explicitly released
 void tud_hid_report_complete_cb(uint8_t itf, uint8_t const *report, uint8_t len)
 {
-    // no-op
+    ESP_LOGW(TAG, "HID report complete");
+    #if CFG_TUD_U2FHID
+        // Also send any pending U2F reports
+        pop_and_send_report();
+    #endif
 }
 
 // Send up to 6 keyboard scancodes

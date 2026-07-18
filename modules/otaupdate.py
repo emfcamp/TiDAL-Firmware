@@ -6,6 +6,7 @@ import network
 import ota
 import time
 import wifi
+import requests
 
 # Note, this intentionally doesn't inherit App or TextApp to limit dependencies
 # because it is on the critical path from the Recovery Menu.
@@ -15,6 +16,7 @@ class OtaUpdate:
     buttons = None
     started = False
     sync = False
+    channel = "latest"
     
     def run_sync(self):
         self.sync = True
@@ -119,6 +121,8 @@ class OtaUpdate:
         window.println()
         line = window.get_next_line()
         self.confirmed = False
+        self.tryHttps = True
+
 
         retry = True
         while retry:
@@ -126,13 +130,23 @@ class OtaUpdate:
             window.println("Checking...", line)
 
             try:
-                result = ota.update(lambda version, val: self.progress(version, val))
+                response = requests.head(
+                    f"https://github.com/emfcamp/tidal-firmware/releases/download/{self.channel}/micropython.bin",
+                    allow_redirects=False
+                )
+                url = response.headers["Location"]
+
+                if not self.tryHttps:
+                    url = url.replace("https://", "http://")
+
+                result = ota.update(lambda version, val: self.progress(version, val), url)
                 retry = False
             except OSError as e:
                 print("Error:" + str(e))
                 window.println("Update failed!")
                 window.println("Error {}".format(e.errno))
                 window.println("[A] to retry")
+                self.tryHttps = False
                 if not self.wait_for_a():
                     result = None
                     retry = False

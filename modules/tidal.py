@@ -8,6 +8,7 @@ import st7789
 from st7789 import BLACK, BLUE, RED, GREEN, CYAN, MAGENTA, YELLOW, WHITE, color565
 
 import _tidal_usb as usb
+import _tidal_authentication as authentication
 import tidal_helpers
 
 # Boost the saturation massively to match better on the LCD
