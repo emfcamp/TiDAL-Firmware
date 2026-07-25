@@ -2,6 +2,10 @@
 
 This is a package containing a micropython board definition and additional driver modules for the EMF 2022 badge.
 
+## Updating from web app ##
+
+You can find the web updater [here](https://emfcamp.github.io/TiDAL-Firmware/)
+
 ## Building using Docker
 
 First, ensure you have a working Docker daemon on your machine. You'll need to build the docker image containing the SDK for the chip.
