@@ -71,21 +71,12 @@ jobs:
             micropython/ports/esp32/build-tildamk6/partition_table/partition-table.bin
             micropython/ports/esp32/build-tildamk6/ota_data_initial.bin
             micropython/ports/esp32/build-tildamk6/tidal.txt
-      - name: Create latest release for tags
-        uses: "marvinpinto/action-automatic-releases@latest"
-        if: github.event_name == 'push'
-        with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "latest"
-          title: "Latest release build"
-          files: |
-            micropython/ports/esp32/build-tildamk6/micropython.bin
-            micropython/ports/esp32/build-tildamk6/tidal.txt
       - name: Create specific release for tags
         uses: "marvinpinto/action-automatic-releases@latest"
         if: github.event_name == 'push'
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          prerelease: false
           files: |
             micropython/ports/esp32/build-tildamk6/micropython.bin
             micropython/ports/esp32/build-tildamk6/tidal.txt
