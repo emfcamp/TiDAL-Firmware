@@ -44,4 +44,4 @@ const mp_obj_module_t tidal_usb_module = {
 };
 
 // Regisiter as a top-level module
-MP_REGISTER_MODULE(MP_QSTR__tidal_usb, tidal_usb_module, 1);
+MP_REGISTER_MODULE(MP_QSTR__tidal_usb, tidal_usb_module);

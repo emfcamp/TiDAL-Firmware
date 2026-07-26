@@ -16,3 +16,6 @@
 [submodule "lodepng"]
 	path = lodepng
 	url = https://github.com/lvandeve/lodepng
+[submodule "tidal3d"]
+	path = tidal3d
+	url = git@github.com:mbooth101/tidal3d.git
